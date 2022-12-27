@@ -1,0 +1,159 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue';
+import { useSections } from './devComposables';
+import { useHighlight } from './useHighlight';
+
+const { menuItems, sections } = useSections();
+
+const titlesRef = ref<HTMLHeadingElement[]>([]);
+
+const { unreachableIndices, dataset, activeIndex, setUnreachable, isBottomReached } = useHighlight(
+	titlesRef,
+	{
+		jumpToFirst: true,
+		jumpToLast: true,
+	}
+);
+/* const { unreachableIndices, dataset, activeIndex, setUnreachable } = useHighlight('h1.titles', {
+	jumpToFirst: false,
+	jumpToLast: false,
+}); */
+
+function spliceSection() {
+	sections.splice(0, 1);
+}
+
+watch(
+	() => activeIndex.value,
+	(newIndex) => {
+		console.log(newIndex, JSON.stringify(dataset.value), JSON.stringify(unreachableIndices.value));
+	}
+);
+
+const linkRefs = ref<HTMLElement[]>([]);
+
+const activeItemHeight = computed(
+	() => linkRefs.value[activeIndex.value]?.getBoundingClientRect().height || 0
+);
+
+onMounted(() => {
+	const indexFromHash = titlesRef.value.findIndex(({ id }) => id === window.location.hash.slice(1));
+	setUnreachable(indexFromHash);
+});
+</script>
+
+<template>
+	<div class="wrapper">
+		<main class="main">
+			<section v-for="section in sections" :key="section.id">
+				<h1
+					class="titles"
+					ref="titlesRef"
+					data-x-y="Ciao"
+					:data-section="section.id"
+					:id="section.id"
+				>
+					{{ section.title }}
+				</h1>
+				<p>{{ section.text }}</p>
+			</section>
+		</main>
+		<nav>
+			<button @click="spliceSection">Slice</button>
+
+			<ul :style="`--ActiveIndex: ${activeIndex}; --ActiveItemHeight: ${activeItemHeight}px;`">
+				<span aria-hidden="true" class="Tracker" />
+				<span aria-hidden="true" class="TrackerBackground" />
+				<li
+					ref="linkRefs"
+					v-for="(item, itemIndex) in menuItems"
+					:key="item.id"
+					:class="[
+						'menuItem',
+						{
+							active:
+								itemIndex === activeIndex ||
+								(itemIndex === activeIndex && unreachableIndices.includes(itemIndex)),
+						},
+					]"
+				>
+					<a :href="item.href" @click="() => setUnreachable(itemIndex)">
+						{{ item.label }}
+					</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+</template>
+
+<style scoped>
+.main {
+	margin-top: 300px;
+}
+
+.Tracker {
+	width: 4px;
+	height: var(--ActiveItemHeight);
+	position: absolute;
+	background: red;
+	display: block;
+	left: -10px;
+	transition: top 100ms;
+	top: calc(var(--ActiveItemHeight) * var(--ActiveIndex));
+}
+
+.TrackerBackground {
+	width: 100%;
+	height: var(--ActiveItemHeight);
+	position: absolute;
+	left: -10px;
+	right: 10px;
+	top: calc(var(--ActiveItemHeight) * var(--ActiveIndex));
+	background: #ffffff1a;
+	border-radius: 0 5px 5px 0;
+	transition: top 100ms;
+}
+
+.wrapper {
+	display: grid;
+	grid-template-columns: 1fr 0.3fr;
+	gap: 100px;
+	position: relative;
+}
+
+h1 {
+	padding: 30px 0;
+	margin: 0;
+}
+
+.menuItem {
+	background-color: transparent;
+	transition: background-color 100ms;
+}
+
+.active {
+	background-color: white;
+}
+
+p {
+	margin: 0 0 30px 0;
+}
+
+nav {
+	top: 0;
+	position: fixed;
+	right: 0;
+	padding: 30px;
+}
+
+ul {
+	position: relative;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+li {
+	position: relative;
+}
+</style>
