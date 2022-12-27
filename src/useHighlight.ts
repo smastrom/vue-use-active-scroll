@@ -4,9 +4,13 @@ import { useResize, useScroll } from './internalComposables';
 
 type Dataset = Record<string, string>;
 
-// Value in px to ensure that the section is highlighted
-const OFFSET = 10;
-const BACK_TO_TOP_OFFSET = 10;
+/**
+ * This is a fixed value of 20px used when jumpToTop is false,
+ * it prevents that the first section is marked as inactive
+ * maybe too soon.
+ */
+
+const BACK_TO_TOP_OFFSET = 20;
 
 export function getDataset(dataset: DOMStringMap): Dataset {
 	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
@@ -25,13 +29,20 @@ function getRects(
 	elements: HTMLElement[],
 	prop: 'top' | 'bottom',
 	comparator?: '+' | '-',
-	offset: number = OFFSET
+	userOffset: number = 0
 ) {
 	const map = new Map<number, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
+		if (i === 0 && prop === 'top') {
+			console.log(rectProp, userOffset);
+		}
 		const condition =
-			comparator === '+' ? rectProp >= offset : comparator === '-' ? rectProp <= offset : true;
+			comparator === '+'
+				? rectProp >= userOffset
+				: comparator === '-'
+				? rectProp <= userOffset
+				: true;
 		if (condition) {
 			map.set(i, elements[i].getBoundingClientRect()[prop]);
 		}
@@ -44,7 +55,6 @@ function getRects(
  * excluded from the highlight process at the bottom of the page.
  */
 function _setUnreachables(target: Ref<number[]>, elements: HTMLElement[]) {
-	// Maybe place those values in a shared reactive and update them on resize.
 	const unreachables: number[] = [];
 	const root = document.documentElement;
 	// This works at any point of the page
@@ -62,7 +72,12 @@ function _setUnreachables(target: Ref<number[]>, elements: HTMLElement[]) {
 
 export function useHighlight(
 	refs: Ref<HTMLElement[]> | string,
-	{ topOffset = 0, debounce = 0, jumpToFirst = true, jumpToLast = true }: UseHighlightOptions
+	{
+		topOffset: userOffset = 100,
+		debounce = 0,
+		jumpToFirst = true,
+		jumpToLast = true,
+	}: UseHighlightOptions
 ) {
 	// Internal refs
 	const userElements = isRef(refs) ? refs : shallowRef([]);
@@ -87,14 +102,16 @@ export function useHighlight(
 		});
 	}
 
-	// Hooks
 	onMounted(() => {
+		/**
+		 * Get them here as there's nothing to watch against in order to keep this array reactive.
+		 */
 		if (typeof refs === 'string') {
 			(userElements as Ref<HTMLElement[]>).value = Array.from(document.querySelectorAll(refs));
 		}
 
-		// Works always and sets activeIndex to 0 if jumpToFirst is true
-		if (jumpToFirst && document.documentElement.scrollTop <= 10) {
+		// Sets activeIndex to 0 if jumpToFirst is true, even if scrolled for 20px
+		if (jumpToFirst && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
 			return (activeIndex.value = 0);
 		}
 	});
@@ -102,6 +119,13 @@ export function useHighlight(
 	watch(
 		() => userElements.value.length,
 		() => {
+			/**
+			 * This runs onMount as well also when user is using selectors.
+			 * We reorder the elements by their offsetTop position as
+			 * it may not be guaranteed according to vue template refs docs.
+			 */
+
+			userElements.value.sort((a, b) => a.offsetTop - b.offsetTop);
 			setUnreachables();
 		},
 		{ immediate: true, flush: 'post' }
@@ -123,14 +147,12 @@ export function useHighlight(
 	}
 
 	/**
-	 * Rects notes
 	 * - getRects(top, -) -> get all titles that are above the viewport, used onScrollDown.
-	 * Since map order resposcts DOM order the LAST value is the nearest to the top of the viewport.
-	 *
+	 * Since map order respects DOM order the LAST value is the nearest to the top of the viewport.
 	 *
 	 * - getRects(bottom, +) -> get all titles that entered the viewport, used onScrollUp.
 	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
-	 * Since map order resposcts DOM order the FIRST value is always the nearest to top of the viewport.
+	 * Since map order respects DOM order the FIRST value is always the nearest to top of the viewport.
 	 */
 
 	function onScrollDown() {
@@ -141,18 +163,29 @@ export function useHighlight(
 		if (
 			!jumpToFirst &&
 			activeIndex.value === -1 &&
-			getRects(userElements.value, 'top', '-').size <= 0
+			getRects(userElements.value, 'top', '-', userOffset).size <= 0
 		) {
 			return (activeIndex.value = -1);
 		}
 		// Common behavior - Get last item that leaves the viewport from its top edge
-		activeIndex.value = Array.from(getRects(userElements.value, 'top', '-').keys()).pop() ?? 0;
+		const newActiveIndex =
+			Array.from(getRects(userElements.value, 'top', '-', userOffset).keys()).pop() ?? 0;
+
+		/**
+		 * This condition prevents to set PREV indexes as active for when scrolling down
+		 * with smoothscroll is active.
+		 */
+		if (newActiveIndex > activeIndex.value) {
+			activeIndex.value = newActiveIndex;
+		}
 	}
 
 	function onScrollUp() {
+		// Reset any scheduled index
 		scheduledIndex.value = -1;
 		// Common behavior - Get first item that enters the viewport from its bottom edge
-		const newActiveIndex = getRects(userElements.value, 'bottom', '+').keys().next().value ?? 0;
+		const newActiveIndex =
+			getRects(userElements.value, 'bottom', '+', userOffset).keys().next().value ?? 0;
 
 		/**
 		 * If jumpToFirst is false, and the first title is in the viewport,
@@ -160,15 +193,14 @@ export function useHighlight(
 		 */
 		if (!jumpToFirst && newActiveIndex === 0) {
 			const newActiveTopPos = getRects(userElements.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos > BACK_TO_TOP_OFFSET) {
+			if (newActiveTopPos > BACK_TO_TOP_OFFSET + userOffset) {
 				return (activeIndex.value = -1);
 			}
 		}
 
 		/**
-		 * Else set the first item that enters the viewport.
-		 * This condition prevents to set next indexes as active when scrolling up fast
-		 * and smoothscroll is active.
+		 * This condition prevents to set NEXT indexes as active when scrolling up
+		 * with smoothscroll is active.
 		 */
 		if (newActiveIndex < activeIndex.value) {
 			activeIndex.value = newActiveIndex;
