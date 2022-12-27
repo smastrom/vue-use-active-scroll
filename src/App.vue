@@ -12,11 +12,16 @@ const { unreachableIndices, dataset, activeIndex, setUnreachable, isBottomReache
 	{
 		jumpToFirst: false,
 		jumpToLast: true,
+		topOffset: 100,
 	}
 );
 
 function spliceSection() {
 	sections.splice(0, 1);
+}
+
+function wipeArray() {
+	sections.splice(0, sections.length);
 }
 
 watch(
@@ -41,6 +46,7 @@ onMounted(() => {
 
 <template>
 	<div class="wrapper">
+		<header>Fixed Header</header>
 		<main class="main">
 			<section v-for="section in sections" :key="section.id">
 				<h1
@@ -56,6 +62,7 @@ onMounted(() => {
 			</section>
 		</main>
 		<nav>
+			<button @click="wipeArray">Wipe</button>
 			<button @click="spliceSection">Slice</button>
 
 			<ul :style="`--ActiveIndex: ${activeIndex}; --ActiveItemHeight: ${activeItemHeight}px;`">
@@ -82,6 +89,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
+header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 100px;
+	background: rgba(255, 255, 255, 0.206);
+}
+
 .main {
 	margin-top: 300px;
 }
@@ -135,7 +151,7 @@ p {
 }
 
 nav {
-	top: 0;
+	top: 110px;
 	position: fixed;
 	right: 0;
 	padding: 30px;
