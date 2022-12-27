@@ -1,0 +1,1 @@
+export { useHighlight } from './useHighlight';

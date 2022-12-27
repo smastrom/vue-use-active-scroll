@@ -10,14 +10,10 @@ const titlesRef = ref<HTMLHeadingElement[]>([]);
 const { unreachableIndices, dataset, activeIndex, setUnreachable, isBottomReached } = useHighlight(
 	titlesRef,
 	{
-		jumpToFirst: true,
+		jumpToFirst: false,
 		jumpToLast: true,
 	}
 );
-/* const { unreachableIndices, dataset, activeIndex, setUnreachable } = useHighlight('h1.titles', {
-	jumpToFirst: false,
-	jumpToLast: false,
-}); */
 
 function spliceSection() {
 	sections.splice(0, 1);
@@ -38,6 +34,7 @@ const activeItemHeight = computed(
 
 onMounted(() => {
 	const indexFromHash = titlesRef.value.findIndex(({ id }) => id === window.location.hash.slice(1));
+	console.log(indexFromHash);
 	setUnreachable(indexFromHash);
 });
 </script>
@@ -71,9 +68,7 @@ onMounted(() => {
 					:class="[
 						'menuItem',
 						{
-							active:
-								itemIndex === activeIndex ||
-								(itemIndex === activeIndex && unreachableIndices.includes(itemIndex)),
+							active: itemIndex === activeIndex,
 						},
 					]"
 				>
