@@ -47,30 +47,30 @@ The best thing to do is to target the top headings of your section. This will en
 
 ```vue
 <script>
-import { reactive, ref } from "vue";
-import { useHighlight } from "vue-toc-highlight";
+import { reactive, ref } from 'vue'
+import { useHighlight } from 'vue-toc-highlight'
 
 const sections = reactive([
-      {
-            parent: "guide",
-            id: "section-1",
-            title: "Section 1",
-            content: "...",
-      }, // ...
-]);
+  {
+    parent: 'guide',
+    id: 'section-1',
+    title: 'Section 1',
+    content: '...'
+  } // ...
+])
 
-const titleRefs = ref([]);
-const { activeIndex } = useHighlight(titleRefs);
+const titleRefs = ref([])
+const { activeIndex } = useHighlight(titleRefs)
 </script>
 
 <template>
-      <section v-for="section in sections" :key="section.id" :id="section.id">
-            <!-- 👇 -->
-            <h1 ref="titleRefs">
-                  {{ section.title }}
-            </h1>
-            <p>{{ section.content }}</p>
-      </section>
+  <section v-for="section in sections" :key="section.id" :id="section.id">
+    <!-- 👇 -->
+    <h1 ref="titleRefs">
+      {{ section.title }}
+    </h1>
+    <p>{{ section.content }}</p>
+  </section>
 </template>
 ```
 
@@ -79,7 +79,7 @@ const { activeIndex } = useHighlight(titleRefs);
 If you cannot work with template refs, you can pass a valid [CSS selector string](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll) shared by your targets to `useHighlight`.
 
 ```js
-const { activeIndex } = useHighlight("h1.titles");
+const { activeIndex } = useHighlight('h1.titles')
 ```
 
 > :bulb: It uses `document.querySelectorAll` under the hood.
@@ -94,13 +94,17 @@ Use [data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/
 
 ```vue
 <template>
-      <section v-for="section in sections" :key="section.id" :id="section.id">
-            <h1 ref="sectionsRef" :data-section="section.id" :data-parent="section.parent">
-                  <!-- 👆 -->
-                  {{ section.title }}
-            </h1>
-            <p>{{ section.content }}</p>
-      </section>
+  <section v-for="section in sections" :key="section.id" :id="section.id">
+    <h1
+      ref="sectionsRef"
+      :data-section="section.id"
+      :data-parent="section.parent"
+    >
+      <!-- 👆 -->
+      {{ section.title }}
+    </h1>
+    <p>{{ section.content }}</p>
+  </section>
 </template>
 ```
 
@@ -112,9 +116,9 @@ Use [data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/
 
 ```js
 const { activeIndex, activeDataset } = useHighlight(titleRefs, {
-      topOffset: 100,
-      // Other options...
-});
+  topOffset: 100
+  // Other options...
+})
 ```
 
 | Property    | Type      | Default | Description                                                                                                                 |
@@ -131,13 +135,11 @@ const { activeIndex, activeDataset } = useHighlight(titleRefs, {
 The composable returns an object of reactive [refs](https://vuejs.org/api/reactivity-core.html#ref) plus a special function.
 
 ```js
-const { activeIndex, activeDataset, isBottomReached, setUnreachable } = useHighlight(
-      sectionsRef,
-      {
-            topOffset: 100,
-            debounce: 100,
-      }
-);
+const { activeIndex, activeDataset, isBottomReached, setUnreachable } =
+  useHighlight(sectionsRef, {
+    topOffset: 100,
+    debounce: 100
+  })
 ```
 
 | Name            | Type                      | Description                                                                                      |
@@ -156,50 +158,50 @@ If your menu has the same length of your targets, `activeIndex` is enough to hig
 ```vue
 <script setup>
 const sections = reactive([
-      {
-            parent: "guide",
-            id: "section-1",
-            title: "Section 1",
-            content: "...",
-      }, // ...
-]);
+  {
+    parent: 'guide',
+    id: 'section-1',
+    title: 'Section 1',
+    content: '...'
+  } // ...
+])
 
 const menuLinks = computed(() =>
-      sections.map((section, index) => ({
-            title: section.title,
-            href: `#${section.id}`,
-      }))
-);
+  sections.map((section, index) => ({
+    title: section.title,
+    href: `#${section.id}`
+  }))
+)
 
-const titleRefs = ref([]);
-const { activeIndex } = useHighlight(titleRefs);
+const titleRefs = ref([])
+const { activeIndex } = useHighlight(titleRefs)
 </script>
 
 <template>
-      <nav>
-            <a
-                  v-for="(link, index) in menuLinks"
-                  :href="link.href"
-                  :key="link.href"
-                  :class="[
-                        'link',
-                        {
-                              active: index === activeIndex,
-                        },
-                  ]"
-            >
-                  {{ links.label }}
-            </a>
-      </nav>
+  <nav>
+    <a
+      v-for="(link, index) in menuLinks"
+      :href="link.href"
+      :key="link.href"
+      :class="[
+        'link',
+        {
+          active: index === activeIndex
+        }
+      ]"
+    >
+      {{ links.label }}
+    </a>
+  </nav>
 </template>
 
 <style scoped>
 .link {
-      color: #000;
+  color: #000;
 }
 
 .active {
-      color: #f00;
+  color: #f00;
 }
 </style>
 ```
@@ -211,10 +213,10 @@ For advanced cases like parent titles, different depths, etc. you can use `activ
 If for example, you passed `data-section` and `data-parent-category` to your targets, you'll be able to access the current active target attribute value like this:
 
 ```js
-const { activeIndex, activeDataset } = useHighlight(titleRefs);
+const { activeIndex, activeDataset } = useHighlight(titleRefs)
 
-console.log(activeDataset.section); // => Active 'data-section' value
-console.log(activeDataset.parentCategory); // => Active 'data-parent-category' value
+console.log(activeDataset.section) // => Active 'data-section' value
+console.log(activeDataset.parentCategory) // => Active 'data-parent-category' value
 ```
 
 ## setUnreachable
@@ -234,17 +236,17 @@ This function allows you to "safely" set an unreachable index as active without 
 If users access the link `yoursite.com/#section-18`, the default behavior will set as active Section 16 as it is the nearest to the top of the page. You can schedule Section 18 to be set as active by calling `setUnreachable` in an onMounted hook. If criteria are met, it will be set as active instead of 16.
 
 ```js
-import { onMounted } from "vue";
-import { useHighlight } from "vue-toc-highlight";
+import { onMounted } from 'vue'
+import { useHighlight } from 'vue-toc-highlight'
 
-const { activeIndex, setUnreachable } = useHighlight(titleRefs);
+const { activeIndex, setUnreachable } = useHighlight(titleRefs)
 
 onMounted(() => {
-      const indexFromHash = titlesRef.value.findIndex(
-            ({ id }) => id === window.location.hash.slice(1)
-      );
-      setUnreachable(indexFromHash); // Runs only if index is unreachable and different than default one
-});
+  const indexFromHash = titlesRef.value.findIndex(
+    ({ id }) => id === window.location.hash.slice(1)
+  )
+  setUnreachable(indexFromHash) // Runs only if index is unreachable and different than default one
+})
 ```
 
 **Example 2 - Set unreachable on link click**
@@ -257,25 +259,25 @@ By calling `setUnreachable` directly in the click handler, that index will be se
 
 ```vue
 <script setup>
-const { activeIndex, setUnreachable } = useHighlight(titleRefs);
+const { activeIndex, setUnreachable } = useHighlight(titleRefs)
 </script>
 
 <template>
-      <nav>
-            <a
-                  v-for="(link, index) in menuLinks"
-                  :href="link.href"
-                  :key="link.id"
-                  @click="() => setUnreachable(index)"
-                  :class="[
-                        'menuItem',
-                        {
-                              active: index === activeIndex,
-                        },
-                  ]"
-            >
-                  {{ links.label }}
-            </a>
-      </nav>
+  <nav>
+    <a
+      v-for="(link, index) in menuLinks"
+      :href="link.href"
+      :key="link.id"
+      @click="() => setUnreachable(index)"
+      :class="[
+        'menuItem',
+        {
+          active: index === activeIndex
+        }
+      ]"
+    >
+      {{ links.label }}
+    </a>
+  </nav>
 </template>
 ```

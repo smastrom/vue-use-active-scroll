@@ -1,12 +1,25 @@
-import { ref, Ref, onMounted, isRef, shallowRef, computed, watch } from 'vue';
+import { ref, Ref, onMounted, isRef, shallowRef, computed, watch, nextTick } from 'vue';
 import { UseHighlightOptions } from './types';
-import { useScroll } from './useScroll';
+import { useResize, useScroll } from './internalComposables';
 
 type Dataset = Record<string, string>;
 
 // Value in px to ensure that the section is highlighted
 const OFFSET = 10;
 const BACK_TO_TOP_OFFSET = 10;
+
+export function getDataset(dataset: DOMStringMap): Record<string, string> {
+	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
+
+	// Exclude any 'data-v'
+	Object.keys(datasetAsObj).forEach((key) => {
+		if (key.startsWith('v-')) {
+			delete datasetAsObj[key];
+		}
+	});
+
+	return datasetAsObj;
+}
 
 function getRects(
 	elements: HTMLElement[],
@@ -18,7 +31,6 @@ function getRects(
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
 		const condition =
-			// eslint-disable-next-line no-nested-ternary
 			comparator === '+' ? rectProp >= offset : comparator === '-' ? rectProp <= offset : true;
 		if (condition) {
 			map.set(i, elements[i].getBoundingClientRect()[prop]);
@@ -31,7 +43,7 @@ function getRects(
  * This function gets 'in advance' all section indices that would be
  * excluded from the highlight process at the bottom of the page.
  */
-function getUnreachables(elements: HTMLElement[]) {
+function _setUnreachables(target: Ref<number[]>, elements: HTMLElement[]) {
 	// Maybe place those values in a shared reactive and update them on resize.
 	const unreachables: number[] = [];
 	const root = document.documentElement;
@@ -45,22 +57,18 @@ function getUnreachables(elements: HTMLElement[]) {
 		}
 	});
 
-	return unreachables;
+	target.value = unreachables;
 }
 
 export function useHighlight(
 	refs: Ref<HTMLElement[]> | string,
-	{
-		topOffset, // Ok
-		debounce = 0, // Ok
-		jumpToFirst = true, // Ok
-		jumpToLast = true, // Ok
-	}: UseHighlightOptions
+	{ topOffset = 0, debounce = 0, jumpToFirst = true, jumpToLast = true }: UseHighlightOptions
 ) {
+	// Internal refs
 	const userElements = isRef(refs) ? refs : shallowRef([]);
 	const scheduledIndex = ref(-1);
 
-	/** Return values */
+	// Returned values
 	const unreachableIndices = ref<number[]>([]);
 	const activeIndex = ref(-1);
 	const dataset = computed<Dataset>(() => {
@@ -68,60 +76,36 @@ export function useHighlight(
 		if (!activeElement) {
 			return {};
 		}
-
 		return getDataset(activeElement.dataset);
 	});
 
+	function setUnreachable(index: number) {
+		nextTick(() => {
+			if (unreachableIndices.value.includes(index) && index !== activeIndex.value) {
+				scheduledIndex.value = index;
+			}
+		});
+	}
+
+	// Hooks
 	onMounted(() => {
 		if (typeof refs === 'string') {
 			(userElements as Ref<HTMLElement[]>).value = Array.from(document.querySelectorAll(refs));
 		}
 
-		unreachableIndices.value = getUnreachables(userElements.value);
-
+		// Works always and sets activeIndex to 0 if jumpToFirst is true
 		if (jumpToFirst && document.documentElement.scrollTop <= 10) {
 			return (activeIndex.value = 0);
 		}
 	});
 
-	const { isBottomReached } = useScroll(document.documentElement, {
-		onScrollDown() {
-			console.log('Scrolling Down');
-			if (
-				!jumpToFirst &&
-				activeIndex.value === -1 &&
-				getRects(userElements.value, 'top', '-').size <= 0
-			) {
-				return (activeIndex.value = -1);
-			}
-			activeIndex.value = Array.from(getRects(userElements.value, 'top', '-').keys()).pop() ?? 0;
+	watch(
+		() => userElements.value.length,
+		() => {
+			setUnreachables();
 		},
-		onScrollUp() {
-			scheduledIndex.value = -1;
-			const newActiveIndex = getRects(userElements.value, 'bottom', '+').keys().next().value ?? 0;
-
-			if (!jumpToFirst && newActiveIndex === 0) {
-				const newActiveTopPos = getRects(userElements.value, 'top').values().next().value ?? 0;
-				if (newActiveTopPos > BACK_TO_TOP_OFFSET) {
-					return (activeIndex.value = -1);
-				}
-			}
-
-			if (newActiveIndex < activeIndex.value) {
-				activeIndex.value = newActiveIndex;
-			}
-		},
-		onBottomReached() {
-			console.log('Bottom reached');
-			if (jumpToLast && unreachableIndices.value.length > 0 && scheduledIndex.value === -1)
-				return (activeIndex.value = unreachableIndices.value[unreachableIndices.value.length - 1]);
-
-			if (scheduledIndex.value !== -1) {
-				activeIndex.value = scheduledIndex.value;
-			}
-		},
-		debounce,
-	});
+		{ immediate: true, flush: 'post' }
+	);
 
 	watch(
 		() => scheduledIndex.value,
@@ -133,11 +117,55 @@ export function useHighlight(
 		{ flush: 'post' }
 	);
 
-	function setUnreachable(index: number) {
-		if (unreachableIndices.value.includes(index) && index !== activeIndex.value) {
-			scheduledIndex.value = index;
+	// Internal Handlers
+	function setUnreachables() {
+		_setUnreachables(unreachableIndices, userElements.value);
+	}
+
+	function onScrollDown() {
+		if (
+			!jumpToFirst &&
+			activeIndex.value === -1 &&
+			getRects(userElements.value, 'top', '-').size <= 0
+		) {
+			return (activeIndex.value = -1);
+		}
+		activeIndex.value = Array.from(getRects(userElements.value, 'top', '-').keys()).pop() ?? 0;
+	}
+
+	function onScrollUp() {
+		scheduledIndex.value = -1;
+		const newActiveIndex = getRects(userElements.value, 'bottom', '+').keys().next().value ?? 0;
+
+		if (!jumpToFirst && newActiveIndex === 0) {
+			const newActiveTopPos = getRects(userElements.value, 'top').values().next().value ?? 0;
+			if (newActiveTopPos > BACK_TO_TOP_OFFSET) {
+				return (activeIndex.value = -1);
+			}
+		}
+
+		if (newActiveIndex < activeIndex.value) {
+			activeIndex.value = newActiveIndex;
 		}
 	}
+
+	function onBottomReached() {
+		if (jumpToLast && unreachableIndices.value.length > 0 && scheduledIndex.value === -1)
+			return (activeIndex.value = unreachableIndices.value[unreachableIndices.value.length - 1]);
+
+		if (scheduledIndex.value !== -1) {
+			activeIndex.value = scheduledIndex.value;
+		}
+	}
+
+	useResize(setUnreachables, onScrollDown);
+
+	const { isBottomReached } = useScroll(userElements, document.documentElement, {
+		onScrollDown,
+		onScrollUp,
+		onBottomReached,
+		debounce,
+	});
 
 	return {
 		activeIndex,
@@ -146,17 +174,4 @@ export function useHighlight(
 		isBottomReached,
 		setUnreachable,
 	};
-}
-
-export function getDataset(dataset: DOMStringMap): Record<string, string> {
-	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
-
-	// Exclude any 'data-v'
-	Object.keys(datasetAsObj).forEach((key) => {
-		if (key.startsWith('v-')) {
-			delete datasetAsObj[key];
-		}
-	});
-
-	return datasetAsObj;
 }
