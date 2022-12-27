@@ -8,7 +8,7 @@ type Dataset = Record<string, string>;
 const OFFSET = 10;
 const BACK_TO_TOP_OFFSET = 10;
 
-export function getDataset(dataset: DOMStringMap): Record<string, string> {
+export function getDataset(dataset: DOMStringMap): Dataset {
 	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
 
 	// Exclude any 'data-v'
@@ -122,7 +122,22 @@ export function useHighlight(
 		_setUnreachables(unreachableIndices, userElements.value);
 	}
 
+	/**
+	 * Rects notes
+	 * - getRects(top, -) -> get all titles that are above the viewport, used onScrollDown.
+	 * Since map order resposcts DOM order the LAST value is the nearest to the top of the viewport.
+	 *
+	 *
+	 * - getRects(bottom, +) -> get all titles that entered the viewport, used onScrollUp.
+	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
+	 * Since map order resposcts DOM order the FIRST value is always the nearest to top of the viewport.
+	 */
+
 	function onScrollDown() {
+		/**
+		 * This condition prevents to set the first index as active until a title actually
+		 * leaves the viewport. Used when jumpToFirst is false.
+		 */
 		if (
 			!jumpToFirst &&
 			activeIndex.value === -1 &&
@@ -130,13 +145,19 @@ export function useHighlight(
 		) {
 			return (activeIndex.value = -1);
 		}
+		// Common behavior - Get last item that leaves the viewport from its top edge
 		activeIndex.value = Array.from(getRects(userElements.value, 'top', '-').keys()).pop() ?? 0;
 	}
 
 	function onScrollUp() {
 		scheduledIndex.value = -1;
+		// Common behavior - Get first item that enters the viewport from its bottom edge
 		const newActiveIndex = getRects(userElements.value, 'bottom', '+').keys().next().value ?? 0;
 
+		/**
+		 * If jumpToFirst is false, and the first title is in the viewport,
+		 * we set activeIndex to -1 as soon as it is completely in the viewport (top edge positive).
+		 */
 		if (!jumpToFirst && newActiveIndex === 0) {
 			const newActiveTopPos = getRects(userElements.value, 'top').values().next().value ?? 0;
 			if (newActiveTopPos > BACK_TO_TOP_OFFSET) {
@@ -144,15 +165,25 @@ export function useHighlight(
 			}
 		}
 
+		/**
+		 * Else set the first item that enters the viewport.
+		 * This condition prevents to set next indexes as active when scrolling up fast
+		 * and smoothscroll is active.
+		 */
 		if (newActiveIndex < activeIndex.value) {
 			activeIndex.value = newActiveIndex;
 		}
 	}
 
 	function onBottomReached() {
+		// If jumpToLast is true and no scheduled index is set, set the last unreachabe index one as active.
 		if (jumpToLast && unreachableIndices.value.length > 0 && scheduledIndex.value === -1)
 			return (activeIndex.value = unreachableIndices.value[unreachableIndices.value.length - 1]);
 
+		/**
+		 * If there's a scheduled index from outside, set it as active.
+		 * This occurse whenever user triggers setUnreachable.
+		 */
 		if (scheduledIndex.value !== -1) {
 			activeIndex.value = scheduledIndex.value;
 		}
