@@ -18,9 +18,7 @@ export default function useDebounceFn<T extends (...args: any[]) => any>(fn: T, 
 export function useResize(setUnreachables: () => void, onScrollDown: () => void) {
 	const debouncedCallback = useDebounceFn(() => {
 		setUnreachables();
-		nextTick(() => {
-			onScrollDown();
-		});
+		onScrollDown();
 	}, 100);
 
 	onMounted(() => {
@@ -33,8 +31,7 @@ export function useResize(setUnreachables: () => void, onScrollDown: () => void)
 }
 
 export function useScroll(
-	targets: Ref<HTMLElement[]>,
-	root: HTMLElement,
+	targets: Ref<HTMLElement[]> | { value: HTMLElement[] },
 	{ onScrollUp = () => {}, onScrollDown = () => {}, onBottomReached = () => {}, debounce = 0 }
 ) {
 	let scrollPos = window.pageYOffset;
@@ -52,8 +49,9 @@ export function useScroll(
 		scrollPos = window.pageYOffset;
 
 		nextTick(() => {
-			const scrollableArea = root.scrollHeight - root.clientHeight;
-			const scrolledHeight = Math.round(root.scrollTop);
+			const scrollableArea =
+				document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const scrolledHeight = Math.round(document.documentElement.scrollTop);
 			if (scrolledHeight >= scrollableArea) {
 				onBottomReached();
 			}

@@ -1,6 +1,6 @@
 # Vue Reactive TOC
 
-### Reactive sidebar links without compromises.
+### Reactive sidebar links without drawbacks.
 
 :bulb: Requires Vue 3 or above.
 
@@ -56,7 +56,7 @@ pnpm add vue-reactive-toc
 
 ## 1. Provide targets — Refs/Selectors
 
-The best thing to do is to observe the **top headings** of your sections. This ensures that the active link follows as much as possible the users' reading-flow. Headings' IDs should also represent the anchors to scroll to.
+The best thing to do is to observe the **top headings** of your sections. This ensures that the active link follows as much as possible the users' reading-flow. Headings' IDs should also represent the anchors to scroll to. If you want to increase the intersection area, simply increase top and bottom paddings of your titles.
 
 ### A) Refs - Recommended
 
@@ -147,8 +147,8 @@ const { activeIndex, activeId, activeDataset } = useActiveTitle(titleRefs, {
 | ----------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | topOffset   | `number`  | 0       | It should match the height in pixels of any **fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
 | debounce    | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is over.                                                                                                       |
-| jumpToFirst | `boolean` | true    | Wheter to set the first title/section on mount as active even if not (yet) intersecting.                                                                                      |
-| jumpToLast  | `boolean` | true    | Wheter to set the last title/section as active once scroll arrives to bottom even if previous titles are entirely visible.                                                    |
+| jumpToFirst | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                             |
+| jumpToLast  | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                          |
 
 ### Return object
 

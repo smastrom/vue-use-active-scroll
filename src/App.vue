@@ -7,14 +7,12 @@ const { menuItems, sections } = useSections();
 
 const titlesRef = ref<HTMLHeadingElement[]>([]);
 
-const { unreachableIndices, dataset, activeIndex, setUnreachable, isBottomReached } = useHighlight(
-	titlesRef,
-	{
-		jumpToFirst: false,
+const { unreachableIndices, dataset, activeIndex, setUnreachable, activeId, isBottomReached } =
+	useHighlight(titlesRef, {
+		jumpToFirst: true,
 		jumpToLast: true,
 		topOffset: 100,
-	}
-);
+	});
 
 function spliceSection() {
 	sections.splice(0, 1);
@@ -25,10 +23,21 @@ function wipeArray() {
 }
 
 watch(
-	() => activeIndex.value,
-	(newIndex) => {
-		console.log(newIndex, JSON.stringify(dataset.value), JSON.stringify(unreachableIndices.value));
-	}
+	[() => activeIndex.value, () => activeId.value],
+	([newIndex, newId]) => {
+		console.log(
+			newIndex,
+			JSON.stringify(dataset.value),
+			JSON.stringify(unreachableIndices.value),
+			activeId.value
+		);
+		if (newIndex <= 0) {
+			history.replaceState(undefined, '', '/');
+		} else {
+			history.replaceState(undefined, '', `#${newId}`);
+		}
+	},
+	{ flush: 'post' }
 );
 
 const linkRefs = ref<HTMLElement[]>([]);
@@ -37,11 +46,10 @@ const activeItemHeight = computed(
 	() => linkRefs.value[activeIndex.value]?.getBoundingClientRect().height || 0
 );
 
-onMounted(() => {
-	const indexFromHash = titlesRef.value.findIndex(({ id }) => id === window.location.hash.slice(1));
-	console.log(indexFromHash);
-	setUnreachable(indexFromHash);
-});
+function handleClick(index: number) {
+	titlesRef.value[index].scrollIntoView({ behavior: 'smooth' });
+	setUnreachable(index);
+}
 </script>
 
 <template>
@@ -79,7 +87,9 @@ onMounted(() => {
 						},
 					]"
 				>
-					<a :href="item.href" @click="() => setUnreachable(itemIndex)">
+					<button @click="() => handleClick(itemIndex)">{{ item.label }}</button>
+
+					<a :href="item.href" @click="setUnreachable(itemIndex)">
 						{{ item.label }}
 					</a>
 				</li>
@@ -113,6 +123,11 @@ header {
 	top: calc(var(--ActiveItemHeight) * var(--ActiveIndex));
 }
 
+.titles {
+	margin: -100px 0 0 0;
+	padding: 130px 0 30px 0;
+}
+
 .TrackerBackground {
 	width: 100%;
 	height: var(--ActiveItemHeight);
@@ -130,11 +145,6 @@ header {
 	grid-template-columns: 1fr 0.3fr;
 	gap: 100px;
 	position: relative;
-}
-
-h1 {
-	padding: 30px 0;
-	margin: 0;
 }
 
 .menuItem {
