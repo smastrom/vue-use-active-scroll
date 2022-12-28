@@ -1,4 +1,4 @@
-import { ref, Ref, onMounted, isRef, shallowRef, computed, watch, nextTick } from 'vue';
+import { ref, Ref, onMounted, isRef, computed, watch, nextTick } from 'vue';
 import { UseHighlightOptions } from './types';
 import { useResize, useScroll } from './internalComposables';
 
@@ -7,7 +7,7 @@ type Dataset = Record<string, string>;
 /**
  * This is a fixed value of 20px used when jumpToTop is false,
  * it prevents that the first section is marked as inactive
- * maybe too soon.
+ * maybe "too soon".
  */
 
 const BACK_TO_TOP_OFFSET = 20;
@@ -34,9 +34,6 @@ function getRects(
 	const map = new Map<number, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
-		if (i === 0 && prop === 'top') {
-			console.log(rectProp, userOffset);
-		}
 		const condition =
 			comparator === '+'
 				? rectProp >= userOffset
@@ -80,12 +77,14 @@ export function useHighlight(
 	}: UseHighlightOptions
 ) {
 	// Internal refs
-	const userElements = isRef(refs) ? refs : shallowRef([]);
+	const fakeRefs: { value: HTMLElement[] } = { value: [] };
+	const userElements = isRef(refs) ? refs : fakeRefs;
 	const scheduledIndex = ref(-1);
 
 	// Returned values
 	const unreachableIndices = ref<number[]>([]);
 	const activeIndex = ref(-1);
+	const activeId = computed(() => userElements.value[activeIndex.value]?.id || '');
 	const dataset = computed<Dataset>(() => {
 		const activeElement = userElements.value[activeIndex.value];
 		if (!activeElement) {
@@ -103,9 +102,7 @@ export function useHighlight(
 	}
 
 	onMounted(() => {
-		/**
-		 * Get them here as there's nothing to watch against in order to keep this array reactive.
-		 */
+		// Get them here as there's nothing to watch against in order to keep them reactive.
 		if (typeof refs === 'string') {
 			(userElements as Ref<HTMLElement[]>).value = Array.from(document.querySelectorAll(refs));
 		}
@@ -114,10 +111,16 @@ export function useHighlight(
 		if (jumpToFirst && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
 			return (activeIndex.value = 0);
 		}
+
+		// Autmatically set any unreachable index from hash as active
+		const unreachableFromHash = userElements.value.findIndex(
+			({ id }) => id === window.location.hash.slice(1)
+		);
+		setUnreachable(unreachableFromHash);
 	});
 
 	watch(
-		() => userElements.value.length,
+		[() => userElements.value.length, () => typeof refs],
 		() => {
 			/**
 			 * This runs onMount as well also when user is using selectors.
@@ -155,7 +158,7 @@ export function useHighlight(
 	 * Since map order respects DOM order the FIRST value is always the nearest to top of the viewport.
 	 */
 
-	function onScrollDown() {
+	function onScrollDown({ isResize } = { isResize: false }) {
 		/**
 		 * This condition prevents to set the first index as active until a title actually
 		 * leaves the viewport. Used when jumpToFirst is false.
@@ -171,11 +174,15 @@ export function useHighlight(
 		const newActiveIndex =
 			Array.from(getRects(userElements.value, 'top', '-', userOffset).keys()).pop() ?? 0;
 
-		/**
-		 * This condition prevents to set PREV indexes as active for when scrolling down
-		 * with smoothscroll is active.
-		 */
-		if (newActiveIndex > activeIndex.value) {
+		if (!isResize) {
+			/**
+			 * This condition prevents to set PREV indexes as active for when scrolling down
+			 * with smoothscroll is active.
+			 */
+			if (newActiveIndex > activeIndex.value) {
+				activeIndex.value = newActiveIndex;
+			}
+		} else {
 			activeIndex.value = newActiveIndex;
 		}
 	}
@@ -221,9 +228,9 @@ export function useHighlight(
 		}
 	}
 
-	useResize(setUnreachables, onScrollDown);
+	useResize(setUnreachables, () => onScrollDown({ isResize: true }));
 
-	const { isBottomReached } = useScroll(userElements, document.documentElement, {
+	const { isBottomReached } = useScroll(userElements, {
 		onScrollDown,
 		onScrollUp,
 		onBottomReached,
@@ -232,6 +239,7 @@ export function useHighlight(
 
 	return {
 		activeIndex,
+		activeId,
 		dataset,
 		unreachableIndices,
 		isBottomReached,
