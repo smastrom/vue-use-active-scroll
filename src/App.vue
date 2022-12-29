@@ -14,6 +14,7 @@ const { unreachableIds, dataset, activeIndex, setUnreachable, activeId, isBottom
 		jumpToFirst: true,
 		jumpToLast: true,
 		topOffset: 100,
+		bottomOffset: 0,
 	});
 
 function spliceSection() {

@@ -144,7 +144,7 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 
 If your sidebar links have exactly the same length of your targets array (very likely), all you need to style the active link is to compare the current `activeIndex` with the index of the rendered array.
 
-For advanced scenarios like nested links or track animations, you can use `activeId` and `activeDataset`.
+For advanced scenarios like different lengths, nested links or track animations, simply use `activeId` and `activeDataset`.
 
 Watch for any reactive property change and produce side effects like updating the URL hash.
 
@@ -221,7 +221,7 @@ html {
 
 > :bulb: Unreachable targets are all those targets 100% visible once scrolled to the bottom of the page. Clicking on the correspondent link in the sidebar doesn't trigger any scroll event.
 
-`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it in any handler.
+`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it in any handler with any ID.
 
 `useActiveTitle` will evaluate if the ID passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
 
