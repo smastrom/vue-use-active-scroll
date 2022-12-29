@@ -50,7 +50,7 @@ function getRects(
  * This function gets 'in advance' all target ids that would be
  * excluded from the highlight process at the bottom of the page.
  *
- * Used onResize and whenever the user array changes.
+ * Used onResize, onMount and whenever the user array changes.
  */
 function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
 	const unreachableIds: string[] = [];
@@ -136,7 +136,7 @@ export function useHighlight(
 				return (activeId.value = sortedTargets.value[0].id);
 			}
 
-			// This properly sets as active any unreachable target on page load, if included in the hash
+			// This sets as active an unreachable target on page load if included in the hash
 			const unreachableIdFromHash = sortedTargets.value.find(
 				({ id }) => id === window.location.hash.slice(1)
 			);
@@ -194,7 +194,7 @@ export function useHighlight(
 	}
 
 	function onScrollUp() {
-		// Reset any unreachable scheduled id
+		// Reset any unreachable scheduled ID
 		scheduledId.value = '';
 
 		// Common behavior - Get first item that enters the viewport from its bottom edge
