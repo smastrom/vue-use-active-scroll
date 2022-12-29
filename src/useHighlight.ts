@@ -28,16 +28,16 @@ function getRects(
 	elements: HTMLElement[],
 	prop: 'top' | 'bottom',
 	comparator?: '+' | '-',
-	userOffset: number = 0
+	topOffset: number = 0
 ) {
 	const map = new Map<string, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
 		const condition =
 			comparator === '+'
-				? rectProp >= userOffset
+				? rectProp >= topOffset
 				: comparator === '-'
-				? rectProp <= userOffset
+				? rectProp <= topOffset
 				: true; // Get both positive and negative
 		if (condition) {
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
@@ -71,10 +71,11 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 export function useHighlight(
 	userIds: Ref<string[]> | string[],
 	{
-		topOffset: userOffset = 100,
-		debounce = 0,
 		jumpToFirst = true,
 		jumpToLast = true,
+		debounce = 0,
+		topOffset = 0,
+		bottomOffset = 0,
 	}: UseHighlightOptions
 ) {
 	// Internal
@@ -170,14 +171,14 @@ export function useHighlight(
 		if (
 			!jumpToFirst &&
 			activeId.value === '' &&
-			getRects(sortedTargets.value, 'top', '-', userOffset).size <= 0
+			getRects(sortedTargets.value, 'top', '-', topOffset).size <= 0
 		) {
 			return (activeId.value = sortedTargets.value[0].id);
 		}
 
 		// Common behavior - Get last item that leaves the viewport from its top edge
 		const newActiveId =
-			Array.from(getRects(sortedTargets.value, 'top', '-', userOffset).keys()).pop() ?? '';
+			Array.from(getRects(sortedTargets.value, 'top', '-', topOffset).keys()).pop() ?? '';
 
 		if (!isResize) {
 			/**
@@ -198,7 +199,7 @@ export function useHighlight(
 
 		// Common behavior - Get first item that enters the viewport from its bottom edge
 		const newActiveId =
-			getRects(sortedTargets.value, 'bottom', '+', userOffset).keys().next().value ??
+			getRects(sortedTargets.value, 'bottom', '+', topOffset).keys().next().value ??
 			sortedIds.value[0];
 
 		/**
@@ -207,7 +208,7 @@ export function useHighlight(
 		 */
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
 			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos > BACK_TO_TOP_OFFSET + userOffset) {
+			if (newActiveTopPos > BACK_TO_TOP_OFFSET + topOffset) {
 				return (activeId.value = '');
 			}
 		}
@@ -245,6 +246,7 @@ export function useHighlight(
 		onScrollDown,
 		onScrollUp,
 		onBottomReached,
+		bottomOffset,
 		debounce,
 	});
 

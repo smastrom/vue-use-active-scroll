@@ -11,13 +11,13 @@
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
 - Scrolling speed affects accuracy of the current active target
-- Once reached the bottom, some links are never highlighted if previous targets are entirely visible (unreachable targets).
+- Once scrolled to the bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
 - Clicking on such links highlights different sections (or does nothing).
 - When accessing/refreshing the page, the active link may not reflect the one in the the URL.
 
 ---
 
-:bulb: Vue TOC Highlight is a **Vue 3 composable** that takes a different approach to overcome these drawbacks and surgically returns **reactive data** of the current active section.
+:bulb: Vue TOC Highlight is a **Vue 3 composable** that automatically overcomes such drawbacks and surgically returns accurate **reactive data** of the current active target.
 
 ---
 
@@ -26,8 +26,8 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 - Zero dependencies, 1.5KB gzipped.
 - Total control on the output as it doesn't touch your DOM
 - Automatic update on window resize
-- Automatic set last target as active on bottom reached regardless of previous sections visibility
-- Manually set unreachable targets as active with `setUnreachable`
+- Automatic jump to last target on bottom reached regardless of previous sections visibility
+- Manually set unreachable targets with `setUnreachable`
 
 ### Limitations
 
@@ -47,7 +47,7 @@ pnpm add vue-reactive-toc
 
 ## 1. Provide targets IDs
 
-In order to get accurate results that follow users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
+In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
 If you want to "extend" the observed title area, simply add some top/bottom paddings. Bear in mind that margins are ignored so they shouldn't be added at all.
 
@@ -71,7 +71,7 @@ const { activeIndex, activeId } = useActiveTitle(titleIds)
 
 <br />
 
-Nuxt Content automatically applies IDs to your headings. It also gives an array of the links of your TOC that you can get by accessing `data.body.toc.links` via `queryContent`.
+Nuxt Content automatically applies IDs to your headings. It also gives an array of TOC links that you can get by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-content/).
 
 ```js
 const { data } = await useAsyncData('about', () => queryContent('/about').findOne())
@@ -118,12 +118,13 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property    | Type      | Default | Description                                                                                                                                                                   |
-| ----------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| topOffset   | `number`  | 0       | It should match the height in pixels of any **fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
-| debounce    | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                       |
-| jumpToFirst | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                             |
-| jumpToLast  | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                          |
+| Property     | Type      | Default | Description                                                                                                                                                                   |
+| ------------ | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst  | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                             |
+| jumpToLast   | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                          |
+| debounce     | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                       |
+| topOffset    | `number`  | 0       | It should match the height in pixels of any **fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
+| bottomOffset | `number`  | 0       | Offset in pixels within which bottom can considered to be reached.                                                                                                            |
 
 ### Return object
 
@@ -135,7 +136,7 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 | activeIndex     | `ComputedRef<number>`                 | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
 | activeDataset   | `ComputedRef<Record<string, string>>` | Dataset of the current active target in plain object format                                      |
 | isBottomReached | `Ref<boolean>`                        | Whether scroll reached the bottom                                                                |
-| setUnreachable  | `(index: number) => void`             | "Safe" function to manually set any unreachable target index as active. [More here]().           |
+| setUnreachable  | `(index: number) => void`             | "Safe" function to manually set any unreachable target index as active. [More info here]().      |
 
 <br />
 
@@ -169,7 +170,7 @@ defineProps({
 const router = useRouter()
 const { activeId, activeIndex, setUnreachable } = useActiveTitle(titleIds)
 
-// Update URL hash on active section change
+// Update URL hash on active target change
 watch(
   () => activeId.value,
   (newId) => {
@@ -216,15 +217,15 @@ html {
 </style>
 ```
 
-## What is setUnreachable?
+### What is setUnreachable?
 
 > :bulb: Unreachable targets are all those targets 100% visible once scrolled to the bottom of the page. Clicking on the correspondent link in the sidebar doesn't trigger any scroll event.
 
-`setUnreachable` is a special "safe" function that allows to manually schedule an unreachable target to be set as active.
+`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it in any handler.
 
 `useActiveTitle` will evaluate if the ID passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
 
-It is not mandatory to use it but you should include it in any click handler.
+It is not mandatory to use it but you should definitely include it in any click handler.
 
 <br />
 
@@ -275,3 +276,9 @@ to:
   padding: 100px 0 0 0;
 }
 ```
+
+<br />
+
+## License
+
+MIT Licensed. (c) Simone Mastromattei 2023.
