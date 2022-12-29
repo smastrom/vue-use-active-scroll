@@ -1,13 +1,31 @@
-import { ref, Ref, onMounted, isRef, computed, unref, watch, nextTick, watchPostEffect } from 'vue';
-import { UseHighlightOptions } from './types';
+import { ref, Ref, onMounted, computed, unref, watch, nextTick } from 'vue';
 import { useResize, useScroll } from './internalComposables';
 
 type Dataset = Record<string, string>;
 
+// https://github.com/microsoft/TypeScript/issues/28374#issuecomment-538052842
+type DeepNonNullable<T> = { [P in keyof T]-?: NonNullable<T[P]> } & NonNullable<T>;
+
+type UseHighlightOptions = {
+	jumpToFirst?: boolean;
+	jumpToLast?: boolean;
+	debounce?: number;
+	topOffset?: number;
+	bottomOffset?: number;
+};
+
+const defaultOptions: DeepNonNullable<UseHighlightOptions> = {
+	jumpToFirst: true,
+	jumpToLast: true,
+	debounce: 0,
+	topOffset: 0,
+	bottomOffset: 0,
+};
+
 /**
  * This is a fixed value of 20px used when jumpToTop is false,
  * it prevents the first section to be marked as inactive
- * maybe "too soon".
+ * "too soon".
  */
 const BACK_TO_TOP_OFFSET = 20;
 
@@ -71,15 +89,15 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 export function useHighlight(
 	userIds: Ref<string[]> | string[],
 	{
-		jumpToFirst = true,
-		jumpToLast = true,
-		debounce = 0,
-		topOffset = 0,
-		bottomOffset = 0,
-	}: UseHighlightOptions
+		jumpToFirst = defaultOptions.jumpToFirst,
+		jumpToLast = defaultOptions.jumpToLast,
+		debounce = defaultOptions.debounce,
+		topOffset = defaultOptions.topOffset,
+		bottomOffset = defaultOptions.bottomOffset,
+	}: UseHighlightOptions = defaultOptions
 ) {
 	// Internal
-	const _userIds = computed<string[]>(() => unref(userIds));
+	const _userIds = computed<string[]>(() => unref(userIds)); // Force reactive
 	const sortedTargets = ref<HTMLElement[]>([]);
 	const sortedIds = computed(() => sortedTargets.value.map(({ id }) => id));
 	const unreachableIds = ref<string[]>([]);
@@ -105,6 +123,7 @@ export function useHighlight(
 		});
 	}
 
+	// Runs onMount and whenever the user array changes
 	watch(
 		() => _userIds.value,
 		(newIds) => {
@@ -232,7 +251,7 @@ export function useHighlight(
 		 * If there's a scheduled unreachable ID from outside, set it as active.
 		 * This occurs whenever user calls setUnreachable.
 		 */
-		if (scheduledId.value !== '') {
+		if (typeof scheduledId.value === 'string' && scheduledId.value !== '') {
 			activeId.value = scheduledId.value;
 		}
 	}
@@ -242,7 +261,7 @@ export function useHighlight(
 		() => onScrollDown({ isResize: true })
 	);
 
-	const { isBottomReached } = useScroll(sortedTargets, {
+	const { isBottomReached } = useScroll(_userIds, {
 		onScrollDown,
 		onScrollUp,
 		onBottomReached,
@@ -251,8 +270,8 @@ export function useHighlight(
 	});
 
 	return {
-		activeIndex,
 		activeId,
+		activeIndex,
 		dataset,
 		unreachableIds,
 		isBottomReached,

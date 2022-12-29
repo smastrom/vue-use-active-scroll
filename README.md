@@ -12,7 +12,7 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 
 - Scrolling speed affects accuracy of the current active target
 - Once scrolled to the bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
-- Clicking on such links highlights different sections (or does nothing).
+- Clicking on such links highlights different links (or does nothing).
 - When accessing/refreshing the page, the active link may not reflect the one in the the URL.
 
 ---
@@ -118,13 +118,13 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property     | Type      | Default | Description                                                                                                                                                                   |
-| ------------ | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst  | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                             |
-| jumpToLast   | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                          |
-| debounce     | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                       |
-| topOffset    | `number`  | 0       | It should match the height in pixels of any **fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
-| bottomOffset | `number`  | 0       | Offset in pixels within which bottom can considered to be reached.                                                                                                            |
+| Property     | Type      | Default | Description                                                                                                                                                                       |
+| ------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst  | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                                 |
+| jumpToLast   | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                              |
+| debounce     | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                           |
+| topOffset    | `number`  | 0       | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
+| bottomOffset | `number`  | 0       | Offset in pixels within which bottom can considered to be reached.                                                                                                                |
 
 ### Return object
 
@@ -135,8 +135,8 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 | activeId        | `Ref<string>`                         | DOM ID of the current active target                                                              |
 | activeIndex     | `ComputedRef<number>`                 | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
 | activeDataset   | `ComputedRef<Record<string, string>>` | Dataset of the current active target in plain object format                                      |
-| isBottomReached | `Ref<boolean>`                        | Whether scroll reached the bottom                                                                |
 | setUnreachable  | `(index: number) => void`             | "Safe" function to manually set any unreachable target index as active. [More info here]().      |
+| isBottomReached | `Ref<boolean>`                        | Whether scroll reached the bottom                                                                |
 
 <br />
 
@@ -221,7 +221,7 @@ html {
 
 > :bulb: Unreachable targets are all those targets 100% visible once scrolled to the bottom of the page. Clicking on the correspondent link in the sidebar doesn't trigger any scroll event.
 
-`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it in any handler with any ID.
+`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it with any ID.
 
 `useActiveTitle` will evaluate if the ID passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
 
