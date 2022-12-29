@@ -19,7 +19,7 @@ export function useResize(setUnreachables: () => void, onScrollDown: () => void)
 	const debouncedCallback = useDebounceFn(() => {
 		setUnreachables();
 		onScrollDown();
-	}, 100);
+	}, 75);
 
 	onMounted(() => {
 		window.addEventListener('resize', debouncedCallback);
@@ -31,8 +31,14 @@ export function useResize(setUnreachables: () => void, onScrollDown: () => void)
 }
 
 export function useScroll(
-	targets: Ref<HTMLElement[]> | { value: HTMLElement[] },
-	{ onScrollUp = () => {}, onScrollDown = () => {}, onBottomReached = () => {}, debounce = 0 }
+	targets: Ref<HTMLElement[]>,
+	{
+		onScrollUp = () => {},
+		onScrollDown = () => {},
+		onBottomReached = () => {},
+		bottomOffset = 0,
+		debounce = 0,
+	}
 ) {
 	let scrollPos = window.pageYOffset;
 	const isBottomReached = ref(false);
@@ -49,14 +55,16 @@ export function useScroll(
 		scrollPos = window.pageYOffset;
 
 		nextTick(() => {
-			const scrollableArea =
-				document.documentElement.scrollHeight - document.documentElement.clientHeight;
-			const scrolledHeight = Math.round(document.documentElement.scrollTop);
-			if (scrolledHeight >= scrollableArea) {
+			const root = document.documentElement;
+			const _isBottomReached =
+				// ScrollHeight - ViewportHeight - ScrolledArea
+				Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1 + bottomOffset;
+
+			if (_isBottomReached) {
 				onBottomReached();
 			}
 
-			isBottomReached.value = scrolledHeight >= scrollableArea;
+			isBottomReached.value = _isBottomReached;
 		});
 	}
 

@@ -1,8 +1,9 @@
 export type UseHighlightOptions = {
-	topOffset?: number;
-	debounce?: number;
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
+	debounce?: number;
+	topOffset?: number;
+	bottomOffset?: number;
 };
 
 export type HighlightResult = {
