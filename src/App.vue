@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useSections } from './devComposables';
-import { useHighlight } from './useHighlight';
+import { useHighlight } from './useActiveTitle';
 
 const { menuItems, sections } = useSections();
 
