@@ -13,7 +13,7 @@ const menuItems = computed(() =>
 	sections.map((item) => ({
 		id: item.titleId,
 		label: item.title,
-		href: `#${item.id}`,
+		href: item.id,
 	}))
 );
 

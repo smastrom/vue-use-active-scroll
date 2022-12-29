@@ -7,8 +7,10 @@ const { menuItems, sections } = useSections();
 
 const titlesRef = ref<HTMLHeadingElement[]>([]);
 
-const { unreachableIndices, dataset, activeIndex, setUnreachable, activeId, isBottomReached } =
-	useHighlight(titlesRef, {
+const titles = computed(() => sections.map((section) => section.id)); // New
+
+const { unreachableIds, dataset, activeIndex, setUnreachable, activeId, isBottomReached } =
+	useHighlight(titles, {
 		jumpToFirst: true,
 		jumpToLast: true,
 		topOffset: 100,
@@ -28,7 +30,7 @@ watch(
 		console.log(
 			newIndex,
 			JSON.stringify(dataset.value),
-			JSON.stringify(unreachableIndices.value),
+			JSON.stringify(unreachableIds.value),
 			activeId.value
 		);
 		if (newIndex <= 0) {
@@ -46,9 +48,9 @@ const activeItemHeight = computed(
 	() => linkRefs.value[activeIndex.value]?.getBoundingClientRect().height || 0
 );
 
-function handleClick(index: number) {
-	titlesRef.value[index].scrollIntoView({ behavior: 'smooth' });
-	setUnreachable(index);
+function handleClick(id: string) {
+	document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+	setUnreachable(id);
 }
 </script>
 
@@ -87,9 +89,8 @@ function handleClick(index: number) {
 						},
 					]"
 				>
-					<button @click="() => handleClick(itemIndex)">{{ item.label }}</button>
-
-					<a :href="item.href" @click="setUnreachable(itemIndex)">
+					<button @click="() => handleClick(item.href)">{{ item.label }}</button>
+					<a :href="`#${item.href}`" @click="setUnreachable(item.href)">
 						{{ item.label }}
 					</a>
 				</li>
