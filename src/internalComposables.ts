@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, watch, onUnmounted, ref, Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, watch, onUnmounted, ref, ComputedRef } from 'vue';
 
 export default function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number): T {
 	let timerId: number | undefined;
@@ -31,7 +31,7 @@ export function useResize(setUnreachables: () => void, onScrollDown: () => void)
 }
 
 export function useScroll(
-	targets: Ref<HTMLElement[]>,
+	userIds: ComputedRef<string[]>,
 	{
 		onScrollUp = () => {},
 		onScrollDown = () => {},
@@ -69,7 +69,7 @@ export function useScroll(
 	}
 
 	watch(
-		() => targets.value.length,
+		() => userIds.value,
 		(_, __, onCleanup) => {
 			document.addEventListener('scroll', debouncedScroll, { passive: true });
 
