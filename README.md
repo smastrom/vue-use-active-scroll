@@ -10,14 +10,14 @@
 
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
-- Some links are never highlighted if previous sections are entirely visible once bottom is reached (unreachable links)
+- Scrolling speed affects accuracy of the current active target
+- Once reached the bottom, some links are never highlighted if previous targets are entirely visible (unreachable targets).
 - Clicking on such links highlights different sections (or does nothing).
-- When accessing/refreshing the page, the active link doesn't reflect the one in the the URL if bottom is reached.
-- Scrolling speed affects accuracy of the current active link
+- When accessing/refreshing the page, the active link may not reflect the one in the the URL.
 
 ---
 
-> :bulb: Vue TOC Highlight is a **Vue 3 composable** that automatically deals with such drawbacks and surgically returns **reactive data** of the current active section.
+:bulb: Vue TOC Highlight is a **Vue 3 composable** that takes a different approach to overcome these drawbacks and surgically returns **reactive data** of the current active section.
 
 ---
 
@@ -26,9 +26,8 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 - Zero dependencies, 1.5KB gzipped.
 - Total control on the output as it doesn't touch your DOM
 - Automatic update on window resize
-- Automatic set as active last link on bottom reached regardless of previous sections visibility
-- Manually set as active unreachable links with `setUnreachable`
-- Works great with Nuxt Content
+- Automatic set last target as active on bottom reached regardless of previous sections visibility
+- Manually set unreachable targets as active with `setUnreachable`
 
 ### Limitations
 
@@ -37,14 +36,6 @@ Vue TOC Highlight doesn't work with scrolling containers different than the wind
 <br />
 
 ## Installation
-
-```bash
-npm i -S vue-reactive-toc
-```
-
-```bash
-yarn add vue-reactive-toc
-```
 
 ```bash
 pnpm add vue-reactive-toc
@@ -56,11 +47,15 @@ pnpm add vue-reactive-toc
 
 ## 1. Provide targets IDs
 
-The best thing to do is to observe the **headings** of your content. Each heading must have an unique `id` attribute which is also the anchor to scroll to.
+In order to get accurate results that follow users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
-In your Sidebar component, import `useActiveTitle` and pass the array of IDs to observe.
+If you want to "extend" the observed title area, simply add some top/bottom paddings. Bear in mind that margins are ignored so they shouldn't be added at all.
 
-This array should be computed from your content just like your TOC links. Order is not important.
+Make sure that each related heading you want to include in your TOC has an unique `id` attribute. This ID should also be the anchor your links will scroll to.
+
+In your Sidebar component, import `useActiveTitle` and pass the IDs to observe.
+
+This array should be computed from your content just like your TOC links. **Order is not important**.
 
 ```vue
 <script setup>
@@ -117,7 +112,7 @@ const computedLinks = computed(() =>
 `useActiveTitle` accepts an optional configuration object as its second argument:
 
 ```js
-const { activeIndex, activeId, activeDataset } = useActiveTitle(titles, {
+const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
   debounce: 100
   // Other options...
 })
@@ -136,8 +131,8 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 
 | Name            | Type                                  | Description                                                                                      |
 | --------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| activeIndex     | `Ref<number>`                         | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
-| activeId        | `ComputedRef<string>`                 | DOM ID of the current active target                                                              |
+| activeId        | `Ref<string>`                         | DOM ID of the current active target                                                              |
+| activeIndex     | `ComputedRef<number>`                 | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
 | activeDataset   | `ComputedRef<Record<string, string>>` | Dataset of the current active target in plain object format                                      |
 | isBottomReached | `Ref<boolean>`                        | Whether scroll reached the bottom                                                                |
 | setUnreachable  | `(index: number) => void`             | "Safe" function to manually set any unreachable target index as active. [More here]().           |
@@ -148,9 +143,11 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 
 If your sidebar links have exactly the same length of your targets array (very likely), all you need to style the active link is to compare the current `activeIndex` with the index of the rendered array.
 
-For advanced scenarios like nested links or animations, you can use `activeId` or `activeDataset`.
+For advanced scenarios like nested links or track animations, you can use `activeId` and `activeDataset`.
 
-You can also watch for any reactive property changes and produce side effects like updating the URL hash.
+Watch for any reactive property change and produce side effects like updating the URL hash.
+
+Also, make sure to destructure `setUnreachable` from the composable and call it in any click callback by passing the target ID.
 
 ```vue
 <script setup>
@@ -170,7 +167,7 @@ defineProps({
 })
 
 const router = useRouter()
-const { activeIndex, activeId, setUnreachable } = useActiveTitle(titleIds)
+const { activeId, activeIndex, setUnreachable } = useActiveTitle(titleIds)
 
 // Update URL hash on active section change
 watch(
@@ -187,9 +184,9 @@ watch(
   <nav>
     <a
       v-for="(link, index) in tocLinks"
-      @click="setUnreachable(index)"
-      :href="link.href"
-      :key="link.href"
+      @click="setUnreachable(link.titleId)"
+      :href="link.titleId"
+      :key="link.titleId"
       :class="[
         'link',
         {
@@ -197,7 +194,7 @@ watch(
         }
       ]"
     >
-      {{ links.label }}
+      {{ link.label }}
     </a>
   </nav>
 </template>
@@ -223,13 +220,11 @@ html {
 
 > :bulb: Unreachable targets are all those targets 100% visible once scrolled to the bottom of the page. Clicking on the correspondent link in the sidebar doesn't trigger any scroll event.
 
-<br />
+`setUnreachable` is a special "safe" function that allows to manually schedule an unreachable target to be set as active.
 
-`setUnreachable` is a special "safe" function that allows to manually schedule an unreachable target index to be set as active.
+`useActiveTitle` will evaluate if the ID passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
 
-`useActiveTitle` will evaluate if the index passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
-
-> It is not mandatory to use it but you should include it in any click handler.
+It is not mandatory to use it but you should include it in any click handler.
 
 <br />
 
