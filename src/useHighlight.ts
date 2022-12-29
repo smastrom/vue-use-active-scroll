@@ -52,20 +52,20 @@ function getRects(
  *
  * Used onResize and whenever the user array changes.
  */
-function setUnreachableIds(target: Ref<string[]>, elements: HTMLElement[]) {
-	const unreachables: string[] = [];
+function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
+	const unreachableIds: string[] = [];
 	const root = document.documentElement;
 	// This works at any point of the page
 	const scrollStart = root.scrollHeight - root.clientHeight - root.scrollTop;
 
 	// Get all IDs that are unreachable
-	Array.from(getRects(elements, 'top').values()).forEach((value, index) => {
+	Array.from(getRects(sortedTargets, 'top').values()).forEach((value, index) => {
 		if (value > scrollStart) {
-			unreachables.push(elements[index].id);
+			unreachableIds.push(sortedTargets[index].id);
 		}
 	});
 
-	target.value = unreachables;
+	target.value = unreachableIds;
 }
 
 export function useHighlight(
@@ -223,13 +223,13 @@ export function useHighlight(
 
 	function onBottomReached() {
 		// If jumpToLast is true and no scheduled unreachable ID is set, set the last unreachabe ID as active.
-		if (jumpToLast && unreachableIds.value.length > 0 && scheduledId.value === '') {
+		if (jumpToLast && unreachableIds.value.length > 0 && !scheduledId.value) {
 			return (activeId.value = unreachableIds.value[unreachableIds.value.length - 1]);
 		}
 
 		/**
 		 * If there's a scheduled unreachable ID from outside, set it as active.
-		 * This occurse whenever user triggers setUnreachable.
+		 * This occurs whenever user calls setUnreachable.
 		 */
 		if (scheduledId.value !== '') {
 			activeId.value = scheduledId.value;
