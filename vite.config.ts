@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
 			minify: 'terser',
 			lib: {
 				entry: 'src/index.ts',
-				name: 'VueTOCHighlight',
+				name: 'VueReactiveTOC',
 				fileName: 'index',
 			},
 			rollupOptions: {

@@ -10,29 +10,30 @@
 
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
-- Scrolling speed may affects active target accuracy
-- Once scrolled to the bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
+- Scrolling speed affects active target accuracy
+- Once scrolled to bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
 - Clicking on such links highlights different links (or does nothing).
-- When accessing/refreshing the page, the active link may not reflect the one in the the URL.
+- When accessing/refreshing the page, the active target may not reflect the one in the the URL.
 
 ---
 
-:bulb: Vue TOC Highlight is a **Vue 3 composable** that automatically overcomes such drawbacks and surgically returns accurate **reactive data** of the current active target.
+:bulb: Vue Reactive TOC is a **Vue 3 composable** that automatically overcomes such drawbacks and surgically returns accurate **reactive data** of the current active target.
 
 ---
 
 ### Features
 
 - Zero dependencies, 1.5KB gzipped.
-- Automatic jump to last target on bottom reached regardless of previous sections visibility
-- Manually set unreachable targets with `setUnreachable`
-- Automatic update on window resize
+- Jump to last target on bottom reached regardless of previous targets visibility
+- onMount URL hash priority regardless of previous targets visibility
+- Safely set unreachable targets with `setUnreachable`
 - Total control on the output as it doesn't touch your DOM
+- Automatic update on window resize
 - Scroll-behavior agnostic
 
 ### Limitations
 
-Vue TOC Highlight doesn't work with scrolling containers different than the window. PRs are welcome to extend support to them.
+Vue Reactive TOC doesn't work with scrolling containers different than the window. PRs are welcome to extend support to them.
 
 <br />
 
@@ -50,15 +51,16 @@ pnpm add vue-reactive-toc
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
-Ensure that each target has an unique `id` attribute (which corresponds the anchor you'll scroll to) and pass them to `useActiveTitle`. **Order is not important**.
+Make sure that each target has an unique `id` (which corresponds to the anchor you'll scroll to) and pass them to `useActiveTitle`. Order is not important.
 
 ```vue
 <script setup>
 import { useActiveTitle } from 'vue-reactive-toc'
 
 const titleIds = ['title-1', 'title-2', 'title-3']
+// or titleIds = computed(() => /* ... */)
 
-const { activeIndex, activeId } = useActiveTitle(titleIds)
+const { activeId } = useActiveTitle(titleIds)
 </script>
 ```
 
@@ -93,14 +95,18 @@ const { data } = await useAsyncData('about', () => queryContent('/about').findOn
 You can compute the array of IDs to observe by mapping the `data.body.toc.links` as follows:
 
 ```js
-const computedLinks = computed(() =>
-  data.value.body.toc.links.flatMap(({ id, children = [] }) => [
-    id,
-    ...children.map(({ id }) => id)
-  ])
+const computedIds = computed(() =>
+  data.value
+    ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
+        id,
+        ...children.map(({ id }) => id)
+      ])
+    : []
 )
 
-// => ['title-1', 'sub-title-1', 'title-2', 'title-3', 'title-4']
+// console.log(computedIds.value) => ['title-1', 'sub-title-1', 'title-2', 'title-3', 'title-4']
+
+const { activeId } = useActiveTitle(computedIds)
 ```
 
 </details>
@@ -129,13 +135,13 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 
 The composable returns an object of reactive [refs](https://vuejs.org/api/reactivity-core.html#ref) plus a special function.
 
-| Name            | Type                                  | Description                                                                                      |
-| --------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| activeId        | `Ref<string>`                         | DOM ID of the current active target                                                              |
-| activeIndex     | `ComputedRef<number>`                 | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
-| activeDataset   | `ComputedRef<Record<string, string>>` | Dataset of the current active target in plain object format                                      |
-| setUnreachable  | `(index: number) => void`             | "Safe" function to manually set any unreachable target index as active. [More info here]().      |
-| isBottomReached | `Ref<boolean>`                        | Whether scroll reached the bottom                                                                |
+| Name            | Type                          | Description                                                                                      |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| activeId        | `Ref<string>`                 | DOM ID of the current active target                                                              |
+| activeIndex     | `Ref<number>`                 | Index of the current active target in DOM tree order, `0` for the first title/section and so on. |
+| activeDataset   | `Ref<Record<string, string>>` | Dataset of the current active target in plain object format                                      |
+| setUnreachable  | `(id: string) => void`        | "Safe" function to manually set any unreachable target as active. [More info here]().            |
+| isBottomReached | `Ref<boolean>`                | Whether scroll reached the bottom                                                                |
 
 <br />
 
@@ -143,7 +149,7 @@ The composable returns an object of reactive [refs](https://vuejs.org/api/reacti
 
 If your sidebar links have exactly the same length of your targets array (very likely), all you need to style the active link is to compare the current `activeIndex` with the index of the rendered array.
 
-For advanced scenarios like different lengths, nested links or track animations, simply use `activeId` and `activeDataset`.
+For advanced scenarios like different lengths, nested links or track animations, simply use `activeId` or `activeDataset`.
 
 Watch for any reactive property change and produce side effects like updating the URL hash.
 
@@ -187,7 +193,7 @@ watch(
       :class="[
         'link',
         {
-          active: index === activeIndex // Set active class when index matches
+          active: index === activeIndex // Or link.titleId === activeId
         }
       ]"
     >
@@ -227,7 +233,7 @@ It is not mandatory to use it but you should definitely include it in any click 
 
 ## Adjusting offsetTop title paddings
 
-You might noticed that if you have a fixed header and defined a `offsetTop`, once you scroll to a section its top edge may actually be underneath the header.
+You might noticed that if you have a fixed header and defined a `offsetTop`, once you scroll to a title its top edge may actually be underneath the header.
 
 You must adjust the paddings and the margins of your titles to compensate the offset:
 
@@ -250,7 +256,7 @@ To:
 
 ```css
 .titles {
-  margin: -100px 0 0 0; // /* Remove topOffset from margin-top */
+  margin: -100px 0 0 0; // /* Subtract topOffset from margin-top */
   padding: 130px 0 30px 0; /* Add topOffset to padding-top */
 }
 ```
