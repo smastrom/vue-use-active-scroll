@@ -9,7 +9,7 @@ const titlesRef = ref<HTMLHeadingElement[]>([]);
 const titles = computed<string[]>(() => sections.map((section) => section.id)); // New
 
 const { activeIndex, setUnreachable } = useActiveTitle(titles, {
-	jumpToFirst: true,
+	jumpToFirst: false,
 	jumpToLast: true,
 	debounce: 0,
 });
@@ -82,7 +82,11 @@ function handleClick(id: string) {
 <style>
 html {
 	scroll-behavior: smooth;
-	overscroll-behavior: none;
+	/* 	overscroll-behavior: none; */
+}
+
+main {
+	margin-top: 200px;
 }
 </style>
 

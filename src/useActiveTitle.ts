@@ -30,15 +30,19 @@ const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 
 /**
  * BACK_TO_TOP_OFFSET is a fixed value of 20px used when jumpToTop is false,
- * it prevents the first section to be marked as inactive "too soon".
+ * it avoids the first target to be marked as inactive "too soon"
+ * when scrolling to top.
  *
  * FIXED_OFFSET is a fixed value of 5px used to compensate for targets excluded
- * from the maps for just 0.1-2px on Safari.
+ * from the maps for just 0.1-0.2px on Safari.
  */
 const BACK_TO_TOP_OFFSET = 20;
 const FIXED_OFFSET = 5;
 
-function getDataset(dataset: DOMStringMap): Dataset {
+function getDataset(dataset: DOMStringMap | undefined): Dataset {
+	if (!dataset) {
+		return {};
+	}
 	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
 
 	// Exclude any 'data-v'
@@ -98,7 +102,7 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 	// Check if the prev one is half-reachable, and add it to the array as well
 	const prevTarget = reachableIds[reachableIds.length - 1];
 	const rect = document.getElementById(prevTarget)?.getBoundingClientRect();
-	if (rect && rect.bottom >= scrollStart && rect.top < scrollStart) {
+	if (rect && rect.bottom > scrollStart && rect.top < scrollStart) {
 		console.log('halfReachable', prevTarget);
 		unreachableIds.unshift(prevTarget);
 	}
@@ -125,13 +129,9 @@ export function useActiveTitle(
 
 	// Returned values
 	const activeId = ref('');
-	const activeDataset = computed<Dataset>(() => {
-		const activeElement = sortedTargets.value.find(({ id }) => id === activeId.value);
-		if (!activeElement) {
-			return {};
-		}
-		return getDataset(activeElement.dataset);
-	});
+	const activeDataset = computed<Dataset>(() =>
+		getDataset(sortedTargets.value.find(({ id }) => id === activeId.value)?.dataset)
+	);
 	const activeIndex = computed(() => sortedIds.value.indexOf(activeId.value));
 
 	function setUnreachable(id: string) {
@@ -143,7 +143,7 @@ export function useActiveTitle(
 	}
 
 	// Runs onMount and whenever the user array changes
-	function setFreshTargets() {
+	function setTargets() {
 		const newTargets = <HTMLElement[]>[];
 
 		// Get fresh targets
@@ -156,35 +156,34 @@ export function useActiveTitle(
 
 		// Sort targets by DOM order
 		newTargets.sort((a, b) => a.offsetTop - b.offsetTop);
+
 		sortedTargets.value = newTargets;
 	}
 
 	onMounted(() => {
-		setFreshTargets();
+		setTargets();
 		setUnreachableIds(unreachableIds, sortedTargets.value);
 
 		const hashTarget = sortedTargets.value.find(
 			({ id }) => id === window.location.hash.slice(1)
 		)?.id;
 
-		nextTick(() => {
-			// Sets activeId to first if jumpToFirst is true, even if scrolled for 20px
-			if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
-				return (activeId.value = sortedTargets.value[0]?.id);
-			}
+		// Sets activeId to first if jumpToFirst is true, even if scrolled for 20px
+		if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
+			return (activeId.value = sortedTargets.value[0]?.id ?? '');
+		}
 
-			if (hashTarget && unreachableIds.value.includes(hashTarget)) {
-				return (scheduledId.value = hashTarget);
-			}
+		if (hashTarget && unreachableIds.value.includes(hashTarget)) {
+			return (scheduledId.value = hashTarget);
+		}
 
-			onScrollDown();
-		});
+		onScrollDown();
 	});
 
 	watch(
 		() => _userIds.value,
 		() => {
-			setFreshTargets();
+			setTargets();
 		},
 		{ flush: 'post' }
 	);
@@ -204,14 +203,13 @@ export function useActiveTitle(
 	);
 
 	/**
-	 * - getRects(top, -) -> get all titles that are above the viewport, used onScrollDown and onResize.
-	 * Since map order respects DOM order the LAST value is the nearest to the top of the viewport.
+	 * getRects(top, -) -> Gets all titles that are ABOVE the viewport.
 	 *
-	 * - getRects(bottom, +) -> get all titles that entered the viewport, used onScrollUp.
-	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
-	 * Since map order respects DOM order the FIRST value is always the nearest to top of the viewport.
+	 * Since map respects DOM order the LAST value is the nearest to the top of the viewport
+	 * and will be set as active.
+	 *
+	 * This function is also called onMount and onResize.
 	 */
-
 	function onScrollDown({ isResize } = { isResize: false }) {
 		/**
 		 * When jumpToFirst is false, this condition prevents to set the first target
@@ -222,7 +220,7 @@ export function useActiveTitle(
 			activeId.value === '' &&
 			getRects(sortedTargets.value, 'top', '-', topOffset).size <= 0
 		) {
-			return (activeId.value = sortedTargets.value[0]?.id || '');
+			return (activeId.value = '');
 		}
 
 		// Common behavior - Get last item that leaves the viewport from its top edge
@@ -230,10 +228,7 @@ export function useActiveTitle(
 			Array.from(getRects(sortedTargets.value, 'top', '-', topOffset).keys()).pop() ?? '';
 
 		if (!isResize) {
-			/**
-			 * This condition prevents to set PREV targets as active for when scrolling down
-			 * with smoothscroll is active.
-			 */
+			// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
 			if (sortedIds.value.indexOf(newActiveId) > sortedIds.value.indexOf(activeId.value)) {
 				activeId.value = newActiveId;
 			}
@@ -242,6 +237,13 @@ export function useActiveTitle(
 		}
 	}
 
+	/**
+	 * getRects(bottom, +) -> Get all titles that ENTERED the viewport.
+	 *
+	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
+	 * Since map respects DOM order the FIRST value is always the nearest to top of the viewport
+	 * and will be set as active.
+	 */
 	function onScrollUp() {
 		// Reset any unreachable scheduled ID
 		if (scheduledId.value) {
@@ -264,10 +266,7 @@ export function useActiveTitle(
 			}
 		}
 
-		/**
-		 * This condition prevents to set NEXT targets as active when scrolling up
-		 * with smoothscroll is active.
-		 */
+		// Prevent to set NEXT targets as active on smoothscroll/overscroll side effects.
 		if (sortedIds.value.indexOf(newActiveId) < sortedIds.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
@@ -282,7 +281,8 @@ export function useActiveTitle(
 
 		/**
 		 * If there's a scheduled unreachable ID from outside, set it as active.
-		 * This occurs whenever user calls setUnreachable.
+		 * This occurs whenever an eligible unreachable ID is scheduled
+		 * from inside (hash onMount) or outside (user click).
 		 */
 		if (typeof scheduledId.value === 'string' && scheduledId.value !== '') {
 			activeId.value = scheduledId.value;
