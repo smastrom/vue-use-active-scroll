@@ -12,6 +12,10 @@ const { activeIndex, setUnreachable } = useActiveTitle(titles, {
 	jumpToFirst: false,
 	jumpToLast: true,
 	debounce: 0,
+	boundaryOffset: {
+		toBottom: 100,
+		toTop: 100,
+	},
 });
 
 function spliceSection() {

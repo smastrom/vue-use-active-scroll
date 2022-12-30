@@ -64,8 +64,6 @@ const { activeId } = useActiveTitle(titleIds)
 </script>
 ```
 
-To "extend" the observed title area, simply add some top/bottom paddings. Bear in mind that margins are ignored so they shouldn't be added at all.
-
 <details><summary><strong>Nuxt Content</strong></summary>
 
 <br />
@@ -124,12 +122,13 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property    | Type      | Default | Description                                                                                                                                                                    |
-| ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| jumpToFirst | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                              |
-| jumpToLast  | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                           |
-| debounce    | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                        |
-| topOffset   | `number`  | 0       | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting offsetTop paddings](). |
+| Property       | Type             | Default                   | Description                                                                                                                                                                    |
+| -------------- | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                              |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                           |
+| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                        |
+| topOffset      | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting offsetTop paddings](). |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                                    |
 
 ### Return object
 

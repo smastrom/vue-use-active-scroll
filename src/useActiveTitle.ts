@@ -11,6 +11,10 @@ type UseActiveTitleOptions = {
 	jumpToLast?: boolean;
 	debounce?: number;
 	topOffset?: number;
+	boundaryOffset?: {
+		toTop?: number;
+		toBottom?: number;
+	};
 };
 
 type UseActiveTitleReturn = {
@@ -26,6 +30,10 @@ const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToLast: true,
 	debounce: 0,
 	topOffset: 0,
+	boundaryOffset: {
+		toTop: 0,
+		toBottom: 0,
+	},
 };
 
 /**
@@ -56,16 +64,17 @@ function getRects(
 	elements: HTMLElement[],
 	prop: 'top' | 'bottom',
 	comparator?: '+' | '-',
-	topOffset: number = 0
+	topOffset: number = 0,
+	customBoundary: number = 0
 ) {
 	const map = new Map<string, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
 		const condition =
 			comparator === '+'
-				? rectProp >= topOffset + FIXED_OFFSET
+				? rectProp >= topOffset + FIXED_OFFSET + customBoundary
 				: comparator === '-'
-				? rectProp <= topOffset + FIXED_OFFSET
+				? rectProp <= topOffset + FIXED_OFFSET + customBoundary
 				: true; // Get both positive and negative
 		if (condition) {
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
@@ -115,6 +124,10 @@ export function useActiveTitle(
 		jumpToLast = defaultOptions.jumpToLast,
 		debounce = defaultOptions.debounce,
 		topOffset = defaultOptions.topOffset,
+		boundaryOffset: {
+			toTop = defaultOptions.boundaryOffset.toTop,
+			toBottom = defaultOptions.boundaryOffset.toTop,
+		} = defaultOptions.boundaryOffset,
 	}: UseActiveTitleOptions = defaultOptions
 ): UseActiveTitleReturn {
 	// Internal
@@ -208,6 +221,7 @@ export function useActiveTitle(
 	 * This function is also called onMount and onResize.
 	 */
 	function onScrollDown({ isResize } = { isResize: false }) {
+		const boundaryOffset = Math.abs(toBottom || 0);
 		/**
 		 * When jumpToFirst is false, this condition prevents to set the first target
 		 * as active until a title actually leaves the viewport.
@@ -215,14 +229,16 @@ export function useActiveTitle(
 		if (
 			!jumpToFirst &&
 			activeId.value === '' &&
-			getRects(sortedTargets.value, 'top', '-', topOffset).size <= 0
+			getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).size <= 0
 		) {
 			return (activeId.value = '');
 		}
 
 		// Common behavior - Get last item that leaves the viewport from its top edge
 		const newActiveId =
-			Array.from(getRects(sortedTargets.value, 'top', '-', topOffset).keys()).pop() ?? '';
+			Array.from(
+				getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).keys()
+			).pop() ?? '';
 
 		if (!isResize) {
 			// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
@@ -248,9 +264,11 @@ export function useActiveTitle(
 			return (scheduledId.value = '');
 		}
 
+		const boundaryOffset = Math.abs(toTop || -0) * -1;
+
 		// Common behavior - Get first item that enters the viewport from its bottom side
 		const newActiveId =
-			getRects(sortedTargets.value, 'bottom', '+', topOffset).keys().next().value ??
+			getRects(sortedTargets.value, 'bottom', '+', topOffset, boundaryOffset).keys().next().value ??
 			sortedIds.value[0];
 
 		/**
@@ -259,7 +277,7 @@ export function useActiveTitle(
 		 */
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
 			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos + topOffset > 0) {
+			if (newActiveTopPos + topOffset + boundaryOffset > +0) {
 				return (activeId.value = '');
 			}
 		}
