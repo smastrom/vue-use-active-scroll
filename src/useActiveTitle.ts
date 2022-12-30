@@ -1,5 +1,6 @@
 import { ref, Ref, onMounted, computed, unref, watch, nextTick } from 'vue';
-import { useResize, useScroll } from './internalComposables';
+import { useResize } from './useResize';
+import { useScroll } from './useScroll';
 
 type Dataset = Record<string, string>;
 
@@ -25,7 +26,7 @@ type UseActiveTitleReturn = {
 	setUnreachable: (id: string) => void;
 };
 
-const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
+const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	debounce: 0,
@@ -38,8 +39,7 @@ const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 
 /**
  * FIXED_OFFSET is a fixed value of 5px used to avoid that targets
- * with a top/bottom position < 1px are excluded by the maps
- * by Safari.
+ * with a top/bottom position < 1px are excluded by the maps.
  */
 
 const FIXED_OFFSET = 5;
@@ -65,16 +65,16 @@ function getRects(
 	prop: 'top' | 'bottom',
 	comparator?: '+' | '-',
 	topOffset: number = 0,
-	customBoundary: number = 0
+	boundaryOffset: number = 0
 ) {
 	const map = new Map<string, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
 		const condition =
 			comparator === '+'
-				? rectProp >= topOffset + FIXED_OFFSET + customBoundary
+				? rectProp >= topOffset + FIXED_OFFSET + boundaryOffset
 				: comparator === '-'
-				? rectProp <= topOffset + FIXED_OFFSET + customBoundary
+				? rectProp <= topOffset + FIXED_OFFSET + boundaryOffset
 				: true; // Get both positive and negative
 		if (condition) {
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
@@ -120,15 +120,15 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 export function useActiveTitle(
 	userIds: Ref<string[]> | string[],
 	{
-		jumpToFirst = defaultOptions.jumpToFirst,
-		jumpToLast = defaultOptions.jumpToLast,
-		debounce = defaultOptions.debounce,
-		topOffset = defaultOptions.topOffset,
+		jumpToFirst = defaultOpts.jumpToFirst,
+		jumpToLast = defaultOpts.jumpToLast,
+		debounce = defaultOpts.debounce,
+		topOffset = defaultOpts.topOffset,
 		boundaryOffset: {
-			toTop = defaultOptions.boundaryOffset.toTop,
-			toBottom = defaultOptions.boundaryOffset.toTop,
-		} = defaultOptions.boundaryOffset,
-	}: UseActiveTitleOptions = defaultOptions
+			toTop = defaultOpts.boundaryOffset.toTop,
+			toBottom = defaultOpts.boundaryOffset.toTop,
+		} = defaultOpts.boundaryOffset,
+	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
 	// Internal
 	const _userIds = computed<string[]>(() => unref(userIds)); // Force reactive
@@ -154,20 +154,20 @@ export function useActiveTitle(
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
-		const newTargets = <HTMLElement[]>[];
+		const targets = <HTMLElement[]>[];
 
 		// Get fresh targets
 		_userIds.value.forEach((id) => {
 			const target = document.getElementById(id);
 			if (target) {
-				newTargets.push(target);
+				targets.push(target);
 			}
 		});
 
 		// Sort targets by DOM order
-		newTargets.sort((a, b) => a.offsetTop - b.offsetTop);
+		targets.sort((a, b) => a.offsetTop - b.offsetTop);
 
-		sortedTargets.value = newTargets;
+		sortedTargets.value = targets;
 	}
 
 	onMounted(() => {

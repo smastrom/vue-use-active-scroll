@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useSections } from './devComposables';
 import { useActiveTitle } from './useActiveTitle';
 
@@ -12,10 +12,6 @@ const { activeIndex, setUnreachable } = useActiveTitle(titles, {
 	jumpToFirst: false,
 	jumpToLast: true,
 	debounce: 0,
-	boundaryOffset: {
-		toBottom: 100,
-		toTop: 100,
-	},
 });
 
 function spliceSection() {
