@@ -30,11 +30,11 @@ const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 
 /**
  * BACK_TO_TOP_OFFSET is a fixed value of 20px used when jumpToTop is false,
- * it avoids the first target to be marked as inactive "too soon"
+ * it avoids the first target to be marked as inactive maybe "too soon"
  * when scrolling to top.
  *
- * FIXED_OFFSET is a fixed value of 5px used to compensate for targets excluded
- * from the maps for just 0.1-0.2px on Safari.
+ * FIXED_OFFSET is a fixed value of 5px used to include targets that may
+ * be excluded from the maps for just 0.1-0.2px on Safari.
  */
 const BACK_TO_TOP_OFFSET = 20;
 const FIXED_OFFSET = 5;
@@ -203,10 +203,10 @@ export function useActiveTitle(
 	);
 
 	/**
-	 * getRects(top, -) -> Gets all titles that are ABOVE the viewport.
+	 * getRects(top, -) -> Gets all top sides of titles that LEFT the viewport.
 	 *
-	 * Since map respects DOM order the LAST value is the nearest to the top of the viewport
-	 * and will be set as active.
+	 * Since map respects DOM order the LAST value is the first that left the top
+	 * of the viewport and will be set as active.
 	 *
 	 * This function is also called onMount and onResize.
 	 */
@@ -238,11 +238,12 @@ export function useActiveTitle(
 	}
 
 	/**
-	 * getRects(bottom, +) -> Get all titles that ENTERED the viewport.
+	 * getRects(bottom, +) -> Get all bottom sides of titles that ENTERED the viewport.
 	 *
 	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
-	 * Since map respects DOM order the FIRST value is always the nearest to top of the viewport
-	 * and will be set as active.
+	 *
+	 * Since map respects DOM order the FIRST value is always the first that entered
+	 * the top of the viewport and will be set as active.
 	 */
 	function onScrollUp() {
 		// Reset any unreachable scheduled ID
@@ -250,14 +251,14 @@ export function useActiveTitle(
 			return (scheduledId.value = '');
 		}
 
-		// Common behavior - Get first item that enters the viewport from its bottom edge
+		// Common behavior - Get first item that enters the viewport from its bottom side
 		const newActiveId =
 			getRects(sortedTargets.value, 'bottom', '+', topOffset).keys().next().value ??
 			sortedIds.value[0];
 
 		/**
 		 * If jumpToFirst is false, and the first title is in the viewport,
-		 * we set activeIndex to -1 as soon as it is completely in the viewport (top edge positive).
+		 * we set activeIndex to -1 as soon as it is completely in the viewport (positive top side).
 		 */
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
 			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
