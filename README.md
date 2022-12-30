@@ -24,10 +24,11 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 ### Features
 
 - Zero dependencies, 1.5KB gzipped.
-- Total control on the output as it doesn't touch your DOM
-- Automatic update on window resize
 - Automatic jump to last target on bottom reached regardless of previous sections visibility
 - Manually set unreachable targets with `setUnreachable`
+- Automatic update on window resize
+- Total control on the output as it doesn't touch your DOM
+- Scroll-behavior agnostic
 
 ### Limitations
 
@@ -49,13 +50,7 @@ pnpm add vue-reactive-toc
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
-If you want to "extend" the observed title area, simply add some top/bottom paddings. Bear in mind that margins are ignored so they shouldn't be added at all.
-
-Make sure that each related heading you want to include in your TOC has an unique `id` attribute. This ID should also be the anchor your links will scroll to.
-
-In your Sidebar component, import `useActiveTitle` and pass the IDs to observe.
-
-This array should be computed from your content just like your TOC links. **Order is not important**.
+Ensure that each target has an unique `id` attribute (which corresponds the anchor you'll scroll to) and pass them to `useActiveTitle`. **Order is not important**.
 
 ```vue
 <script setup>
@@ -66,6 +61,8 @@ const titleIds = ['title-1', 'title-2', 'title-3']
 const { activeIndex, activeId } = useActiveTitle(titleIds)
 </script>
 ```
+
+To "extend" the observed title area, simply add some top/bottom paddings. Bear in mind that margins are ignored so they shouldn't be added at all.
 
 <details><summary><strong>Nuxt Content</strong></summary>
 
@@ -97,7 +94,10 @@ You can compute the array of IDs to observe by mapping the `data.body.toc.links`
 
 ```js
 const computedLinks = computed(() =>
-  data.body.toc.links.flatMap(({ id, children = [] }) => [id, ...children.map(({ id }) => id)])
+  data.value.body.toc.links.flatMap(({ id, children = [] }) => [
+    id,
+    ...children.map(({ id }) => id)
+  ])
 )
 
 // => ['title-1', 'sub-title-1', 'title-2', 'title-3', 'title-4']
@@ -118,13 +118,12 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property     | Type      | Default | Description                                                                                                                                                                       |
-| ------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst  | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                                 |
-| jumpToLast   | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                              |
-| debounce     | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                           |
-| topOffset    | `number`  | 0       | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [dealing with offsetTop paddings](). |
-| bottomOffset | `number`  | 0       | Offset in pixels within which bottom can considered to be reached.                                                                                                                |
+| Property    | Type      | Default | Description                                                                                                                                                                    |
+| ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| jumpToFirst | `boolean` | true    | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                              |
+| jumpToLast  | `boolean` | true    | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                           |
+| debounce    | `number`  | 0       | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                        |
+| topOffset   | `number`  | 0       | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting offsetTop paddings](). |
 
 ### Return object
 
@@ -153,7 +152,6 @@ Also, make sure to destructure `setUnreachable` from the composable and call it 
 ```vue
 <script setup>
 import { watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useActiveTitle } from 'vue-reactive-toc'
 
 defineProps({
@@ -174,9 +172,7 @@ const { activeId, activeIndex, setUnreachable } = useActiveTitle(titleIds)
 watch(
   () => activeId.value,
   (newId) => {
-    router.replace({
-      hash: newId
-    })
+    history.replaceState(history.state, '', `#${newId}`)
   }
 )
 </script>
@@ -229,7 +225,7 @@ It is not mandatory to use it but you should definitely include it in any click 
 
 <br />
 
-## Dealing with offsetTop title paddings
+## Adjusting offsetTop title paddings
 
 You might noticed that if you have a fixed header and defined a `offsetTop`, once you scroll to a section its top edge may actually be underneath the header.
 

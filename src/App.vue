@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSections } from './devComposables';
-import { useHighlight } from './useActiveTitle';
+import { useActiveTitle } from './useActiveTitle';
 
 const { menuItems, sections } = useSections();
 
 const titlesRef = ref<HTMLHeadingElement[]>([]);
+const titles = computed<string[]>(() => sections.map((section) => section.id)); // New
 
-const titles = computed(() => sections.map((section) => section.id)); // New
-
-const { unreachableIds, dataset, activeIndex, setUnreachable, activeId, isBottomReached } =
-	useHighlight(titles, {
-		jumpToFirst: true,
-		jumpToLast: true,
-		topOffset: 100,
-		bottomOffset: 50,
-	});
+const { activeIndex, setUnreachable } = useActiveTitle(titles, {
+	jumpToFirst: true,
+	jumpToLast: true,
+	debounce: 0,
+});
 
 function spliceSection() {
 	sections.splice(0, 1);
@@ -24,24 +21,6 @@ function spliceSection() {
 function wipeArray() {
 	sections.splice(0, sections.length);
 }
-
-watch(
-	[() => activeIndex.value, () => activeId.value],
-	([newIndex, newId]) => {
-		console.log(
-			newIndex,
-			JSON.stringify(dataset.value),
-			JSON.stringify(unreachableIds.value),
-			activeId.value
-		);
-		if (newIndex <= 0) {
-			history.replaceState(undefined, '', '/');
-		} else {
-			history.replaceState(undefined, '', `#${newId}`);
-		}
-	},
-	{ flush: 'post' }
-);
 
 const linkRefs = ref<HTMLElement[]>([]);
 
@@ -57,7 +36,7 @@ function handleClick(id: string) {
 
 <template>
 	<div class="wrapper">
-		<header>Fixed Header</header>
+		<!-- 		<header>Fixed Header</header> -->
 		<main class="main">
 			<section v-for="section in sections" :key="section.id">
 				<h1
@@ -100,6 +79,13 @@ function handleClick(id: string) {
 	</div>
 </template>
 
+<style>
+html {
+	scroll-behavior: smooth;
+	overscroll-behavior: none;
+}
+</style>
+
 <style scoped>
 header {
 	position: fixed;
@@ -108,10 +94,6 @@ header {
 	right: 0;
 	height: 100px;
 	background: rgba(255, 255, 255, 0.206);
-}
-
-.main {
-	margin-top: 300px;
 }
 
 .Tracker {
@@ -126,8 +108,9 @@ header {
 }
 
 .titles {
-	margin: -100px 0 0 0;
-	padding: 130px 0 30px 0;
+	/* 	margin: -100px 0 0 0;
+	padding: 130px 0 30px 0; */
+	padding: 30px 0;
 }
 
 .TrackerBackground {
