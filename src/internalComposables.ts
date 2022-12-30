@@ -1,6 +1,6 @@
 import { nextTick, onBeforeUnmount, onMounted, watch, onUnmounted, ref, ComputedRef } from 'vue';
 
-export default function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number): T {
+function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number): T {
 	let timerId: number | undefined;
 
 	const debouncedFn = ((...args: Parameters<T>) => {
@@ -32,13 +32,7 @@ export function useResize(setUnreachables: () => void, onScrollDown: () => void)
 
 export function useScroll(
 	userIds: ComputedRef<string[]>,
-	{
-		onScrollUp = () => {},
-		onScrollDown = () => {},
-		onBottomReached = () => {},
-		bottomOffset = 0,
-		debounce = 0,
-	}
+	{ onScrollUp = () => {}, onScrollDown = () => {}, onBottomReached = () => {}, debounce = 0 }
 ) {
 	let scrollPos = window.pageYOffset;
 	const isBottomReached = ref(false);
@@ -58,7 +52,7 @@ export function useScroll(
 			const root = document.documentElement;
 			const _isBottomReached =
 				// ScrollHeight - ViewportHeight - ScrolledArea
-				Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1 + bottomOffset;
+				Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 
 			if (_isBottomReached) {
 				onBottomReached();

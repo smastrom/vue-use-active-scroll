@@ -1,1 +1,1 @@
-export { useHighlight } from './useActiveTitle';
+export { useActiveTitle } from './useActiveTitle';

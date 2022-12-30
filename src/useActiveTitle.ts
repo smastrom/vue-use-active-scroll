@@ -6,30 +6,39 @@ type Dataset = Record<string, string>;
 // https://github.com/microsoft/TypeScript/issues/28374#issuecomment-538052842
 type DeepNonNullable<T> = { [P in keyof T]-?: NonNullable<T[P]> } & NonNullable<T>;
 
-type UseHighlightOptions = {
+type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
 	debounce?: number;
 	topOffset?: number;
-	bottomOffset?: number;
 };
 
-const defaultOptions: DeepNonNullable<UseHighlightOptions> = {
+type UseActiveTitleReturn = {
+	activeId: Ref<string>;
+	activeDataset: Ref<Dataset>;
+	activeIndex: Ref<number>;
+	isBottomReached: Ref<boolean>;
+	setUnreachable: (id: string) => void;
+};
+
+const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	debounce: 0,
 	topOffset: 0,
-	bottomOffset: 0,
 };
 
 /**
- * This is a fixed value of 20px used when jumpToTop is false,
- * it prevents the first section to be marked as inactive
- * "too soon".
+ * BACK_TO_TOP_OFFSET is a fixed value of 20px used when jumpToTop is false,
+ * it prevents the first section to be marked as inactive "too soon".
+ *
+ * FIXED_OFFSET is a fixed value of 5px used to compensate for targets excluded
+ * from the maps for just 0.1-2px on Safari.
  */
 const BACK_TO_TOP_OFFSET = 20;
+const FIXED_OFFSET = 5;
 
-export function getDataset(dataset: DOMStringMap): Dataset {
+function getDataset(dataset: DOMStringMap): Dataset {
 	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
 
 	// Exclude any 'data-v'
@@ -53,9 +62,9 @@ function getRects(
 		const rectProp = elements[i].getBoundingClientRect()[prop];
 		const condition =
 			comparator === '+'
-				? rectProp >= topOffset
+				? rectProp >= topOffset + FIXED_OFFSET
 				: comparator === '-'
-				? rectProp <= topOffset
+				? rectProp <= topOffset + FIXED_OFFSET
 				: true; // Get both positive and negative
 		if (condition) {
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
@@ -68,34 +77,45 @@ function getRects(
  * This function gets 'in advance' all target ids that would be
  * excluded from the highlight process at the bottom of the page.
  *
- * Used onResize, onMount and whenever the user array changes.
+ * Called onResize, onMount and whenever the user array changes.
  */
 function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
+	const reachableIds: string[] = [];
 	const unreachableIds: string[] = [];
+
 	const root = document.documentElement;
-	// This works at any point of the page
 	const scrollStart = root.scrollHeight - root.clientHeight - root.scrollTop;
 
 	// Get all IDs that are unreachable
 	Array.from(getRects(sortedTargets, 'top').values()).forEach((value, index) => {
-		if (value > scrollStart) {
+		if (value >= scrollStart) {
 			unreachableIds.push(sortedTargets[index].id);
+		} else {
+			reachableIds.push(sortedTargets[index].id);
 		}
 	});
 
+	// Check if the prev one is half-reachable, and add it to the array as well
+	const prevTarget = reachableIds[reachableIds.length - 1];
+	const rect = document.getElementById(prevTarget)?.getBoundingClientRect();
+	if (rect && rect.bottom >= scrollStart && rect.top < scrollStart) {
+		console.log('halfReachable', prevTarget);
+		unreachableIds.unshift(prevTarget);
+	}
+
+	console.log('anyUnreachable', unreachableIds);
 	target.value = unreachableIds;
 }
 
-export function useHighlight(
+export function useActiveTitle(
 	userIds: Ref<string[]> | string[],
 	{
 		jumpToFirst = defaultOptions.jumpToFirst,
 		jumpToLast = defaultOptions.jumpToLast,
 		debounce = defaultOptions.debounce,
 		topOffset = defaultOptions.topOffset,
-		bottomOffset = defaultOptions.bottomOffset,
-	}: UseHighlightOptions = defaultOptions
-) {
+	}: UseActiveTitleOptions = defaultOptions
+): UseActiveTitleReturn {
 	// Internal
 	const _userIds = computed<string[]>(() => unref(userIds)); // Force reactive
 	const sortedTargets = ref<HTMLElement[]>([]);
@@ -105,7 +125,7 @@ export function useHighlight(
 
 	// Returned values
 	const activeId = ref('');
-	const dataset = computed<Dataset>(() => {
+	const activeDataset = computed<Dataset>(() => {
 		const activeElement = sortedTargets.value.find(({ id }) => id === activeId.value);
 		if (!activeElement) {
 			return {};
@@ -116,7 +136,6 @@ export function useHighlight(
 
 	function setUnreachable(id: string) {
 		nextTick(() => {
-			console.log(id);
 			if (unreachableIds.value.includes(id) && id !== activeId.value) {
 				scheduledId.value = id;
 			}
@@ -124,49 +143,60 @@ export function useHighlight(
 	}
 
 	// Runs onMount and whenever the user array changes
-	watch(
-		() => _userIds.value,
-		(newIds) => {
-			nextTick(() => {
-				// Get fresh targets
-				sortedTargets.value = [];
-				newIds.forEach((id) => {
-					const target = document.getElementById(id);
+	function setFreshTargets() {
+		const newTargets = <HTMLElement[]>[];
 
-					if (target) {
-						sortedTargets.value.push(target);
-					}
-				});
+		// Get fresh targets
+		_userIds.value.forEach((id) => {
+			const target = document.getElementById(id);
+			if (target) {
+				newTargets.push(target);
+			}
+		});
 
-				// Sort targets by DOM order
-				sortedTargets.value.sort((a, b) => a.offsetTop - b.offsetTop);
-
-				// Set fresh unreachable IDs
-				setUnreachableIds(unreachableIds, sortedTargets.value);
-			});
-		},
-		{ immediate: true }
-	);
+		// Sort targets by DOM order
+		newTargets.sort((a, b) => a.offsetTop - b.offsetTop);
+		sortedTargets.value = newTargets;
+	}
 
 	onMounted(() => {
+		setFreshTargets();
+		setUnreachableIds(unreachableIds, sortedTargets.value);
+
+		const hashTarget = sortedTargets.value.find(
+			({ id }) => id === window.location.hash.slice(1)
+		)?.id;
+
 		nextTick(() => {
 			// Sets activeId to first if jumpToFirst is true, even if scrolled for 20px
-			if (jumpToFirst && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
-				return (activeId.value = sortedTargets.value[0].id);
+			if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
+				return (activeId.value = sortedTargets.value[0]?.id);
 			}
 
-			// This sets as active an unreachable target on page load if included in the hash
-			const unreachableIdFromHash = sortedTargets.value.find(
-				({ id }) => id === window.location.hash.slice(1)
-			);
-			setUnreachable(unreachableIdFromHash?.id || '');
+			if (hashTarget && unreachableIds.value.includes(hashTarget)) {
+				return (scheduledId.value = hashTarget);
+			}
+
+			onScrollDown();
 		});
 	});
 
 	watch(
+		() => _userIds.value,
+		() => {
+			setFreshTargets();
+		},
+		{ flush: 'post' }
+	);
+
+	watch(
 		() => scheduledId.value,
 		(newValue) => {
-			if (newValue !== '' && isBottomReached.value) {
+			if (
+				typeof scheduledId.value === 'string' &&
+				scheduledId.value !== '' &&
+				isBottomReached.value
+			) {
 				activeId.value = newValue;
 			}
 		},
@@ -192,7 +222,7 @@ export function useHighlight(
 			activeId.value === '' &&
 			getRects(sortedTargets.value, 'top', '-', topOffset).size <= 0
 		) {
-			return (activeId.value = sortedTargets.value[0].id);
+			return (activeId.value = sortedTargets.value[0]?.id || '');
 		}
 
 		// Common behavior - Get last item that leaves the viewport from its top edge
@@ -214,7 +244,9 @@ export function useHighlight(
 
 	function onScrollUp() {
 		// Reset any unreachable scheduled ID
-		scheduledId.value = '';
+		if (scheduledId.value) {
+			return (scheduledId.value = '');
+		}
 
 		// Common behavior - Get first item that enters the viewport from its bottom edge
 		const newActiveId =
@@ -244,6 +276,7 @@ export function useHighlight(
 	function onBottomReached() {
 		// If jumpToLast is true and no scheduled unreachable ID is set, set the last unreachabe ID as active.
 		if (jumpToLast && unreachableIds.value.length > 0 && !scheduledId.value) {
+			console.log('Setting last from onBottomReached!');
 			return (activeId.value = unreachableIds.value[unreachableIds.value.length - 1]);
 		}
 
@@ -265,15 +298,13 @@ export function useHighlight(
 		onScrollDown,
 		onScrollUp,
 		onBottomReached,
-		bottomOffset,
 		debounce,
 	});
 
 	return {
 		activeId,
 		activeIndex,
-		dataset,
-		unreachableIds,
+		activeDataset,
 		isBottomReached,
 		setUnreachable,
 	};
