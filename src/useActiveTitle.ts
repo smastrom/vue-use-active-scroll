@@ -29,14 +29,11 @@ const defaultOptions: DeepNonNullable<UseActiveTitleOptions> = {
 };
 
 /**
- * BACK_TO_TOP_OFFSET is a fixed value of 20px used when jumpToTop is false,
- * it avoids the first target to be marked as inactive maybe "too soon"
- * when scrolling to top.
- *
- * FIXED_OFFSET is a fixed value of 5px used to include targets that may
- * be excluded from the maps for just 0.1-0.2px on Safari.
+ * FIXED_OFFSET is a fixed value of 5px used to avoid that targets
+ * with a top/bottom position < 1px are excluded by the maps
+ * by Safari.
  */
-const BACK_TO_TOP_OFFSET = 20;
+
 const FIXED_OFFSET = 5;
 
 function getDataset(dataset: DOMStringMap | undefined): Dataset {
@@ -169,7 +166,7 @@ export function useActiveTitle(
 		)?.id;
 
 		// Sets activeId to first if jumpToFirst is true, even if scrolled for 20px
-		if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= BACK_TO_TOP_OFFSET) {
+		if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= 0) {
 			return (activeId.value = sortedTargets.value[0]?.id ?? '');
 		}
 
@@ -262,7 +259,7 @@ export function useActiveTitle(
 		 */
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
 			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos > BACK_TO_TOP_OFFSET + topOffset) {
+			if (newActiveTopPos + topOffset > 0) {
 				return (activeId.value = '');
 			}
 		}
