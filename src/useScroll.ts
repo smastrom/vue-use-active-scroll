@@ -1,34 +1,5 @@
-import { nextTick, onBeforeUnmount, onMounted, watch, onUnmounted, ref, ComputedRef } from 'vue';
-
-function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number): T {
-	let timerId: number | undefined;
-
-	const debouncedFn = ((...args: Parameters<T>) => {
-		clearTimeout(timerId);
-		timerId = setTimeout(() => fn(...args), delay);
-	}) as T;
-
-	onUnmounted(() => {
-		clearTimeout(timerId);
-	});
-
-	return debouncedFn;
-}
-
-export function useResize(setUnreachables: () => void, onScrollDown: () => void) {
-	const debouncedCallback = useDebounceFn(() => {
-		setUnreachables();
-		onScrollDown();
-	}, 75);
-
-	onMounted(() => {
-		window.addEventListener('resize', debouncedCallback);
-	});
-
-	onBeforeUnmount(() => {
-		window.removeEventListener('resize', debouncedCallback);
-	});
-}
+import { nextTick, watch, ref, ComputedRef } from 'vue';
+import { useDebouncedFn } from './useDebounceFn';
 
 export function useScroll(
 	userIds: ComputedRef<string[]>,
@@ -37,7 +8,7 @@ export function useScroll(
 	let scrollPos = window.pageYOffset;
 	const isBottomReached = ref(false);
 
-	const debouncedScroll = debounce > 0 ? useDebounceFn(onScroll, debounce) : onScroll;
+	const debouncedScroll = debounce > 0 ? useDebouncedFn(onScroll, debounce) : onScroll;
 
 	function onScroll() {
 		if (window.pageYOffset < scrollPos) {

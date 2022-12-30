@@ -122,13 +122,13 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                                    |
-| -------------- | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                              |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                           |
-| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                        |
-| topOffset      | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting offsetTop paddings](). |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                                    |
+| Property       | Type             | Default                   | Description                                                                                                                                                                        |
+| -------------- | ---------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                                  |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                               |
+| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                            |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                                        |
+| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting overlayOffset paddings](). |
 
 ### Return object
 
@@ -230,7 +230,7 @@ It is not mandatory to use it but you should definitely include it in any click 
 
 <br />
 
-## Adjusting offsetTop title paddings
+## Adjusting overlayOffset targets' padding
 
 You might noticed that if you have a fixed header and defined a `offsetTop`, once you scroll to a title its top edge may actually be underneath the header.
 
