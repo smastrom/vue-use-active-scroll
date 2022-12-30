@@ -10,7 +10,7 @@
 
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
-- Scrolling speed affects accuracy of the current active target
+- Scrolling speed may affects active target accuracy
 - Once scrolled to the bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
 - Clicking on such links highlights different links (or does nothing).
 - When accessing/refreshing the page, the active link may not reflect the one in the the URL.
@@ -232,7 +232,7 @@ You might noticed that if you have a fixed header and defined a `offsetTop`, onc
 You must adjust the paddings and the margins of your titles to compensate the offset:
 
 ```js
-const { activeIndex } = useActiveTitle(titleRefs, {
+const { activeId } = useActiveTitle(titleRefs, {
   topOffset: 100
 })
 ```
