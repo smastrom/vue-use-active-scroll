@@ -29,7 +29,7 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 - Safely set unreachable targets with `setUnreachable`
 - Total control on the output as it doesn't touch your DOM
 - Automatic update on window resize
-- Scroll-behavior agnostic
+- Scroll-behavior agnostic (CSS or JS)
 
 ### Limitations
 
@@ -122,13 +122,14 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                                        |
-| -------------- | ---------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                                  |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                                               |
-| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                                            |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                                        |
-| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). See also [adjusting overlayOffset paddings](). |
+| Property       | Type             | Default                   | Description                                                                                                                                                    |
+| -------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                              |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                           |
+| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                        |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                    |
+| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayOffset paddings](). |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none`.                           |
 
 ### Return object
 
