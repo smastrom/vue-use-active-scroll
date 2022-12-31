@@ -5,7 +5,6 @@ import { useActiveTitle } from './useActiveTitle';
 
 const { menuItems, sections } = useSections();
 
-const titlesRef = ref<HTMLHeadingElement[]>([]);
 const titles = computed<string[]>(() => sections.map((section) => section.id)); // New
 
 const { activeIndex, setUnreachable } = useActiveTitle(titles, {

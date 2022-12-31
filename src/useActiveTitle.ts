@@ -114,7 +114,7 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 		// console.log('halfReachable', prevTarget);
 		unreachableIds.unshift(prevTarget);
 	}
-
+	console.log('Unreachables refreshed', JSON.stringify(unreachableIds));
 	// console.log('anyUnreachable', unreachableIds);
 	target.value = unreachableIds;
 }

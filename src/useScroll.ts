@@ -39,9 +39,7 @@ export function useScroll({
 		}
 
 		const root = document.documentElement;
-		const _isBottomReached =
-			// ScrollHeight - ViewportHeight - ScrolledArea
-			Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
+		const _isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 
 		if (_isBottomReached) {
 			onBottomReached();

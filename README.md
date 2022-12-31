@@ -175,12 +175,9 @@ const router = useRouter()
 const { activeId, activeIndex, setUnreachable } = useActiveTitle(titleIds)
 
 // Update URL hash on active target change
-watch(
-  () => activeId.value,
-  (newId) => {
-    history.replaceState(history.state, '', `#${newId}`)
-  }
-)
+watch(activeId, (newId) => {
+  history.replaceState(...history.state, '', `#${newId}`)
+})
 </script>
 
 <template>
