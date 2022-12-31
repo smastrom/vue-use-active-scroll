@@ -12,6 +12,7 @@ const { activeIndex, setUnreachable } = useActiveTitle(titles, {
 	jumpToFirst: false,
 	jumpToLast: true,
 	debounce: 0,
+	minWidth: 810,
 });
 
 function spliceSection() {
@@ -142,7 +143,7 @@ header {
 }
 
 .active {
-	background-color: white;
+	/* 	background-color: white; */
 }
 
 p {

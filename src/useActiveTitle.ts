@@ -12,6 +12,7 @@ type UseActiveTitleOptions = {
 	jumpToLast?: boolean;
 	debounce?: number;
 	topOffset?: number;
+	minWidth?: number;
 	boundaryOffset?: {
 		toTop?: number;
 		toBottom?: number;
@@ -31,18 +32,12 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToLast: true,
 	debounce: 0,
 	topOffset: 0,
+	minWidth: 0,
 	boundaryOffset: {
 		toTop: 0,
 		toBottom: 0,
 	},
 };
-
-/**
- * FIXED_OFFSET is a fixed value of 5px used to avoid that targets
- * with a top/bottom position < 1px are excluded by the maps.
- */
-
-const FIXED_OFFSET = 5;
 
 function getDataset(dataset: DOMStringMap | undefined): Dataset {
 	if (!dataset) {
@@ -60,6 +55,9 @@ function getDataset(dataset: DOMStringMap | undefined): Dataset {
 	return datasetAsObj;
 }
 
+const FIXED_OFFSET = 5;
+
+// Used to track targets distance from viewport
 function getRects(
 	elements: HTMLElement[],
 	prop: 'top' | 'bottom',
@@ -67,6 +65,8 @@ function getRects(
 	topOffset: number = 0,
 	boundaryOffset: number = 0
 ) {
+	const start = performance.now();
+
 	const map = new Map<string, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
@@ -80,6 +80,8 @@ function getRects(
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
 		}
 	}
+
+	// console.log('getRects:', `${performance.now() - start}ms`);
 	return map;
 }
 
@@ -109,21 +111,22 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 	const prevTarget = reachableIds[reachableIds.length - 1];
 	const rect = document.getElementById(prevTarget)?.getBoundingClientRect();
 	if (rect && rect.bottom > scrollStart && rect.top < scrollStart) {
-		console.log('halfReachable', prevTarget);
+		// console.log('halfReachable', prevTarget);
 		unreachableIds.unshift(prevTarget);
 	}
 
-	console.log('anyUnreachable', unreachableIds);
+	// console.log('anyUnreachable', unreachableIds);
 	target.value = unreachableIds;
 }
 
 export function useActiveTitle(
-	userIds: Ref<string[]> | string[],
+	userIds: string[] | Ref<string[]>,
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
 		debounce = defaultOpts.debounce,
 		topOffset = defaultOpts.topOffset,
+		minWidth = defaultOpts.minWidth,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
@@ -131,7 +134,6 @@ export function useActiveTitle(
 	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
 	// Internal
-	const _userIds = computed<string[]>(() => unref(userIds)); // Force reactive
 	const sortedTargets = ref<HTMLElement[]>([]);
 	const sortedIds = computed(() => sortedTargets.value.map(({ id }) => id));
 	const unreachableIds = ref<string[]>([]);
@@ -154,10 +156,11 @@ export function useActiveTitle(
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
+		console.log('Refreshing targets');
 		const targets = <HTMLElement[]>[];
 
 		// Get fresh targets
-		_userIds.value.forEach((id) => {
+		unref(userIds).forEach((id) => {
 			const target = document.getElementById(id);
 			if (target) {
 				targets.push(target);
@@ -174,11 +177,9 @@ export function useActiveTitle(
 		setTargets();
 		setUnreachableIds(unreachableIds, sortedTargets.value);
 
-		const hashTarget = sortedTargets.value.find(
-			({ id }) => id === window.location.hash.slice(1)
-		)?.id;
+		const hashTarget = sortedTargets.value.find(({ id }) => id === location.hash.slice(1))?.id;
 
-		// Sets activeId to first if jumpToFirst is true, even if scrolled for 20px
+		// Set first target as active if jumpToFirst is true
 		if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= 0) {
 			return (activeId.value = sortedTargets.value[0]?.id ?? '');
 		}
@@ -190,23 +191,17 @@ export function useActiveTitle(
 		onScrollDown();
 	});
 
-	watch(
-		() => _userIds.value,
-		() => {
-			setTargets();
-		},
-		{ flush: 'post' }
-	);
+	watch(userIds, () => setTargets(), { flush: 'post' });
 
 	watch(
-		() => scheduledId.value,
-		(newValue) => {
+		scheduledId,
+		(newId) => {
 			if (
 				typeof scheduledId.value === 'string' &&
 				scheduledId.value !== '' &&
 				isBottomReached.value
 			) {
-				activeId.value = newValue;
+				activeId.value = newId;
 			}
 		},
 		{ flush: 'post' }
@@ -215,10 +210,10 @@ export function useActiveTitle(
 	/**
 	 * getRects(top, -) -> Gets all top sides of titles that LEFT the viewport.
 	 *
-	 * Since map respects DOM order the LAST value is the first that left the top
-	 * of the viewport and will be set as active.
+	 * Since map respects DOM order the LAST value is the first target that
+	 * left the top of the viewport and it will be set as active.
 	 *
-	 * This function is also called onMount and onResize.
+	 * This function is also called onMount, onResize and onScrollDown.
 	 */
 	function onScrollDown({ isResize } = { isResize: false }) {
 		const boundaryOffset = Math.abs(toBottom || 0);
@@ -253,10 +248,8 @@ export function useActiveTitle(
 	/**
 	 * getRects(bottom, +) -> Get all bottom sides of titles that ENTERED the viewport.
 	 *
-	 * We target the bottom side of the title so that result is returned as soon as it enters the viewport.
-	 *
-	 * Since map respects DOM order the FIRST value is always the first that entered
-	 * the top of the viewport and will be set as active.
+	 * Since map respects DOM order the FIRST value is always the first target
+	 * that entered the top of the viewport and it will be set as active.
 	 */
 	function onScrollUp() {
 		// Reset any unreachable scheduled ID
@@ -277,7 +270,7 @@ export function useActiveTitle(
 		 */
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
 			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos + topOffset + boundaryOffset > +0) {
+			if (newActiveTopPos > FIXED_OFFSET + topOffset + boundaryOffset) {
 				return (activeId.value = '');
 			}
 		}
@@ -305,16 +298,21 @@ export function useActiveTitle(
 		}
 	}
 
-	useResize(
-		() => setUnreachableIds(unreachableIds, sortedTargets.value),
-		() => onScrollDown({ isResize: true })
-	);
+	const { viewportWidth } = useResize({
+		minWidth,
+		setUnreachableIds: () => setUnreachableIds(unreachableIds, sortedTargets.value),
+		onScrollDown: () => onScrollDown({ isResize: true }),
+		onScrollUp,
+	});
 
-	const { isBottomReached } = useScroll(_userIds, {
+	const { isBottomReached } = useScroll({
+		userIds,
+		viewportWidth,
+		debounce,
+		minWidth,
 		onScrollDown,
 		onScrollUp,
 		onBottomReached,
-		debounce,
 	});
 
 	return {
