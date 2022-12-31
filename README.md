@@ -15,17 +15,30 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 - Clicking on such links highlights different links (or does nothing).
 - When accessing/refreshing the page, the active target may not reflect the one in the the URL hash.
 
-> If you don't care about such drawbacks then you don't need this package.
+> If you're struggling with any of these issues, maybe this library can help you.
 
-### What it does?
+<br />
 
-- Jump to first target on mount regardless of
-- Jump to last target on bottom reached regardless of previous targets visibility
-- Manually set unreachable targets with `setUnreachable`
-- onMount, ensures that the target in the URL hash is active
-- Total control on the output as it doesn't touch your DOM
-- Update on window resize
-- Scroll-behavior agnostic (CSS or JS)
+## What it does?
+
+It is a Vue 3 composable that observes targets and returns reactive data of the current active one.
+
+How such data is used is up to you. You can use it to highlight sidebar links, update the URL hash, create animations etc.
+
+It automatically ensures that the returned target:
+
+- Matches user's reading flow regardless of scroll behavior and speed
+- Matches the URL hash after mount regardless of previous targets visibility
+- Matches the link users clicked on regardless of previous targets visibility
+
+And last but not least:
+
+- Manually set unreachable targets in your handlers with `setUnreachable`
+
+### What it doesn't do?
+
+- Mutate your DOM
+- Scroll to targets
 
 ### Limitations
 
@@ -47,7 +60,7 @@ pnpm add vue-reactive-toc
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
-Make sure that each target has an unique `id` (which corresponds to the anchor you'll scroll to) and pass them to `useActiveTitle`. Order is not important.
+Make sure that each target has an unique `id` attribute (which corresponds to the anchor you'll scroll to) and pass them to `useActiveTitle`. Order is not important.
 
 ```vue
 <script setup>
@@ -121,11 +134,11 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 | Property       | Type             | Default                   | Description                                                                                                                                                    |
 | -------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                              |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll arrives to bottom even if previous targets are entirely visible.                                           |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                          |
 | debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                        |
 | boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                    |
 | overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayOffset paddings](). |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none`.                           |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none` until a specific width.    |
 
 ### Return object
 
@@ -226,13 +239,13 @@ It is not mandatory to use it but you should definitely include it in any click 
 
 ## Adjusting overlayOffset targets' padding
 
-You might noticed that if you have a fixed header and defined a `offsetTop`, once you scroll to a title its top edge may actually be underneath the header.
+You might noticed that if you have a fixed header and defined an `overlayOffset`, once you scroll to a title its top edge may actually be underneath the header.
 
 You must adjust the paddings and the margins of your titles to compensate the offset:
 
 ```js
 const { activeId } = useActiveTitle(titleRefs, {
-  topOffset: 100
+  overlayOffset: 100
 })
 ```
 
@@ -249,8 +262,8 @@ To:
 
 ```css
 .titles {
-  margin: -100px 0 0 0; // /* Subtract topOffset from margin-top */
-  padding: 130px 0 30px 0; /* Add topOffset to padding-top */
+  margin: -100px 0 0 0; // /* Subtract overlayOffset from margin-top */
+  padding: 130px 0 30px 0; /* Add overlayOffset to padding-top */
 }
 ```
 
