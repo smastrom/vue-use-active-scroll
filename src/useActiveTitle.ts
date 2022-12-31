@@ -111,7 +111,7 @@ function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) 
 	const prevTarget = reachableIds[reachableIds.length - 1];
 	const rect = document.getElementById(prevTarget)?.getBoundingClientRect();
 	if (rect && rect.bottom > scrollStart && rect.top < scrollStart) {
-		// console.log('halfReachable', prevTarget);
+		console.log('halfReachable', prevTarget);
 		unreachableIds.unshift(prevTarget);
 	}
 	console.log('Unreachables refreshed', JSON.stringify(unreachableIds));
@@ -253,9 +253,7 @@ export function useActiveTitle(
 	 */
 	function onScrollUp() {
 		// Reset any unreachable scheduled ID
-		if (scheduledId.value) {
-			return (scheduledId.value = '');
-		}
+		scheduledId.value = '';
 
 		const boundaryOffset = Math.abs(toTop || -0) * -1;
 

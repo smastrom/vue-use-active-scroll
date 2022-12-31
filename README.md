@@ -10,25 +10,21 @@
 
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
-- Scrolling speed affects active target accuracy
+- Scrolling speed affects accuracy
 - Once scrolled to bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
 - Clicking on such links highlights different links (or does nothing).
-- When accessing/refreshing the page, the active target may not reflect the one in the the URL.
+- When accessing/refreshing the page, the active target may not reflect the one in the the URL hash.
 
----
+> If you don't care about such drawbacks then you don't need this package.
 
-:bulb: Vue Reactive TOC is a **Vue 3 composable** that automatically overcomes such drawbacks and surgically returns accurate **reactive data** of the current active target.
+### What it does?
 
----
-
-### Features
-
-- Zero dependencies, 1.5KB gzipped.
+- Jump to first target on mount regardless of
 - Jump to last target on bottom reached regardless of previous targets visibility
-- onMount URL hash priority regardless of previous targets visibility
-- Safely set unreachable targets with `setUnreachable`
+- Manually set unreachable targets with `setUnreachable`
+- onMount, ensures that the target in the URL hash is active
 - Total control on the output as it doesn't touch your DOM
-- Automatic update on window resize
+- Update on window resize
 - Scroll-behavior agnostic (CSS or JS)
 
 ### Limitations

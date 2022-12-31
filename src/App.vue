@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSections } from './devComposables';
 import { useActiveTitle } from './useActiveTitle';
 
@@ -7,7 +7,7 @@ const { menuItems, sections } = useSections();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id)); // New
 
-const { activeIndex, setUnreachable } = useActiveTitle(titles, {
+const { activeIndex, activeId, setUnreachable } = useActiveTitle(titles, {
 	jumpToFirst: false,
 	jumpToLast: true,
 	debounce: 0,
@@ -26,6 +26,14 @@ const linkRefs = ref<HTMLElement[]>([]);
 
 const activeItemHeight = computed(
 	() => linkRefs.value[activeIndex.value]?.getBoundingClientRect().height || 0
+);
+
+watch(
+	() => activeId.value,
+	() => {
+		console.log('activeId', activeId.value);
+		console.log('activeIndex', activeIndex.value);
+	}
 );
 
 function handleClick(id: string) {
