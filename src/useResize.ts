@@ -22,22 +22,22 @@ export function useResize({
 		};
 	}
 
-	let scrollPos = window.pageYOffset;
+	let prevViewport = document.documentElement.clientWidth;
 
 	function onResize() {
-		const _viewportWidth = document.documentElement.clientWidth;
+		viewportWidth.value = document.documentElement.clientWidth;
 
-		if (_viewportWidth >= minWidth) {
+		if (viewportWidth.value >= minWidth) {
 			setUnreachableIds();
-			if (window.pageYOffset > scrollPos) {
-				onScrollUp();
-			} else {
+
+			if (prevViewport < viewportWidth.value) {
 				onScrollDown();
+			} else {
+				onScrollUp();
 			}
 		}
 
-		scrollPos = window.pageYOffset;
-		viewportWidth.value = _viewportWidth;
+		prevViewport = viewportWidth.value;
 	}
 
 	onMounted(() => {
