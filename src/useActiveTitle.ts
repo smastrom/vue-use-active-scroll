@@ -252,12 +252,9 @@ export function useActiveTitle(
 
 	watch([isBottomReached, scheduledId], ([newIsBottomReached, newScheduledId]) => {
 		if (newIsBottomReached && newScheduledId) {
-			console.log('Scheduled unreachable', newScheduledId);
-			console.log('Bottom reached, scheduled set.');
 			return (activeId.value = newScheduledId);
 		}
 		if (newIsBottomReached && jumpToLast && !newScheduledId && unreachIds.value.length > 0) {
-			console.log('Bottom reached, jumpToLast active, setting last unreachable.');
 			return (activeId.value = unreachIds.value[unreachIds.value.length - 1]);
 		}
 	});

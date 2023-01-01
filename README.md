@@ -21,7 +21,7 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 
 ## What is it?
 
-It is a Vue 3 composable that implements a custom scroll-based observer that returns **reactive data** of the current active target.
+It is a Vue 3 composable that implements a custom scroll observer and returns **reactive data** of the current active target.
 
 It automatically ensures that the returned target:
 
@@ -61,8 +61,6 @@ Make sure that each target has an unique `id` attribute (which corresponds to th
 You most likely will call `useActiveTitle` in the [setup function](https://v3.vuejs.org/guide/composition-api-setup.html#setup-function-arguments) of your sidebar component.
 
 ```vue
-<!-- Sidebar.vue -->
-
 <script setup>
 import { useActiveTitle } from 'vue-reactive-toc'
 
@@ -91,7 +89,7 @@ const { data } = await useAsyncData('about', () => queryContent('/about').findOn
     id: 'title-1',
     depth: 2,
     text: 'Title 1',
-    children: [{ id: 'sub-title-1', depth: 3, text: 'Sub Title 1' }] // Nested
+    children: [{ id: 'subtitle-1', depth: 3, text: 'Subtitle 1' }] // Nested
   },
   { id: 'title-2', depth: 2, text: 'Title 2' },
   { id: 'title-3', depth: 2, text: 'Title 3' },
@@ -102,7 +100,7 @@ const { data } = await useAsyncData('about', () => queryContent('/about').findOn
 You can compute a flat array of the IDs to observe by mapping `data.body.toc.links`:
 
 ```js
-const computedIds = computed(() =>
+const targets = computed(() =>
   data.value
     ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
         id,
@@ -111,9 +109,9 @@ const computedIds = computed(() =>
     : []
 )
 
-// console.log(computedIds.value) => ['title-1', 'sub-title-1', 'title-2', 'title-3', 'title-4']
+// console.log(targets.value) => ['title-1', 'subtitle-1', 'title-2', 'title-3', 'title-4']
 
-const { activeId } = useActiveTitle(computedIds)
+const { activeId } = useActiveTitle(targets)
 ```
 
 </details>

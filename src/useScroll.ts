@@ -40,8 +40,9 @@ export function useScroll({
 			onScrollDown();
 		}
 
-		const root = document.documentElement;
 		scrollPos = window.scrollY;
+
+		const root = document.documentElement;
 		isBottomReached.value = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 	}
 
