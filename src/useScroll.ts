@@ -8,14 +8,12 @@ type UseScrollOptions = {
 	minWidth: number;
 	onScrollUp: () => void;
 	onScrollDown: () => void;
-	onBottomReached: () => void;
 };
 
 export function useScroll({
 	userIds,
 	onScrollUp,
 	onScrollDown,
-	onBottomReached,
 	viewportWidth,
 	debounce,
 	minWidth,
@@ -29,24 +27,22 @@ export function useScroll({
 	}
 
 	const debouncedScroll = debounce > 0 ? useDebouncedFn(onScroll, debounce) : onScroll;
-	let scrollPos = window.pageYOffset;
+	let scrollPos: number;
 
 	function onScroll() {
-		if (window.pageYOffset < scrollPos) {
+		if (!scrollPos) {
+			scrollPos = window.scrollY;
+		}
+
+		if (window.scrollY < scrollPos) {
 			onScrollUp();
 		} else {
 			onScrollDown();
 		}
 
 		const root = document.documentElement;
-		const _isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
-
-		if (_isBottomReached) {
-			onBottomReached();
-		}
-
-		scrollPos = window.pageYOffset;
-		isBottomReached.value = _isBottomReached;
+		scrollPos = window.scrollY;
+		isBottomReached.value = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 	}
 
 	function addEvent() {
@@ -59,14 +55,12 @@ export function useScroll({
 
 	watch(
 		() => viewportWidth.value >= minWidth,
-		(isDesktop, __, onCleanup) => {
+		(isDesktop, _, onCleanup) => {
 			if (isDesktop) {
-				console.log('Adding scroll listener - viewportWidth');
 				addEvent();
 			}
 
 			onCleanup(() => {
-				console.log('Removing scroll listener - viewportWidth');
 				removeEvent();
 			});
 		},
@@ -76,12 +70,10 @@ export function useScroll({
 	watch(
 		userIds,
 		(_, __, onCleanup) => {
-			console.log('Adding scroll listener - userIds');
 			removeEvent();
 			addEvent();
 
 			onCleanup(() => {
-				console.log('Removing scroll listener - userIds');
 				removeEvent();
 			});
 		},

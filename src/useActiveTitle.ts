@@ -1,4 +1,4 @@
-import { ref, Ref, onMounted, computed, unref, watch, nextTick } from 'vue';
+import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
 import { useResize } from './useResize';
 import { useScroll } from './useScroll';
 
@@ -45,7 +45,6 @@ function getDataset(dataset: DOMStringMap | undefined): Dataset {
 	}
 	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
 
-	// Exclude any 'data-v'
 	Object.keys(datasetAsObj).forEach((key) => {
 		if (key.startsWith('v-')) {
 			delete datasetAsObj[key];
@@ -57,7 +56,6 @@ function getDataset(dataset: DOMStringMap | undefined): Dataset {
 
 const FIXED_OFFSET = 5;
 
-// Used to track targets distance from viewport
 function getRects(
 	elements: HTMLElement[],
 	prop: 'top' | 'bottom',
@@ -65,8 +63,7 @@ function getRects(
 	topOffset: number = 0,
 	boundaryOffset: number = 0
 ) {
-	const start = performance.now();
-
+	// const start = performance.now();
 	const map = new Map<string, number>();
 	for (let i = 0; i < elements.length; i++) {
 		const rectProp = elements[i].getBoundingClientRect()[prop];
@@ -80,47 +77,33 @@ function getRects(
 			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
 		}
 	}
-
 	// console.log('getRects:', `${performance.now() - start}ms`);
 	return map;
 }
 
 /**
- * This function gets 'in advance' all target ids that would be
- * excluded from the highlight process at the bottom of the page.
+ * This function gets all target ids that would be excluded from
+ * the highlight process at the bottom of the page.
  *
  * Called onResize, onMount and whenever the user array changes.
  */
-function setUnreachableIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
-	const reachableIds: string[] = [];
-	const unreachableIds: string[] = [];
+function setUnreachIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
+	const unreachIds: string[] = [];
 
 	const root = document.documentElement;
 	const scrollStart = root.scrollHeight - root.clientHeight - root.scrollTop;
 
-	// Get all IDs that are unreachable
 	Array.from(getRects(sortedTargets, 'top').values()).forEach((value, index) => {
 		if (value >= scrollStart) {
-			unreachableIds.push(sortedTargets[index].id);
-		} else {
-			reachableIds.push(sortedTargets[index].id);
+			unreachIds.push(sortedTargets[index].id);
 		}
 	});
 
-	// Check if the prev one is half-reachable, and add it to the array as well
-	const prevTarget = reachableIds[reachableIds.length - 1];
-	const rect = document.getElementById(prevTarget)?.getBoundingClientRect();
-	if (rect && rect.bottom > scrollStart && rect.top < scrollStart) {
-		console.log('halfReachable', prevTarget);
-		unreachableIds.unshift(prevTarget);
-	}
-	console.log('Unreachables refreshed', JSON.stringify(unreachableIds));
-	// console.log('anyUnreachable', unreachableIds);
-	target.value = unreachableIds;
+	target.value = unreachIds;
 }
 
 export function useActiveTitle(
-	userIds: string[] | Ref<string[]>,
+	userIds: string[] | Ref<string[]> = [],
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
@@ -136,7 +119,7 @@ export function useActiveTitle(
 	// Internal
 	const sortedTargets = ref<HTMLElement[]>([]);
 	const sortedIds = computed(() => sortedTargets.value.map(({ id }) => id));
-	const unreachableIds = ref<string[]>([]);
+	const unreachIds = ref<string[]>([]);
 	const scheduledId = ref('');
 
 	// Returned values
@@ -146,17 +129,15 @@ export function useActiveTitle(
 	);
 	const activeIndex = computed(() => sortedIds.value.indexOf(activeId.value));
 
+	// Returned function
 	function setUnreachable(id: string) {
-		nextTick(() => {
-			if (unreachableIds.value.includes(id) && id !== activeId.value) {
-				scheduledId.value = id;
-			}
-		});
+		if (unreachIds.value.includes(id) && id !== activeId.value) {
+			scheduledId.value = id;
+		}
 	}
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
-		console.log('Refreshing targets');
 		const targets = <HTMLElement[]>[];
 
 		// Get fresh targets
@@ -169,13 +150,12 @@ export function useActiveTitle(
 
 		// Sort targets by DOM order
 		targets.sort((a, b) => a.offsetTop - b.offsetTop);
-
 		sortedTargets.value = targets;
 	}
 
 	onMounted(() => {
 		setTargets();
-		setUnreachableIds(unreachableIds, sortedTargets.value);
+		setUnreachIds(unreachIds, sortedTargets.value);
 
 		const hashTarget = sortedTargets.value.find(({ id }) => id === location.hash.slice(1))?.id;
 
@@ -184,25 +164,18 @@ export function useActiveTitle(
 			return (activeId.value = sortedTargets.value[0]?.id ?? '');
 		}
 
-		if (hashTarget && unreachableIds.value.includes(hashTarget)) {
+		if (hashTarget && unreachIds.value.includes(hashTarget)) {
 			return (scheduledId.value = hashTarget);
 		}
 
 		onScrollDown();
 	});
 
-	watch(userIds, () => setTargets(), { flush: 'post' });
-
 	watch(
-		scheduledId,
-		(newId) => {
-			if (
-				typeof scheduledId.value === 'string' &&
-				scheduledId.value !== '' &&
-				isBottomReached.value
-			) {
-				activeId.value = newId;
-			}
+		userIds,
+		() => {
+			setTargets();
+			setUnreachIds(unreachIds, sortedTargets.value);
 		},
 		{ flush: 'post' }
 	);
@@ -210,37 +183,28 @@ export function useActiveTitle(
 	/**
 	 * getRects(top, -) -> Gets all top sides of titles that LEFT the viewport.
 	 *
-	 * Since map respects DOM order the LAST value is the first target that
-	 * left the top of the viewport and it will be set as active.
-	 *
-	 * This function is also called onMount, onResize and onScrollDown.
+	 * Since map respects DOM order the LAST value is the latest target that
+	 * left the top of the viewport and it will be set as active (newActiveId).
 	 */
-	function onScrollDown({ isResize } = { isResize: false }) {
+	function onScrollDown() {
 		const boundaryOffset = Math.abs(toBottom || 0);
-		/**
-		 * When jumpToFirst is false, this condition prevents to set the first target
-		 * as active until a title actually leaves the viewport.
-		 */
+
+		// Prevent to set first target as active until a title actually leaves the viewport.
 		if (
 			!jumpToFirst &&
-			activeId.value === '' &&
-			getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).size <= 0
+			!activeId.value &&
+			getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).size <= FIXED_OFFSET
 		) {
 			return (activeId.value = '');
 		}
 
-		// Common behavior - Get last item that leaves the viewport from its top edge
 		const newActiveId =
 			Array.from(
 				getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).keys()
 			).pop() ?? '';
 
-		if (!isResize) {
-			// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
-			if (sortedIds.value.indexOf(newActiveId) > sortedIds.value.indexOf(activeId.value)) {
-				activeId.value = newActiveId;
-			}
-		} else {
+		// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
+		if (sortedIds.value.indexOf(newActiveId) > sortedIds.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
 	}
@@ -248,27 +212,20 @@ export function useActiveTitle(
 	/**
 	 * getRects(bottom, +) -> Get all bottom sides of titles that ENTERED the viewport.
 	 *
-	 * Since map respects DOM order the FIRST value is always the first target
-	 * that entered the top of the viewport and it will be set as active.
+	 * FIRST value is always the latest target that entered the top of the viewport (newActiveId).
 	 */
 	function onScrollUp() {
-		// Reset any unreachable scheduled ID
 		scheduledId.value = '';
 
 		const boundaryOffset = Math.abs(toTop || -0) * -1;
-
-		// Common behavior - Get first item that enters the viewport from its bottom side
 		const newActiveId =
 			getRects(sortedTargets.value, 'bottom', '+', topOffset, boundaryOffset).keys().next().value ??
 			sortedIds.value[0];
 
-		/**
-		 * If jumpToFirst is false, and the first title is in the viewport,
-		 * we set activeIndex to -1 as soon as it is completely in the viewport (positive top side).
-		 */
+		// Set activeIndex to -1 as soon as it is completely in the viewport (positive top side).
 		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
-			const newActiveTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newActiveTopPos > FIXED_OFFSET + topOffset + boundaryOffset) {
+			const newTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
+			if (newTopPos > FIXED_OFFSET + topOffset + boundaryOffset) {
 				return (activeId.value = '');
 			}
 		}
@@ -279,38 +236,30 @@ export function useActiveTitle(
 		}
 	}
 
-	function onBottomReached() {
-		// If jumpToLast is true and no scheduled unreachable ID is set, set the last unreachabe ID as active.
-		if (jumpToLast && unreachableIds.value.length > 0 && !scheduledId.value) {
-			console.log('Setting last from onBottomReached!');
-			return (activeId.value = unreachableIds.value[unreachableIds.value.length - 1]);
-		}
-
-		/**
-		 * If there's a scheduled unreachable ID from outside, set it as active.
-		 * This occurs whenever an eligible unreachable ID is scheduled
-		 * from inside (hash onMount) or outside (user click).
-		 */
-		if (typeof scheduledId.value === 'string' && scheduledId.value !== '') {
-			activeId.value = scheduledId.value;
-		}
-	}
-
 	const { viewportWidth } = useResize({
 		minWidth,
-		setUnreachableIds: () => setUnreachableIds(unreachableIds, sortedTargets.value),
-		onScrollDown: () => onScrollDown({ isResize: true }),
-		onScrollUp,
+		setUnreachIds: () => setUnreachIds(unreachIds, sortedTargets.value),
 	});
 
 	const { isBottomReached } = useScroll({
 		userIds,
+		onScrollUp,
+		onScrollDown,
 		viewportWidth,
 		debounce,
 		minWidth,
-		onScrollDown,
-		onScrollUp,
-		onBottomReached,
+	});
+
+	watch([isBottomReached, scheduledId], ([newIsBottomReached, newScheduledId]) => {
+		if (newIsBottomReached && newScheduledId) {
+			console.log('Scheduled unreachable', newScheduledId);
+			console.log('Bottom reached, scheduled set.');
+			return (activeId.value = newScheduledId);
+		}
+		if (newIsBottomReached && jumpToLast && !newScheduledId && unreachIds.value.length > 0) {
+			console.log('Bottom reached, jumpToLast active, setting last unreachable.');
+			return (activeId.value = unreachIds.value[unreachIds.value.length - 1]);
+		}
 	});
 
 	return {
