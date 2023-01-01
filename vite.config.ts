@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import dts from 'vite-plugin-dts';
 import terser from '@rollup/plugin-terser';
 
 const appConfig = {
@@ -7,12 +8,11 @@ const appConfig = {
 	server: {
 		open: 'index.html',
 	},
-	plugins: [vue()],
 };
 
 export default defineConfig(({ mode }) => {
 	if (mode === 'app') {
-		return appConfig;
+		return { ...appConfig, plugins: [vue()] };
 	}
 	return {
 		...appConfig,
@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
 			emptyOutDir: true,
 			minify: 'terser',
 			lib: {
-				entry: '../src/index.ts',
+				entry: '../src/useActiveTitle.ts',
 				name: 'VueReactiveTOC',
 				fileName: 'index',
 			},
@@ -42,5 +42,16 @@ export default defineConfig(({ mode }) => {
 				],
 			},
 		},
+		plugins: [
+			vue(),
+			dts({
+				root: '../',
+				include: ['src/useActiveTitle.ts'],
+				beforeWriteFile: (_, content) => ({
+					filePath: 'dist/index.d.ts',
+					content,
+				}),
+			}),
+		],
 	};
 });

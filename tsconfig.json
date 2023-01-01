@@ -16,15 +16,10 @@
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.d.ts",
-		"src/**/*.tsx",
 		"src/**/*.vue",
-		"demo/App.vue.ts",
-		"demo/main.ts",
-		"demo/main.ts",
-		"demo/vite-env.d.ts",
-		"demo/vite-env.d.ts",
-		"demo/useFakeData.ts",
-		"demo/useFakeData.ts"
+		"demo/**/*.ts",
+		"demo/**/*.d.ts",
+		"demo/**/*.vue"
 	],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }

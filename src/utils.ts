@@ -3,7 +3,7 @@ import { onBeforeUnmount } from 'vue';
 export const isSSR = typeof window === 'undefined';
 
 export function useDebouncedFn(fn: () => void, debounce: number) {
-	let timerId: number;
+	let timerId: NodeJS.Timeout;
 
 	function debouncedFn() {
 		clearTimeout(timerId);
