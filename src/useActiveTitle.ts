@@ -11,7 +11,7 @@ type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
 	debounce?: number;
-	topOffset?: number;
+	overlayOffset?: number;
 	minWidth?: number;
 	boundaryOffset?: {
 		toTop?: number;
@@ -31,7 +31,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	debounce: 0,
-	topOffset: 0,
+	overlayOffset: 0,
 	minWidth: 0,
 	boundaryOffset: {
 		toTop: 0,
@@ -43,7 +43,7 @@ function getDataset(dataset: DOMStringMap | undefined): Dataset {
 	if (!dataset) {
 		return {};
 	}
-	const datasetAsObj = JSON.parse(JSON.stringify(dataset));
+	const datasetAsObj = { ...dataset };
 
 	Object.keys(datasetAsObj).forEach((key) => {
 		if (key.startsWith('v-')) {
@@ -51,33 +51,30 @@ function getDataset(dataset: DOMStringMap | undefined): Dataset {
 		}
 	});
 
-	return datasetAsObj;
+	return datasetAsObj as Dataset;
 }
 
 const FIXED_OFFSET = 5;
 
 function getRects(
-	elements: HTMLElement[],
+	targets: HTMLElement[],
 	prop: 'top' | 'bottom',
-	comparator?: '+' | '-',
-	topOffset: number = 0,
-	boundaryOffset: number = 0
+	operator?: '>' | '<',
+	userOffset = 0
 ) {
-	// const start = performance.now();
+	const offset = FIXED_OFFSET + userOffset;
 	const map = new Map<string, number>();
-	for (let i = 0; i < elements.length; i++) {
-		const rectProp = elements[i].getBoundingClientRect()[prop];
+
+	targets.forEach((target) => {
+		const rectProp = target.getBoundingClientRect()[prop];
 		const condition =
-			comparator === '+'
-				? rectProp >= topOffset + FIXED_OFFSET + boundaryOffset
-				: comparator === '-'
-				? rectProp <= topOffset + FIXED_OFFSET + boundaryOffset
-				: true; // Get both positive and negative
+			operator === '>' ? rectProp >= offset : operator === '<' ? rectProp <= offset : true;
+
 		if (condition) {
-			map.set(elements[i].id, elements[i].getBoundingClientRect()[prop]);
+			map.set(target.id, rectProp);
 		}
-	}
-	// console.log('getRects:', `${performance.now() - start}ms`);
+	});
+
 	return map;
 }
 
@@ -87,15 +84,14 @@ function getRects(
  *
  * Called onResize, onMount and whenever the user array changes.
  */
-function setUnreachIds(target: Ref<string[]>, sortedTargets: HTMLElement[]) {
+function _setUnreachIds(target: Ref<string[]>, targets: HTMLElement[]) {
 	const unreachIds: string[] = [];
-
 	const root = document.documentElement;
 	const scrollStart = root.scrollHeight - root.clientHeight - root.scrollTop;
 
-	Array.from(getRects(sortedTargets, 'top').values()).forEach((value, index) => {
+	Array.from(getRects(targets, 'top').values()).forEach((value, index) => {
 		if (value >= scrollStart) {
-			unreachIds.push(sortedTargets[index].id);
+			unreachIds.push(targets[index].id);
 		}
 	});
 
@@ -108,7 +104,7 @@ export function useActiveTitle(
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
 		debounce = defaultOpts.debounce,
-		topOffset = defaultOpts.topOffset,
+		overlayOffset = defaultOpts.overlayOffset,
 		minWidth = defaultOpts.minWidth,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
@@ -117,17 +113,17 @@ export function useActiveTitle(
 	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
 	// Internal
-	const sortedTargets = ref<HTMLElement[]>([]);
-	const sortedIds = computed(() => sortedTargets.value.map(({ id }) => id));
+	const targets = ref<HTMLElement[]>([]);
+	const iDs = computed(() => targets.value.map(({ id }) => id));
 	const unreachIds = ref<string[]>([]);
 	const scheduledId = ref('');
 
 	// Returned values
 	const activeId = ref('');
-	const activeDataset = computed<Dataset>(() =>
-		getDataset(sortedTargets.value.find(({ id }) => id === activeId.value)?.dataset)
+	const activeDataset = computed(() =>
+		getDataset(targets.value.find(({ id }) => id === activeId.value)?.dataset)
 	);
-	const activeIndex = computed(() => sortedIds.value.indexOf(activeId.value));
+	const activeIndex = computed(() => iDs.value.indexOf(activeId.value));
 
 	// Returned function
 	function setUnreachable(id: string) {
@@ -136,36 +132,40 @@ export function useActiveTitle(
 		}
 	}
 
+	console.log('Ciao');
+
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
-		const targets = <HTMLElement[]>[];
+		const _targets = <HTMLElement[]>[];
 
-		// Get fresh targets
 		unref(userIds).forEach((id) => {
 			const target = document.getElementById(id);
 			if (target) {
-				targets.push(target);
+				_targets.push(target);
 			}
 		});
 
-		// Sort targets by DOM order
-		targets.sort((a, b) => a.offsetTop - b.offsetTop);
-		sortedTargets.value = targets;
+		_targets.sort((a, b) => a.offsetTop - b.offsetTop);
+		targets.value = _targets;
+	}
+
+	function setUnreachIds() {
+		_setUnreachIds(unreachIds, targets.value);
 	}
 
 	onMounted(() => {
 		setTargets();
-		setUnreachIds(unreachIds, sortedTargets.value);
+		setUnreachIds();
 
-		const hashTarget = sortedTargets.value.find(({ id }) => id === location.hash.slice(1))?.id;
+		const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
 
 		// Set first target as active if jumpToFirst is true
-		if (jumpToFirst && !hashTarget && document.documentElement.scrollTop <= 0) {
-			return (activeId.value = sortedTargets.value[0]?.id ?? '');
+		if (jumpToFirst && !hashId && window.scrollY <= FIXED_OFFSET) {
+			return (activeId.value = targets.value[0]?.id ?? '');
 		}
 
-		if (hashTarget && unreachIds.value.includes(hashTarget)) {
-			return (scheduledId.value = hashTarget);
+		if (hashId && unreachIds.value.includes(hashId)) {
+			return (scheduledId.value = hashId);
 		}
 
 		onScrollDown();
@@ -175,7 +175,7 @@ export function useActiveTitle(
 		userIds,
 		() => {
 			setTargets();
-			setUnreachIds(unreachIds, sortedTargets.value);
+			setUnreachIds();
 		},
 		{ flush: 'post' }
 	);
@@ -187,24 +187,21 @@ export function useActiveTitle(
 	 * left the top of the viewport and it will be set as active (newActiveId).
 	 */
 	function onScrollDown() {
-		const boundaryOffset = Math.abs(toBottom || 0);
+		const offset = overlayOffset + Math.abs(toBottom || 0);
 
 		// Prevent to set first target as active until a title actually leaves the viewport.
 		if (
 			!jumpToFirst &&
 			!activeId.value &&
-			getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).size <= FIXED_OFFSET
+			getRects(targets.value, 'top', '<', offset).size <= FIXED_OFFSET
 		) {
 			return (activeId.value = '');
 		}
 
-		const newActiveId =
-			Array.from(
-				getRects(sortedTargets.value, 'top', '-', topOffset, boundaryOffset).keys()
-			).pop() ?? '';
+		const newActiveId = Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ?? '';
 
 		// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
-		if (sortedIds.value.indexOf(newActiveId) > sortedIds.value.indexOf(activeId.value)) {
+		if (iDs.value.indexOf(newActiveId) > iDs.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
 	}
@@ -217,28 +214,27 @@ export function useActiveTitle(
 	function onScrollUp() {
 		scheduledId.value = '';
 
-		const boundaryOffset = Math.abs(toTop || -0) * -1;
+		const offset = overlayOffset + Math.abs(toTop || -0) * -1;
 		const newActiveId =
-			getRects(sortedTargets.value, 'bottom', '+', topOffset, boundaryOffset).keys().next().value ??
-			sortedIds.value[0];
+			getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? iDs.value[0];
 
 		// Set activeIndex to -1 as soon as it is completely in the viewport (positive top side).
-		if (!jumpToFirst && newActiveId === sortedIds.value[0]) {
-			const newTopPos = getRects(sortedTargets.value, 'top').values().next().value ?? 0;
-			if (newTopPos > FIXED_OFFSET + topOffset + boundaryOffset) {
+		if (!jumpToFirst && newActiveId === iDs.value[0]) {
+			const newTopPos = getRects(targets.value, 'top').values().next().value ?? 0;
+			if (newTopPos > FIXED_OFFSET + offset) {
 				return (activeId.value = '');
 			}
 		}
 
 		// Prevent to set NEXT targets as active on smoothscroll/overscroll side effects.
-		if (sortedIds.value.indexOf(newActiveId) < sortedIds.value.indexOf(activeId.value)) {
+		if (iDs.value.indexOf(newActiveId) < iDs.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
 	}
 
 	const { viewportWidth } = useResize({
 		minWidth,
-		setUnreachIds: () => setUnreachIds(unreachIds, sortedTargets.value),
+		setUnreachIds,
 	});
 
 	const { isBottomReached } = useScroll({
@@ -250,11 +246,11 @@ export function useActiveTitle(
 		minWidth,
 	});
 
-	watch([isBottomReached, scheduledId], ([newIsBottomReached, newScheduledId]) => {
-		if (newIsBottomReached && newScheduledId) {
-			return (activeId.value = newScheduledId);
+	watch([isBottomReached, scheduledId], ([_isBottomReached, _scheduledId]) => {
+		if (_isBottomReached && _scheduledId) {
+			return (activeId.value = _scheduledId);
 		}
-		if (newIsBottomReached && jumpToLast && !newScheduledId && unreachIds.value.length > 0) {
+		if (_isBottomReached && jumpToLast && !_scheduledId && unreachIds.value.length > 0) {
 			return (activeId.value = unreachIds.value[unreachIds.value.length - 1]);
 		}
 	});

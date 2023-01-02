@@ -56,8 +56,8 @@ export function useScroll({
 
 	watch(
 		() => viewportWidth.value >= minWidth,
-		(isDesktop, _, onCleanup) => {
-			if (isDesktop) {
+		(isAboveMin, _, onCleanup) => {
+			if (isAboveMin) {
 				addEvent();
 			}
 
