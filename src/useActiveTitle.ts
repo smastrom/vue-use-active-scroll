@@ -190,7 +190,7 @@ export function useActiveTitle(
 	}
 
 	function onScrollDown() {
-		const newActiveId = getFirstOut(overlayOffset + (toBottom || 0));
+		const newActiveId = getFirstOut(overlayOffset + (toBottom as number));
 
 		if (iDs.value.indexOf(newActiveId) > iDs.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
@@ -200,7 +200,7 @@ export function useActiveTitle(
 	function onScrollUp() {
 		scheduledId.value = '';
 
-		const offset = overlayOffset + (toTop || 0);
+		const offset = overlayOffset + (toTop as number);
 		const newActiveId = toTopPriority === 'next' ? getFirstIn(offset) : getFirstOut(offset);
 
 		if (iDs.value.indexOf(newActiveId) < iDs.value.indexOf(activeId.value)) {
