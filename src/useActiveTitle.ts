@@ -12,6 +12,7 @@ type UseActiveTitleOptions = {
 	jumpToLast?: boolean;
 	debounce?: number;
 	overlayOffset?: number;
+	toTopPriority?: 'prev' | 'next';
 	minWidth?: number;
 	boundaryOffset?: {
 		toTop?: number;
@@ -32,6 +33,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToLast: true,
 	debounce: 0,
 	overlayOffset: 0,
+	toTopPriority: 'next',
 	minWidth: 0,
 	boundaryOffset: {
 		toTop: 0,
@@ -106,6 +108,7 @@ export function useActiveTitle(
 		debounce = defaultOpts.debounce,
 		overlayOffset = defaultOpts.overlayOffset,
 		minWidth = defaultOpts.minWidth,
+		toTopPriority = defaultOpts.toTopPriority,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
@@ -132,8 +135,6 @@ export function useActiveTitle(
 		}
 	}
 
-	console.log('Ciao');
-
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
 		const _targets = <HTMLElement[]>[];
@@ -159,11 +160,6 @@ export function useActiveTitle(
 
 		const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
 
-		// Set first target as active if jumpToFirst is true
-		if (jumpToFirst && !hashId && window.scrollY <= FIXED_OFFSET) {
-			return (activeId.value = targets.value[0]?.id ?? '');
-		}
-
 		if (hashId && unreachIds.value.includes(hashId)) {
 			return (scheduledId.value = hashId);
 		}
@@ -180,53 +176,33 @@ export function useActiveTitle(
 		{ flush: 'post' }
 	);
 
-	/**
-	 * getRects(top, -) -> Gets all top sides of titles that LEFT the viewport.
-	 *
-	 * Since map respects DOM order the LAST value is the latest target that
-	 * left the top of the viewport and it will be set as active (newActiveId).
-	 */
+	// Gets first target that left the top of the viewport.
+	function getFirstOut(offset: number) {
+		return (
+			Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ??
+			(jumpToFirst ? iDs.value[0] : '')
+		);
+	}
+
+	// Gets first target that entered the top of the viewport.
+	function getFirstIn(offset: number) {
+		return getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? iDs.value[0];
+	}
+
 	function onScrollDown() {
-		const offset = overlayOffset + Math.abs(toBottom || 0);
+		const newActiveId = getFirstOut(overlayOffset + (toBottom || 0));
 
-		// Prevent to set first target as active until a title actually leaves the viewport.
-		if (
-			!jumpToFirst &&
-			!activeId.value &&
-			getRects(targets.value, 'top', '<', offset).size <= FIXED_OFFSET
-		) {
-			return (activeId.value = '');
-		}
-
-		const newActiveId = Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ?? '';
-
-		// Prevent to set PREV targets as active on smoothscroll/overscroll side effects.
 		if (iDs.value.indexOf(newActiveId) > iDs.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
 	}
 
-	/**
-	 * getRects(bottom, +) -> Get all bottom sides of titles that ENTERED the viewport.
-	 *
-	 * FIRST value is always the latest target that entered the top of the viewport (newActiveId).
-	 */
 	function onScrollUp() {
 		scheduledId.value = '';
 
-		const offset = overlayOffset + Math.abs(toTop || -0) * -1;
-		const newActiveId =
-			getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? iDs.value[0];
+		const offset = overlayOffset + (toTop || 0);
+		const newActiveId = toTopPriority === 'next' ? getFirstIn(offset) : getFirstOut(offset);
 
-		// Set activeIndex to -1 as soon as it is completely in the viewport (positive top side).
-		if (!jumpToFirst && newActiveId === iDs.value[0]) {
-			const newTopPos = getRects(targets.value, 'top').values().next().value ?? 0;
-			if (newTopPos > FIXED_OFFSET + offset) {
-				return (activeId.value = '');
-			}
-		}
-
-		// Prevent to set NEXT targets as active on smoothscroll/overscroll side effects.
 		if (iDs.value.indexOf(newActiveId) < iDs.value.indexOf(activeId.value)) {
 			activeId.value = newActiveId;
 		}
