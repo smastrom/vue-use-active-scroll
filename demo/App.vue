@@ -7,7 +7,14 @@ const { menuItems, sections, pushUnreachable, shiftSection } = useFakeData();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id));
 
-const { activeIndex, activeId, setUnreachable } = useActiveTitle(titles);
+const { activeIndex, activeId, setUnreachable } = useActiveTitle(titles, {
+	jumpToFirst: true,
+	toTopPriority: 'next',
+	boundaryOffset: {
+		toTop: 100,
+		toBottom: 100,
+	},
+});
 
 const scrollBehavior = ref('auto'); // Demo
 const isHashEnabled = ref(false); // Demo
