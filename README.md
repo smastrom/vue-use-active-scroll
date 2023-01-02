@@ -28,6 +28,7 @@ It automatically ensures that the returned target:
 - Matches user's reading flow regardless of scroll-behavior and speed
 - Matches the URL hash on mount
 - Matches the clicked link regardless of previous targets visibility
+- Matches the composable configuration
 
 How such data is used is up to you. You can use it to highlight sidebar links, update the URL hash, create animations etc.
 
@@ -35,6 +36,7 @@ How such data is used is up to you. You can use it to highlight sidebar links, u
 
 - Mutate your elements
 - Scroll to targets
+- Replace your URL hash
 
 ### Limitations
 
@@ -129,14 +131,15 @@ const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                    |
-| -------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                              |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                          |
-| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                        |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Increase them to "anticipate" the active target detection.                                                    |
-| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayOffset paddings](). |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none` until a specific width.    |
+| Property       | Type             | Default                   | Description                                                                                                                                                           |
+| -------------- | ---------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                     |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                                 |
+| toTopPriority  | `next` \| `prev` | `next`                    | When scrolling to top, `next` will set as active the previous target once it enters the viewport. `prev` will set it as active as soon as the next is fully visibile. |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" active target detection.                                                       |
+| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayOffset paddings]().        |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none` until a specific width.           |
+| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                               |
 
 ### Return object
 
@@ -224,7 +227,9 @@ function handleClick(targetId) {
 
 </details>
 
-### What is setUnreachable?
+<details><summary><strong>What is setUnreachable?</strong></summary>
+
+<br/>
 
 `setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it with any ID.
 
@@ -252,6 +257,8 @@ watch(activeId, (newId) => {
 })
 </script>
 ```
+
+</details>
 
 <br />
 
