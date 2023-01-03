@@ -1,17 +1,16 @@
-import { watch, Ref, ComputedRef, onMounted, ref } from 'vue';
+import { watch, ComputedRef, onMounted, ref } from 'vue';
 import { IDLE_TIME, isSSR } from './utils';
 
 type UseScrollOptions = {
 	onScroll: (prevPos: number) => void;
-	userIds: string[] | Ref<string[]>;
 	isAbove: ComputedRef<boolean>;
 };
 
-export function useScroll({ userIds, onScroll, isAbove }: UseScrollOptions) {
+export function useScroll({ onScroll, isAbove }: UseScrollOptions) {
 	const isClick = ref(false);
 
 	if (isSSR) {
-		return { isClick };
+		return isClick;
 	}
 
 	let isIdle = false;
@@ -27,7 +26,7 @@ export function useScroll({ userIds, onScroll, isAbove }: UseScrollOptions) {
 		}, IDLE_TIME);
 	}
 
-	function onClickEnd() {
+	function onClickIdle() {
 		clickTimer = setTimeout(() => {
 			console.log('Reset click timer');
 			isClick.value = false;
@@ -46,7 +45,7 @@ export function useScroll({ userIds, onScroll, isAbove }: UseScrollOptions) {
 				prevY = window.scrollY;
 			}
 
-			onClickEnd();
+			onClickIdle();
 		}
 	}
 
@@ -58,40 +57,21 @@ export function useScroll({ userIds, onScroll, isAbove }: UseScrollOptions) {
 		}
 	});
 
-	function addScroll() {
-		document.addEventListener('scroll', _onScroll, { passive: true });
-	}
-
-	function removeScroll() {
-		document.removeEventListener('scroll', _onScroll);
-	}
-
 	watch(
 		isAbove,
 		(_isAbove, _, onCleanup) => {
 			if (_isAbove) {
-				addScroll();
+				console.log('Attaching scroll...');
+				document.addEventListener('scroll', _onScroll, { passive: true });
 			}
 
 			onCleanup(() => {
-				removeScroll();
+				console.log('Removing scroll...');
+				document.removeEventListener('scroll', _onScroll);
 			});
 		},
-		{ immediate: true, flush: 'post' }
+		{ immediate: true }
 	);
 
-	watch(
-		userIds,
-		(_, __, onCleanup) => {
-			removeScroll();
-			addScroll();
-
-			onCleanup(() => {
-				removeScroll();
-			});
-		},
-		{ immediate: true, flush: 'post' }
-	);
-
-	return { isClick };
+	return isClick;
 }

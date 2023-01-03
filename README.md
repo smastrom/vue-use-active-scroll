@@ -129,14 +129,14 @@ const { isActive, setActive } = useActiveTarget(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                    |
-| -------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                              |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                          |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                                      |
-| overlayHeight  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings](). |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if hiding the sidebar with `display: none` within a specific width.           |
-| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. When `jumpToFirst` is true, the first target is ignored.                                                                |
+| Property       | Type             | Default                   | Description                                                                                                                                          |
+| -------------- | ---------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                    |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                            |
+| overlayHeight  | `number`         | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().           |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if hiding the sidebar with `display: none` within a specific width. |
+| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. When `jumpToFirst` is true, the first target is ignored.                                                      |
 
 ### Return object
 

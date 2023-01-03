@@ -1,7 +1,7 @@
 import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
 import { useMinWidth } from './useMinWidth';
 import { useScroll } from './useScroll';
-import { useScrollResume } from './useScrollResume';
+import { useWheelResume } from './useWheelResume';
 import { getDataset, getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
 type UseActiveTitleOptions = {
@@ -167,22 +167,22 @@ export function useActiveTarget(
 	watch(activeId, (newId) => {
 		if (replaceHash) {
 			const start = jumpToFirst ? 0 : -1;
-			const newHash = activeIndex.value > start ? `#${newId}` : '/';
+			const newHash = `${activeIndex.value > start ? location.pathname : ''}#${newId}`;
 			history.replaceState(history.state, '', newHash);
 		}
 	});
 
 	const isAbove = useMinWidth(minWidth);
 
-	const { isClick } = useScroll({
+	const isClick = useScroll({
 		onScroll,
-		userIds,
 		isAbove,
 	});
 
-	useScrollResume({
-		isClick,
+	useWheelResume({
 		onScroll,
+		isClick,
+		isAbove,
 	});
 
 	return {
