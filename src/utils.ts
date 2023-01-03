@@ -2,7 +2,7 @@ export const isSSR = typeof window === 'undefined';
 
 export const FIXED_TO_TOP_OFFSET = 10;
 export const FIXED_BOUNDARY_OFFSET = 5;
-export const IDLE_TIME = 250;
+export const IDLE_TIME = 200;
 
 export function getRects(
 	targets: HTMLElement[],
@@ -33,19 +33,4 @@ export function getEdges() {
 	const isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 
 	return { isTopReached, isBottomReached, isOverScroll };
-}
-
-export function getDataset(dataset: DOMStringMap | undefined): Record<string, string> {
-	if (!dataset) {
-		return {};
-	}
-	const datasetAsObj = { ...dataset };
-
-	Object.keys(datasetAsObj).forEach((key) => {
-		if (key.startsWith('v-')) {
-			delete datasetAsObj[key];
-		}
-	});
-
-	return datasetAsObj as Record<string, string>;
 }

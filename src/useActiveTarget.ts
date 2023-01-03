@@ -1,8 +1,6 @@
 import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
-import { useMinWidth } from './useMinWidth';
 import { useScroll } from './useScroll';
-import { useWheelResume } from './useWheelResume';
-import { getDataset, getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
+import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
 type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
@@ -20,7 +18,6 @@ type UseActiveTitleReturn = {
 	isActive: (id: string) => boolean;
 	setActive: (id: string) => void;
 	activeId: Ref<string>;
-	activeDataset: Ref<Record<string, string>>;
 	activeIndex: Ref<number>;
 };
 
@@ -60,9 +57,6 @@ export function useActiveTarget(
 	// Returned values
 	const activeId = ref('');
 	const activeIndex = computed(() => iDs.value.indexOf(activeId.value));
-	const activeDataset = computed(() =>
-		getDataset(targets.value.find(({ id }) => id === activeId.value)?.dataset)
-	);
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
@@ -91,24 +85,27 @@ export function useActiveTarget(
 		}
 	}
 
-	// Sets first target that left the top of the viewport.
+	// Sets first target that left the top of the viewport
 	function onScrollDown() {
+		/* 		console.log('onScrollDown'); */
 		const offset = overlayHeight + (toBottom as number);
 		const firstOut =
 			Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ??
 			(jumpToFirst ? iDs.value[0] : '');
 
-		// Prevent smoothscroll to set prev targets while scrolling.
+		activeId.value = firstOut;
+
 		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
 			activeId.value = firstOut;
 		}
 	}
 
-	// Sets first target that entered the top of the viewport.
+	// Sets first target that entered the top of the viewport
 	function onScrollUp() {
+		/* 		console.log('onScrollUp'); */
 		if (!jumpToFirst) {
 			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
-			// Ignore user boundaryOffsets when first target becomes inactive.
+			// Ignore boundaryOffsets when first target becomes inactive
 			if (firstTargetTop > FIXED_TO_TOP_OFFSET + overlayHeight) {
 				return (activeId.value = '');
 			}
@@ -129,18 +126,6 @@ export function useActiveTarget(
 			onScrollDown();
 		}
 		jumpToEdges();
-	}
-
-	// Returned functions
-	function setActive(id: string) {
-		if (id !== activeId.value) {
-			isClick.value = true;
-			activeId.value = id;
-		}
-	}
-
-	function isActive(id: string) {
-		return id === activeId.value;
 	}
 
 	onMounted(() => {
@@ -167,29 +152,32 @@ export function useActiveTarget(
 	watch(activeId, (newId) => {
 		if (replaceHash) {
 			const start = jumpToFirst ? 0 : -1;
-			const newHash = `${activeIndex.value > start ? location.pathname : ''}#${newId}`;
+			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
 			history.replaceState(history.state, '', newHash);
 		}
 	});
 
-	const isAbove = useMinWidth(minWidth);
-
 	const isClick = useScroll({
 		onScroll,
-		isAbove,
+		minWidth,
 	});
 
-	useWheelResume({
-		onScroll,
-		isClick,
-		isAbove,
-	});
+	// Returned functions
+	function setActive(id: string) {
+		if (id !== activeId.value) {
+			isClick.value = true;
+			activeId.value = id;
+		}
+	}
+
+	function isActive(id: string) {
+		return id === activeId.value;
+	}
 
 	return {
 		isActive,
 		setActive,
 		activeId,
 		activeIndex,
-		activeDataset,
 	};
 }

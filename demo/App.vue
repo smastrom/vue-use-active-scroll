@@ -10,7 +10,7 @@ const titles = computed<string[]>(() => sections.map((section) => section.id));
 const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
 	jumpToFirst: true,
 	jumpToLast: true,
-	replaceHash: true,
+	replaceHash: false,
 	boundaryOffset: {
 		toTop: -100,
 		toBottom: 150,
@@ -22,6 +22,7 @@ const scrollBehavior = ref('smooth'); // Demo
 const isHashEnabled = ref(false); // Demo
 
 watch(activeId, (newId) => {
+	console.log('activeId', newId);
 	if (/* Demo */ isHashEnabled.value) {
 		history.replaceState(history.state, '', activeIndex.value <= 0 ? '' : `#${newId}`);
 	}
@@ -34,7 +35,6 @@ const activeItemHeight = computed(
 watch(
 	() => scrollBehavior.value === 'smooth',
 	(isSmooth) => {
-		console.log('ontouchstart' in window);
 		document.documentElement.style.scrollBehavior = isSmooth ? 'smooth' : 'auto';
 	},
 	{
