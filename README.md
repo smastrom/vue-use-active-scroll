@@ -1,6 +1,6 @@
-# Vue Reactive TOC
+# Vue Scroll Target
 
-### Reactive sidebar links without compromises.
+### Reactive TOC/sidebar links without compromises.
 
 :bulb: Requires Vue 3 or above.
 
@@ -10,8 +10,8 @@
 
 Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
 
-- Scrolling speed affects accuracy
-- Once scrolled to bottom, some links may never be highlighted if previous targets are entirely visible (unreachable targets).
+- Scrolling speed or behavior affects accuracy
+- Once reached the bottom, some links may never be highlighted if previous targets are entirely visible.
 - Clicking on such links highlights different links (or does nothing).
 - When accessing/refreshing the page, the active target may not reflect the one in the the URL hash.
 
@@ -23,24 +23,22 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 
 It is a Vue 3 composable that implements a custom scroll observer and returns **reactive data** of the current active target.
 
-It automatically ensures that the returned target:
+It automatically ensures that the returned target reflects:
 
-- Matches user's reading flow regardless of scroll-behavior and speed
-- Matches the URL hash on mount
-- Matches the clicked link regardless of previous targets visibility
-- Matches the composable configuration
-
-How such data is used is up to you. You can use it to highlight sidebar links, update the URL hash, create animations etc.
+- User's reading flow regardless of scrolling speed
+- The clicked link regardless of the scroll-behavior, custom scroll functions, etc.
+- Different behaviors on mount, scroll and click
+- Your composable configuration
+- The URL hash
 
 ### What it doesn't do?
 
 - Mutate your elements
 - Scroll to targets
-- Replace your URL hash
 
 ### Limitations
 
-Currently Vue Reactive TOC doesn't support scrolling containers different than the window.
+Currently Vue Scroll Target doesn't support scrolling containers different than the window or horizontal scrolling. Discussions/PRs are very welcome to extend support.
 
 <br />
 
@@ -58,18 +56,20 @@ pnpm add vue-reactive-toc
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
-Make sure that each target has an unique `id` attribute (which corresponds to the anchor you'll scroll to) and pass them to `useActiveTitle`. Order is not important.
+> :bulb: In different contexts, you might want to target your sections, but the example below is intended for a TOC sidebar.
 
-You most likely will call `useActiveTitle` in the [setup function](https://v3.vuejs.org/guide/composition-api-setup.html#setup-function-arguments) of your sidebar component.
+Make sure that each target has an unique `id` attribute (which corresponds to the anchor you'll scroll to) and pass them to `useActiveTarget`. Order is not important.
+
+You most likely will call `useActiveTarget` in the [setup function](https://v3.vuejs.org/guide/composition-api-setup.html#setup-function-arguments) of your sidebar component.
 
 ```vue
 <script setup>
-import { useActiveTitle } from 'vue-reactive-toc'
+import { useActiveTarget } from 'vue-reactive-toc'
 
 const titleIds = ['title-1', 'title-2', 'title-3']
 // or computed(() => /* ... */), or props.titleIds, etc...
 
-const { activeId } = useActiveTitle(titleIds)
+const { isActive } = useActiveTarget(titleIds)
 </script>
 ```
 
@@ -113,7 +113,7 @@ const targets = computed(() =>
 
 // console.log(targets.value) => ['title-1', 'subtitle-1', 'title-2', 'title-3', 'title-4']
 
-const { activeId } = useActiveTitle(targets)
+const { isActive } = useActiveTarget(targets)
 ```
 
 </details>
@@ -122,47 +122,45 @@ const { activeId } = useActiveTitle(targets)
 
 ## 2. Configure the composable (optional)
 
-`useActiveTitle` accepts an optional configuration object as its second argument:
+`useActiveTarget` accepts an optional configuration object as its second argument:
 
 ```js
-const { activeId, activeIndex, activeDataset } = useActiveTitle(titles, {
-  debounce: 100
-  // Other options...
+const { isActive, setActive } = useActiveTarget(titles, {
+  // Options...
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                           |
-| -------------- | ---------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                     |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                                 |
-| toTopPriority  | `next` \| `prev` | `next`                    | When scrolling to top, `next` will set as active the previous target once it enters the viewport. `prev` will set it as active as soon as the next is fully visibile. |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" active target detection.                                                       |
-| overlayOffset  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayOffset paddings]().        |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if you're hiding your sidebar with `display: none` until a specific width.           |
-| debounce       | `number`         | 0                         | Time in ms to wait in order to get updated results once scroll is idle.                                                                                               |
+| Property       | Type             | Default                   | Description                                                                                                                                                    |
+| -------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                              |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                          |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                                      |
+| overlayHeight  | `number`         | 0                         | It should match the height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings](). |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if hiding the sidebar with `display: none` within a specific width.           |
+| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. When `jumpToFirst` is true, the first target is ignored.                                                                |
 
 ### Return object
 
-The composable returns an object of reactive [refs](https://vuejs.org/api/reactivity-core.html#ref) plus a special function.
+The composable returns an object of reactive [refs](https://vuejs.org/api/reactivity-core.html#ref) plus two handy functions:
 
-| Name            | Type                          | Description                                                                               |
-| --------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
-| activeId        | `Ref<string>`                 | DOM ID of the current active target                                                       |
-| activeIndex     | `Ref<number>`                 | Index of the current active target in DOM tree order, `0` for the first target and so on. |
-| activeDataset   | `Ref<Record<string, string>>` | Dataset of the current active target in plain object format                               |
-| setUnreachable  | `(id: string) => void`        | "Safe" function to manually set any unreachable target as active. [More info here]().     |
-| isBottomReached | `Ref<boolean>`                | Whether scroll reached the bottom                                                         |
+| Name          | Type                          | Description                                                                        |
+| ------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
+| isActive      | `(id: string) => boolean`     | Wheter the given Id is active or not                                               |
+| setActive     | `(id: string) => void`        | Function to set active targets and ensure proper behavior between scroll and click |
+| activeId      | `Ref<string>`                 | Id of the active target                                                            |
+| activeIndex   | `Ref<number>`                 | Index of the active target in DOM tree order, `0` for the first target and so on.  |
+| activeDataset | `Ref<Record<string, string>>` | Dataset of the active target in plain object format                                |
 
 <br />
 
 ## 3. Create your sidebar
 
-1. Use `activeId` or `activeIndex` to style the active link:
+1. Use `isActive` to style the active link:
 
 ```vue
 <script setup>
 // ...
-const { activeId } = useActiveTitle(titles)
+const { isActive } = useActiveTarget(titles)
 </script>
 
 <template>
@@ -171,7 +169,7 @@ const { activeId } = useActiveTitle(titles)
       v-for="(link, index) in links"
       :href="link.targetId"
       :key="link.targetId"
-      :class="{ active: link.targetId === activeId }"
+      :class="{ active: isActive(link.targetId) }"
     >
       {{ link.label }}
     </a>
@@ -180,7 +178,7 @@ const { activeId } = useActiveTitle(titles)
 
 <style>
 html {
-  scroll-behavior: smooth; /* Or 'auto' */
+  scroll-behavior: smooth; /* or 'auto' */
 }
 
 .active {
@@ -189,22 +187,24 @@ html {
 </style>
 ```
 
-2. Call `setUnreachable` in your click handler by passing the ID of your anchors. This will ensure navigation through unreachable targets (if any):
+> :bulb: If you're playing with transitions or dealing with different depths, simply make use of `activeIndex`, `activeId` and `activeDataset`.
+
+2. Call `setActive` in your click handler by passing the anchor ID:
 
 ```vue
 <script setup>
 // ...
-const { activeId, setUnreachable } = useActiveTitle(titles)
+const { isActive, setActive } = useActiveTarget(titles)
 </script>
 
 <template>
   <nav>
     <a
       v-for="(link, index) in links"
-      @click="setUnreachable(link.targetId)"
+      @click="setActive(link.targetId)"
       :href="link.targetId"
       :key="link.targetId"
-      :class="{ active: link.targetId === activeId }"
+      :class="{ active: isActive(link.targetId) }"
     >
       {{ link.label }}
     </a>
@@ -212,63 +212,21 @@ const { activeId, setUnreachable } = useActiveTitle(titles)
 </template>
 ```
 
-<details><summary><strong>JS Scroll</strong></summary>
-
-<br/>
-
-```js
-function handleClick(targetId) {
-  setUnreachable(targetId) // Call it before
-  document.getElementById(targetId).scrollIntoView({
-    behavior: 'smooth'
-  })
-}
-```
-
-</details>
-
-<details><summary><strong>What is setUnreachable?</strong></summary>
-
-<br/>
-
-`setUnreachable` is a "safe" function that allows to set an unreachable target as active. "Safe" means that you can call it with any ID.
-
-`useActiveTitle` will evaluate if the ID passed is unreachable, if yes, it will update the active target once scroll is idle and bottom is reached no matter what's the actual nearest target or if `jumpToLast` is active.
-
-It is not mandatory to use it but you should definitely include it in any click handler.
+You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work.
 
 <br />
-
-### Example - Updating URL hash
-
-```vue
-<script setup>
-import { watch } from 'vue'
-import { useActiveTitle } from 'vue-reactive-toc'
-
-// ...
-
-const { activeId } = useActiveTitle(titles, {
-  debounce: 50
-})
-
-watch(activeId, (newId) => {
-  history.replaceState(history.state, '', `#${newId}`)
-})
-</script>
-```
 
 </details>
 
 <br />
 
-## Adjusting overlayOffset targets' padding
+## Adjusting overlayHeight targets' padding
 
-You might noticed that if you have a fixed header and defined an `overlayOffset`, once you scroll to a title its top edge may actually be underneath the
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target its top edge may actually be underneath the
 header. You must adjust the paddings and the margins of your titles to compensate the offset:
 
 ```js
-const { activeId } = useActiveTitle(titleRefs, { overlayOffset: 100 })
+const { activeId } = useActiveTarget(titleRefs, { overlayHeight: 100 })
 ```
 
 From:
@@ -284,8 +242,8 @@ To:
 
 ```css
 .titles {
-  margin: -100px 0 0 0; // /* Subtract overlayOffset from margin-top */
-  padding: 130px 0 30px 0; /* Add overlayOffset to padding-top */
+  margin: -100px 0 0 0; // /* Subtract overlayHeight from margin-top */
+  padding: 130px 0 30px 0; /* Add overlayHeight to padding-top */
 }
 ```
 
