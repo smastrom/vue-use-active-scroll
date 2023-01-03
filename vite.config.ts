@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
 			emptyOutDir: true,
 			minify: 'terser',
 			lib: {
-				entry: '../src/useActiveTitle.ts',
+				entry: '../src/useActiveTarget.ts',
 				name: 'VueReactiveTOC',
 				fileName: 'index',
 			},
@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
 			vue(),
 			dts({
 				root: '../',
-				include: ['src/useActiveTitle.ts'],
+				include: ['src/useActiveTarget.ts'],
 				beforeWriteFile: (_, content) => ({
 					filePath: 'dist/index.d.ts',
 					content,

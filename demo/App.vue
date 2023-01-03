@@ -1,22 +1,21 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useFakeData } from './useFakeData';
-import { useActiveTitle } from '../src/useActiveTitle';
+import { useActiveTarget } from '../src/useActiveTarget';
 
 const { menuItems, sections, pushUnreachable, shiftSection } = useFakeData();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id));
 
-const { activeIndex, activeId, setUnreachable } = useActiveTitle(titles, {
+const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
 	jumpToFirst: true,
-	toTopPriority: 'next',
 	boundaryOffset: {
-		toTop: 100,
+		toTop: 200,
 		toBottom: 100,
 	},
 });
 
-const scrollBehavior = ref('auto'); // Demo
+const scrollBehavior = ref('smooth'); // Demo
 const isHashEnabled = ref(false); // Demo
 
 watch(activeId, (newId) => {
@@ -96,7 +95,7 @@ watch(
 
 				<div class="Buttons">
 					<button @click="shiftSection">Shift</button>
-					<button @click="pushUnreachable">Push Unreachable</button>
+					<button @click="pushUnreachable">Push</button>
 				</div>
 			</div>
 
@@ -109,7 +108,7 @@ watch(
 
 					<li ref="linkRefs" v-for="item in menuItems" :key="item.href">
 						<a
-							@click="setUnreachable(item.href)"
+							@click="setActive(item.href)"
 							:href="`#${item.href}`"
 							:class="{
 								Active: item.href === activeId,
