@@ -1,11 +1,12 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ComputedRef, onBeforeUnmount, onMounted, ref } from 'vue';
 import { isSSR } from './utils';
 
-export function useWidth() {
+export function useMinWidth(minWidth: number): ComputedRef<boolean> {
 	const width = ref(1 / 0);
+	const isAbove = computed(() => width.value > minWidth);
 
 	if (isSSR) {
-		return width;
+		return isAbove;
 	}
 
 	function onResize() {
@@ -21,5 +22,5 @@ export function useWidth() {
 		window.removeEventListener('resize', onResize);
 	});
 
-	return width;
+	return isAbove;
 }

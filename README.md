@@ -21,14 +21,13 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 
 ## What is it?
 
-It is a Vue 3 composable that implements a custom scroll observer and returns **reactive data** of the current active target.
+It is a Vue 3 composable that implements a customizable scroll observer and returns **reactive data** of the current active target.
 
 It automatically ensures that the returned target reflects:
 
 - User's reading flow regardless of scrolling speed
 - The clicked link regardless of the scroll-behavior, custom scroll functions, etc.
 - Different behaviors on mount, scroll and click
-- Your composable configuration
 - The URL hash
 
 ### What it doesn't do?
@@ -52,7 +51,7 @@ pnpm add vue-reactive-toc
 
 # Usage
 
-## 1. Provide targets IDs
+## 1. Provide targets
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections (not the whole section).
 
@@ -187,9 +186,11 @@ html {
 </style>
 ```
 
-> :bulb: If you're playing with transitions or dealing with different depths, simply make use of `activeIndex`, `activeId` and `activeDataset`.
+> :bulb: If you're playing with transitions or dealing with different depths, simply make use of _activeIndex_, _activeId_ and _activeDataset_.
 
-2. Call `setActive` in your click handler by passing the anchor ID:
+2. Call `setActive` in your click handler by passing the anchor ID.
+
+> :bulb: _setActive_ doesn't scroll to the target, it just ensures proper behavior between scroll/click switch.
 
 ```vue
 <script setup>
