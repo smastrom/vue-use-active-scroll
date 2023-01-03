@@ -1,51 +1,80 @@
-import { watch, Ref } from 'vue';
-import { isSSR } from './utils';
+import { watch, Ref, ComputedRef, onMounted, ref } from 'vue';
+import { IDLE_TIME, isSSR } from './utils';
 
 type UseScrollOptions = {
-	onScroll: (isDown?: { isDown: boolean }) => void;
+	onScroll: (prevPos: number) => void;
 	userIds: string[] | Ref<string[]>;
-	width: Ref<number>;
-	minWidth: number;
+	isAbove: ComputedRef<boolean>;
 };
 
-export function useScroll({ userIds, onScroll, width, minWidth }: UseScrollOptions) {
+export function useScroll({ userIds, onScroll, isAbove }: UseScrollOptions) {
+	const isClick = ref(false);
+
 	if (isSSR) {
-		return null;
+		return { isClick };
 	}
 
-	let scrollPos: number;
+	let isIdle = false;
+	let idleTimer: NodeJS.Timeout;
+	let clickTimer: NodeJS.Timeout;
+	let prevY: number | undefined;
+
+	function onIdle() {
+		clearTimeout(idleTimer);
+		idleTimer = setTimeout(() => {
+			console.log('Idle');
+			isIdle = true;
+		}, IDLE_TIME);
+	}
+
+	function onClickEnd() {
+		clickTimer = setTimeout(() => {
+			console.log('Reset click timer');
+			isClick.value = false;
+		}, IDLE_TIME);
+	}
 
 	function _onScroll() {
-		if (!scrollPos) {
-			scrollPos = window.scrollY;
-		}
+		if (isIdle) {
+			clearTimeout(clickTimer);
 
-		if (window.scrollY < scrollPos) {
-			onScroll();
-		} else {
-			onScroll({ isDown: true });
-		}
+			if (!isClick.value) {
+				if (!prevY) {
+					prevY = window.scrollY;
+				}
+				onScroll(prevY);
+				prevY = window.scrollY;
+			}
 
-		scrollPos = window.scrollY;
+			onClickEnd();
+		}
 	}
 
-	function addEvent() {
+	onMounted(() => {
+		if (window.scrollY > 0) {
+			document.addEventListener('scroll', onIdle, { once: true, passive: true });
+		} else {
+			isIdle = true;
+		}
+	});
+
+	function addScroll() {
 		document.addEventListener('scroll', _onScroll, { passive: true });
 	}
 
-	function removeEvent() {
+	function removeScroll() {
 		document.removeEventListener('scroll', _onScroll);
 	}
 
 	watch(
-		() => width.value >= minWidth,
-		(isAboveMin, _, onCleanup) => {
-			if (isAboveMin) {
-				addEvent();
+		isAbove,
+		(_isAbove, _, onCleanup) => {
+			if (_isAbove) {
+				addScroll();
 			}
 
 			onCleanup(() => {
-				removeEvent();
+				removeScroll();
 			});
 		},
 		{ immediate: true, flush: 'post' }
@@ -54,15 +83,15 @@ export function useScroll({ userIds, onScroll, width, minWidth }: UseScrollOptio
 	watch(
 		userIds,
 		(_, __, onCleanup) => {
-			removeEvent();
-			addEvent();
+			removeScroll();
+			addScroll();
 
 			onCleanup(() => {
-				removeEvent();
+				removeScroll();
 			});
 		},
 		{ immediate: true, flush: 'post' }
 	);
 
-	return null;
+	return { isClick };
 }

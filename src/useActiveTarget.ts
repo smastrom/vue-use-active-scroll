@@ -1,17 +1,15 @@
 import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
-import { useWidth } from './useWidth';
+import { useMinWidth } from './useMinWidth';
 import { useScroll } from './useScroll';
-import { useIdle } from './useIdle';
-import { getDataset, IDLE_TIME, getRects, getEdges } from './utils';
-
-// https://github.com/microsoft/TypeScript/issues/28374#issuecomment-538052842
-type DeepNonNullable<T> = { [P in keyof T]-?: NonNullable<T[P]> } & NonNullable<T>;
+import { useScrollResume } from './useScrollResume';
+import { getDataset, getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
 type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
 	overlayHeight?: number;
 	minWidth?: number;
+	replaceHash?: boolean;
 	boundaryOffset?: {
 		toTop?: number;
 		toBottom?: number;
@@ -19,17 +17,22 @@ type UseActiveTitleOptions = {
 };
 
 type UseActiveTitleReturn = {
+	isActive: (id: string) => boolean;
+	setActive: (id: string) => void;
 	activeId: Ref<string>;
 	activeDataset: Ref<Record<string, string>>;
 	activeIndex: Ref<number>;
-	setActive: (id: string) => void;
 };
+
+// https://github.com/microsoft/TypeScript/issues/28374#issuecomment-538052842
+type DeepNonNullable<T> = { [P in keyof T]-?: NonNullable<T[P]> } & NonNullable<T>;
 
 const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	overlayHeight: 0,
 	minWidth: 0,
+	replaceHash: false,
 	boundaryOffset: {
 		toTop: 0,
 		toBottom: 0,
@@ -43,6 +46,7 @@ export function useActiveTarget(
 		jumpToLast = defaultOpts.jumpToLast,
 		overlayHeight = defaultOpts.overlayHeight,
 		minWidth = defaultOpts.minWidth,
+		replaceHash = defaultOpts.replaceHash,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
@@ -53,31 +57,12 @@ export function useActiveTarget(
 	const targets = ref<HTMLElement[]>([]);
 	const iDs = computed(() => targets.value.map(({ id }) => id));
 
-	const width = useWidth();
-	const isIdle = useIdle(IDLE_TIME);
-
-	let isClick: boolean;
-	let clickTimer: NodeJS.Timeout;
-	const rBounds = {
-		toTop: 0,
-		toBottom: 0,
-	};
-
 	// Returned values
 	const activeId = ref('');
 	const activeIndex = computed(() => iDs.value.indexOf(activeId.value));
 	const activeDataset = computed(() =>
 		getDataset(targets.value.find(({ id }) => id === activeId.value)?.dataset)
 	);
-
-	// Returned function
-	function setActive(id: string) {
-		if (id !== activeId.value) {
-			isClick = true;
-			activeId.value = id;
-			console.log(isClick);
-		}
-	}
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
@@ -95,15 +80,67 @@ export function useActiveTarget(
 	}
 
 	function jumpToEdges() {
-		const { isBottomReached, isTopReached } = getEdges();
+		const { isBottomReached, isTopReached, isOverScroll } = getEdges();
 
 		if (isTopReached && jumpToFirst) {
 			activeId.value = iDs.value[0];
 			return true;
-		} else if (isBottomReached && jumpToLast) {
+		} else if ((isBottomReached || isOverScroll) && jumpToLast) {
 			activeId.value = iDs.value[iDs.value.length - 1];
 			return true;
 		}
+	}
+
+	// Sets first target that left the top of the viewport.
+	function onScrollDown() {
+		const offset = overlayHeight + (toBottom as number);
+		const firstOut =
+			Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ??
+			(jumpToFirst ? iDs.value[0] : '');
+
+		// Prevent smoothscroll to set prev targets while scrolling.
+		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
+			activeId.value = firstOut;
+		}
+	}
+
+	// Sets first target that entered the top of the viewport.
+	function onScrollUp() {
+		if (!jumpToFirst) {
+			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
+			// Ignore user boundaryOffsets when first target becomes inactive.
+			if (firstTargetTop > FIXED_TO_TOP_OFFSET + overlayHeight) {
+				return (activeId.value = '');
+			}
+		}
+
+		const offset = overlayHeight + (toTop as number);
+		const firstIn = getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? '';
+
+		if (iDs.value.indexOf(firstIn) < iDs.value.indexOf(activeId.value)) {
+			activeId.value = firstIn;
+		}
+	}
+
+	function onScroll(prevY: number) {
+		if (window.scrollY < prevY) {
+			onScrollUp();
+		} else {
+			onScrollDown();
+		}
+		jumpToEdges();
+	}
+
+	// Returned functions
+	function setActive(id: string) {
+		if (id !== activeId.value) {
+			isClick.value = true;
+			activeId.value = id;
+		}
+	}
+
+	function isActive(id: string) {
+		return id === activeId.value;
 	}
 
 	onMounted(() => {
@@ -114,11 +151,9 @@ export function useActiveTarget(
 			return (activeId.value = hashId);
 		}
 
-		if (jumpToEdges()) {
-			return;
+		if (!jumpToEdges()) {
+			onScrollDown();
 		}
-
-		setFirstOut();
 	});
 
 	watch(
@@ -129,92 +164,32 @@ export function useActiveTarget(
 		{ flush: 'post' }
 	);
 
-	const isActive = true;
-	const exceptFirst = true;
 	watch(activeId, (newId) => {
-		if (isActive) {
-			const start = exceptFirst ? 0 : -1;
-			const newHash = activeIndex.value > start ? `#${newId}` : '';
+		if (replaceHash) {
+			const start = jumpToFirst ? 0 : -1;
+			const newHash = activeIndex.value > start ? `#${newId}` : '/';
 			history.replaceState(history.state, '', newHash);
-		} else {
-			history.replaceState(history.state, '', '');
 		}
 	});
 
-	// Restores scroll settings, which are disabled when the user clicks
-	function restoreSettings() {
-		clickTimer = setTimeout(() => {
-			rBounds.toTop = toTop as number;
-			rBounds.toBottom = toBottom as number;
-			isClick = false;
-			console.log(isClick);
-			console.log('Restored scroll settings.');
-		}, IDLE_TIME);
-	}
+	const isAbove = useMinWidth(minWidth);
 
-	// Sets first target that entered the top of the viewport.
-	function setFirstIn() {
-		const offset = overlayHeight + rBounds.toTop;
-		const firstIn =
-			getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? iDs.value[0];
-
-		// Prevent smoothscroll to set next targets while scrolling.
-		if (iDs.value.indexOf(firstIn) < iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstIn;
-		}
-	}
-
-	// Sets first target that left the top of the viewport.
-	function setFirstOut() {
-		const offset = overlayHeight + rBounds.toBottom;
-		const firstOut =
-			Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ??
-			(jumpToFirst ? iDs.value[0] : '');
-
-		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstOut;
-		}
-	}
-
-	function onScroll({ isDown } = { isDown: false }) {
-		if (!isIdle.value) {
-			console.log('No idle, canceling scroll handler');
-			return;
-		}
-
-		function setTarget() {
-			if (isDown) {
-				setFirstOut();
-			} else {
-				setFirstIn();
-			}
-
-			jumpToEdges();
-		}
-
-		clearTimeout(clickTimer);
-
-		if (!isClick) {
-			setTarget();
-		} else {
-			// Continue when resuming scrolling just right after click
-			document.addEventListener('wheel', setTarget, { once: true, passive: true });
-		}
-
-		restoreSettings();
-	}
-
-	useScroll({
-		userIds,
+	const { isClick } = useScroll({
 		onScroll,
-		width,
-		minWidth,
+		userIds,
+		isAbove,
+	});
+
+	useScrollResume({
+		isClick,
+		onScroll,
 	});
 
 	return {
+		isActive,
+		setActive,
 		activeId,
 		activeIndex,
 		activeDataset,
-		setActive,
 	};
 }

@@ -5,12 +5,17 @@ export function useFakeData() {
 	const parsedEnd = parseInt(sessionStorage.getItem('lastNumber') || '0');
 	const parsedLength = parsedEnd - parsedStart + 1;
 
+	const isMobile = window.matchMedia('(max-width: 610px)').matches;
+
+	const minText = isMobile ? 50 : 80;
+	const maxText = isMobile ? 100 : 320;
+
 	const sections = reactive(
 		Array.from({ length: parsedLength <= 1 ? 15 : parsedLength }, (_, index) => {
 			return {
 				id: `title_${parsedStart + index}`,
 				title: `${parsedStart + index} `.repeat(6).toUpperCase(),
-				text: 'Text '.repeat(getInt(80, 320)),
+				text: 'Text '.repeat(getInt(minText, maxText)),
 			};
 		})
 	);
@@ -29,7 +34,7 @@ export function useFakeData() {
 		sections.shift();
 	}
 
-	function pushUnreachable() {
+	function pushSection() {
 		sections.push({
 			id: `title_${lastNum.value + 1}`,
 			title: `${lastNum.value + 1} `.repeat(6).toUpperCase(),
@@ -46,7 +51,7 @@ export function useFakeData() {
 		{ immediate: true }
 	);
 
-	return { sections, menuItems, pushUnreachable, shiftSection };
+	return { sections, menuItems, pushSection, shiftSection };
 }
 
 function getInt(min: number, max: number) {

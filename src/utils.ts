@@ -1,7 +1,7 @@
 export const isSSR = typeof window === 'undefined';
 
 export const FIXED_TO_TOP_OFFSET = 10;
-export const FIXED_BOUND_OFFSET = 5;
+export const FIXED_BOUNDARY_OFFSET = 5;
 export const IDLE_TIME = 250;
 
 export function getRects(
@@ -10,7 +10,7 @@ export function getRects(
 	operator?: '>' | '<',
 	userOffset = 0
 ) {
-	const offset = FIXED_BOUND_OFFSET + userOffset;
+	const offset = FIXED_BOUNDARY_OFFSET + userOffset;
 	const map = new Map<string, number>();
 
 	targets.forEach((target) => {
@@ -29,9 +29,10 @@ export function getRects(
 export function getEdges() {
 	const root = document.documentElement;
 	const isTopReached = root.scrollTop <= FIXED_TO_TOP_OFFSET;
+	const isOverScroll = root.scrollTop > root.scrollHeight - root.clientHeight;
 	const isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 
-	return { isTopReached, isBottomReached };
+	return { isTopReached, isBottomReached, isOverScroll };
 }
 
 export function getDataset(dataset: DOMStringMap | undefined): Record<string, string> {

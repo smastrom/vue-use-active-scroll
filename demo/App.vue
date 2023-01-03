@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useFakeData } from './useFakeData';
 import { useActiveTarget } from '../src/useActiveTarget';
 
-const { menuItems, sections, pushUnreachable, shiftSection } = useFakeData();
+const { menuItems, sections, pushSection, shiftSection } = useFakeData();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id));
 
 const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
 	jumpToFirst: true,
+	jumpToLast: true,
+	replaceHash: true,
 	boundaryOffset: {
-		toTop: 200,
-		toBottom: 100,
+		toTop: -100,
+		toBottom: 150,
 	},
 });
 
@@ -28,17 +30,10 @@ const activeItemHeight = computed(
 	() => document.querySelector(`a[href="#${activeId.value}"]`)?.scrollHeight || 0
 ); // Demo
 
-watch(isHashEnabled, (newValue) => {
-	history.replaceState(
-		history.state,
-		'',
-		!newValue ? '/' : activeIndex.value <= 0 ? '' : `#${activeId.value}`
-	);
-}); // Demo
-
 watch(
 	() => scrollBehavior.value === 'smooth',
 	(isSmooth) => {
+		console.log('ontouchstart' in window);
 		document.documentElement.style.scrollBehavior = isSmooth ? 'smooth' : 'auto';
 	},
 	{
@@ -89,13 +84,13 @@ watch(
 					</div>
 				</fieldset>
 
-				<label for="urlHash"
+				<!-- 				<label for="urlHash"
 					><input id="urlHash" type="checkbox" v-model="isHashEnabled" /> Update URL Hash</label
-				>
+				> -->
 
 				<div class="Buttons">
 					<button @click="shiftSection">Shift</button>
-					<button @click="pushUnreachable">Push</button>
+					<button @click="pushSection">Push</button>
 				</div>
 			</div>
 
@@ -189,6 +184,12 @@ aside {
 	padding: 10px;
 }
 
+@media (max-width: 610px) {
+	aside {
+		min-width: unset;
+	}
+}
+
 /* Demo Controls */
 
 .Controls {
@@ -257,6 +258,12 @@ label {
 	border-left: 4px solid #00adb5;
 }
 
+@media (max-width: 610px) {
+	.Tracker {
+		transition: top 200ms;
+	}
+}
+
 ul {
 	position: relative;
 	list-style: none;
@@ -275,6 +282,7 @@ a {
 	transition: background-color 100ms;
 	color: rgba(255, 255, 255, 0.646);
 	padding: 2.5px 0;
+	width: 100%;
 }
 
 a:hover {
