@@ -1,10 +1,12 @@
 import { watch, Ref } from 'vue';
 
-export function useScrollResume({
+export function useWheelResume({
 	isClick,
+	isAbove,
 	onScroll,
 }: {
 	isClick: Ref<boolean>;
+	isAbove: Ref<boolean>;
 	onScroll: (prevY: number) => void;
 }) {
 	let prevY: number | undefined;
@@ -18,17 +20,15 @@ export function useScrollResume({
 	}
 
 	watch(isClick, (_isClick, _, onCleanup) => {
-		const eventType = 'ontouchstart' in window ? 'touchmove' : 'wheel';
-
-		if (_isClick) {
-			console.log('Attaching wheel...');
-			document.addEventListener(eventType, onResume, { passive: true });
+		if (_isClick && isAbove.value && !('ontouchstart' in window)) {
+			console.log('Adding wheel');
+			document.addEventListener('wheel', onResume, { passive: true });
 		}
 
 		onCleanup(() => {
-			if (_isClick) {
-				console.log('Detaching wheel on cleanup...');
-				document.removeEventListener(eventType, onResume);
+			if (_isClick && isAbove.value) {
+				console.log('Removing wheel');
+				document.removeEventListener('wheel', onResume);
 			}
 		});
 	});

@@ -15,6 +15,7 @@ const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
 		toTop: -100,
 		toBottom: 150,
 	},
+	minWidth: 0,
 });
 
 const scrollBehavior = ref('smooth'); // Demo
