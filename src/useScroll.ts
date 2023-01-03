@@ -1,61 +1,44 @@
-import { watch, ref, Ref } from 'vue';
-import { isSSR, useDebouncedFn } from './utils';
+import { watch, Ref } from 'vue';
+import { isSSR } from './utils';
 
 type UseScrollOptions = {
+	onScroll: (isDown?: { isDown: boolean }) => void;
 	userIds: string[] | Ref<string[]>;
-	viewportWidth: Ref<number>;
-	debounce: number;
+	width: Ref<number>;
 	minWidth: number;
-	onScrollUp: () => void;
-	onScrollDown: () => void;
 };
 
-export function useScroll({
-	userIds,
-	onScrollUp,
-	onScrollDown,
-	viewportWidth,
-	debounce,
-	minWidth,
-}: UseScrollOptions) {
-	const isBottomReached = ref(false);
-
+export function useScroll({ userIds, onScroll, width, minWidth }: UseScrollOptions) {
 	if (isSSR) {
-		return {
-			isBottomReached,
-		};
+		return null;
 	}
 
-	const debouncedScroll = debounce > 0 ? useDebouncedFn(onScroll, debounce) : onScroll;
 	let scrollPos: number;
 
-	function onScroll() {
+	function _onScroll() {
 		if (!scrollPos) {
 			scrollPos = window.scrollY;
 		}
 
 		if (window.scrollY < scrollPos) {
-			onScrollUp();
+			onScroll();
 		} else {
-			onScrollDown();
+			onScroll({ isDown: true });
 		}
 
 		scrollPos = window.scrollY;
-
-		const root = document.documentElement;
-		isBottomReached.value = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
 	}
 
 	function addEvent() {
-		document.addEventListener('scroll', debouncedScroll, { passive: true });
+		document.addEventListener('scroll', _onScroll, { passive: true });
 	}
 
 	function removeEvent() {
-		document.removeEventListener('scroll', debouncedScroll);
+		document.removeEventListener('scroll', _onScroll);
 	}
 
 	watch(
-		() => viewportWidth.value >= minWidth,
+		() => width.value >= minWidth,
 		(isAboveMin, _, onCleanup) => {
 			if (isAboveMin) {
 				addEvent();
@@ -81,5 +64,5 @@ export function useScroll({
 		{ immediate: true, flush: 'post' }
 	);
 
-	return { isBottomReached };
+	return null;
 }
