@@ -1,4 +1,4 @@
-import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
+import { ref, Ref, onMounted, computed, unref, watch, isRef } from 'vue';
 import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
@@ -8,6 +8,7 @@ type UseActiveTitleOptions = {
 	overlayHeight?: number;
 	minWidth?: number;
 	replaceHash?: boolean;
+	rootId?: string | null;
 	boundaryOffset?: {
 		toTop?: number;
 		toBottom?: number;
@@ -34,16 +35,19 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 		toTop: 0,
 		toBottom: 0,
 	},
+	// @ts-ignore
+	rootId: null,
 };
 
 export function useActive(
-	userIds: string[] | Ref<string[]> = [],
+	userIds: string[] | Ref<string[]>,
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
 		overlayHeight = defaultOpts.overlayHeight,
 		minWidth = defaultOpts.minWidth,
 		replaceHash = defaultOpts.replaceHash,
+		rootId = defaultOpts.rootId,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
@@ -51,7 +55,11 @@ export function useActive(
 	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
 	// Internal
+
+	const root = ref<HTMLElement | null>(null);
+	const rootTop = ref(0);
 	const targets = ref<HTMLElement[]>([]);
+	const isHTML = computed(() => rootId == null);
 	const iDs = computed(() => targets.value.map(({ id }) => id));
 
 	// Returned values
@@ -73,62 +81,17 @@ export function useActive(
 		targets.value = _targets;
 	}
 
-	function jumpToEdges() {
-		const { isBottomReached, isTopReached, isOverScroll } = getEdges();
-
-		if (isTopReached && jumpToFirst) {
-			activeId.value = iDs.value[0];
-			return true;
-		} else if ((isBottomReached || isOverScroll) && jumpToLast) {
-			activeId.value = iDs.value[iDs.value.length - 1];
-			return true;
-		}
-	}
-
-	// Sets first target that left the top of the viewport
-	function onScrollDown() {
-		/* 		console.log('onScrollDown'); */
-		const offset = overlayHeight + (toBottom as number);
-		const firstOut =
-			Array.from(getRects(targets.value, 'top', '<', offset).keys()).pop() ??
-			(jumpToFirst ? iDs.value[0] : '');
-
-		activeId.value = firstOut;
-
-		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstOut;
-		}
-	}
-
-	// Sets first target that entered the top of the viewport
-	function onScrollUp() {
-		/* 		console.log('onScrollUp'); */
-		if (!jumpToFirst) {
-			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
-			// Ignore boundaryOffsets when first target becomes inactive
-			if (firstTargetTop > FIXED_TO_TOP_OFFSET + overlayHeight) {
-				return (activeId.value = '');
+	onMounted(() => {
+		if (isHTML.value) {
+			root.value = document.documentElement;
+		} else {
+			const cRoot = document.getElementById(rootId as string);
+			if (cRoot) {
+				root.value = cRoot;
+				rootTop.value = cRoot.getBoundingClientRect().top;
 			}
 		}
 
-		const offset = overlayHeight + (toTop as number);
-		const firstIn = getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? '';
-
-		if (iDs.value.indexOf(firstIn) < iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstIn;
-		}
-	}
-
-	function onScroll(prevY: number) {
-		if (window.scrollY < prevY) {
-			onScrollUp();
-		} else {
-			onScrollDown();
-		}
-		jumpToEdges();
-	}
-
-	onMounted(() => {
 		setTargets();
 
 		const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
@@ -142,7 +105,7 @@ export function useActive(
 	});
 
 	watch(
-		userIds,
+		isRef(userIds) ? userIds : () => null,
 		() => {
 			setTargets();
 		},
@@ -158,11 +121,72 @@ export function useActive(
 	});
 
 	const isClick = useListeners({
+		isHTML,
+		root,
+		rootTop,
 		onScroll,
 		minWidth,
 	});
 
-	// Returned functions
+	function jumpToEdges() {
+		const { isBottomReached, isTopReached } = getEdges(root.value!);
+
+		if (isTopReached && jumpToFirst) {
+			activeId.value = iDs.value[0];
+			return true;
+		} else if (isBottomReached && jumpToLast) {
+			activeId.value = iDs.value[iDs.value.length - 1];
+			return true;
+		}
+	}
+
+	function onScroll(prevY: number) {
+		const now = performance.now();
+		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
+
+		if (nextY < prevY) {
+			onScrollUp();
+		} else {
+			onScrollDown();
+		}
+		jumpToEdges();
+		console.log(`onScroll: ${performance.now() - now}ms`);
+	}
+
+	// Sets first target that left the top of the viewport
+	function onScrollDown() {
+		const offset = overlayHeight + rootTop.value + toBottom!;
+		const firstOut =
+			[...getRects(targets.value, 'top', '<', offset).keys()].at(-1) ??
+			(jumpToFirst ? iDs.value[0] : '');
+
+		activeId.value = firstOut;
+
+		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
+			activeId.value = firstOut;
+		}
+	}
+
+	// Sets first target that entered the top of the viewport
+	function onScrollUp() {
+		const offset = overlayHeight + rootTop.value + toTop!;
+		if (!jumpToFirst) {
+			// TODO: Check if this really appropriate
+			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
+			// Ignore boundaryOffsets when first target becomes inactive
+			if (firstTargetTop > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
+				return (activeId.value = '');
+			}
+		}
+
+		const firstIn = getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? '';
+
+		if (iDs.value.indexOf(firstIn) < iDs.value.indexOf(activeId.value)) {
+			activeId.value = firstIn;
+		}
+	}
+
+	// Returned
 	function setActive(id: string) {
 		if (id !== activeId.value) {
 			isClick.value = true;
@@ -170,6 +194,7 @@ export function useActive(
 		}
 	}
 
+	// Returned
 	function isActive(id: string) {
 		return id === activeId.value;
 	}

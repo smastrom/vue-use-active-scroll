@@ -3,6 +3,7 @@ export const isSSR = typeof window === 'undefined';
 export const FIXED_TO_TOP_OFFSET = 10;
 export const FIXED_BOUNDARY_OFFSET = 5;
 export const IDLE_TIME = 200;
+export const SCROLLBAR_WIDTH = 17;
 
 export function getRects(
 	targets: HTMLElement[],
@@ -26,11 +27,14 @@ export function getRects(
 	return map;
 }
 
-export function getEdges() {
-	const root = document.documentElement;
+export function getEdges(root = document.documentElement) {
 	const isTopReached = root.scrollTop <= FIXED_TO_TOP_OFFSET;
-	const isOverScroll = root.scrollTop > root.scrollHeight - root.clientHeight;
 	const isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
+	const isOverscrollTop = root.scrollTop < 0;
+	const isOverscrollBottom = root.scrollTop > root.scrollHeight - root.clientHeight;
 
-	return { isTopReached, isBottomReached, isOverScroll };
+	return {
+		isTopReached: isTopReached || isOverscrollTop,
+		isBottomReached: isBottomReached || isOverscrollBottom,
+	};
 }
