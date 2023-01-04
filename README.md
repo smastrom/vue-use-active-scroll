@@ -14,6 +14,7 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 - Once reached the bottom, some links may never be highlighted if previous targets are entirely visible.
 - Clicking on such links highlights different links (or does nothing).
 - When accessing/refreshing the page, the active target may not reflect the one in the the URL hash.
+- Ensuring different behaviors on scroll from click and scroll from wheel/touch is trivial.
 
 > If you're struggling with any of these issues, this package might help you.
 
@@ -23,17 +24,15 @@ Highlighting sidebar links using the [Intersection Observer](https://developer.m
 
 It is a Vue 3 composable that implements a customizable scroll observer and returns **reactive data** of the current active target.
 
-It automatically ensures that the returned target reflects:
+### Features
 
-- User's reading flow regardless of scrolling speed
-- The clicked link regardless of the scroll-behavior, custom scroll functions, etc.
-- Different behaviors on mount, scroll and click
-- The URL hash
-
-### What it doesn't do?
-
-- Mutate your elements
-- Scroll to targets
+- Accurate results at any scroll speed
+- Customizable boundary offsets for each scroll direction
+- Automatic behavior regulation on mount, scroll, click and touch
+- URL hash replace
+- Scroll behavior/callback agnostic
+- Doesn't mutate your elements or add any CSS
+- ~1.5KB (gzipped) with no dependencies
 
 ### Limitations
 
@@ -129,32 +128,29 @@ const { isActive, setActive } = useActiveTarget(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                          |
-| -------------- | ---------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                    |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                            |
-| overlayHeight  | `number`         | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().           |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if hiding the sidebar with `display: none` within a specific width. |
-| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. When `jumpToFirst` is true, the first target is ignored.                                                      |
+| Property       | Type             | Default                   | Description                                                                                                                                                       |
+| -------------- | ---------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                 |
+| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom even if previous targets are entirely visible.                                             |
+| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection. Respected only with scroll originated from wheel/touch. |
+| overlayHeight  | `number`         | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().                        |
+| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be added/removed. Useful if hiding the sidebar with `display: none` within a specific width.              |
+| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. When `jumpToFirst` is true, the first target is ignored.                                                                   |
 
 ### Return object
 
-The composable returns an object of reactive [refs](https://vuejs.org/api/reactivity-core.html#ref) plus two handy functions:
-
-| Name          | Type                          | Description                                                                        |
-| ------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| isActive      | `(id: string) => boolean`     | Wheter the given Id is active or not                                               |
-| setActive     | `(id: string) => void`        | Function to set active targets and ensure proper behavior between scroll and click |
-| activeId      | `Ref<string>`                 | Id of the active target                                                            |
-| activeIndex   | `Ref<number>`                 | Index of the active target in DOM tree order, `0` for the first target and so on.  |
-| activeDataset | `Ref<Record<string, string>>` | Dataset of the active target in plain object format                                |
+| Name        | Type                      | Description                                                                                                |
+| ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| isActive    | `(id: string) => boolean` | Wheter the given Id is active or not                                                                       |
+| setActive   | `(id: string) => void`    | Function to set active targets and ensure proper behavior between wheel/touch scroll or scroll from click. |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                    |
+| activeIndex | `Ref<number>`             | Index of the active target in DOM tree order, `0` for the first target and so on.                          |
 
 <br />
 
 ## 3. Create your sidebar
 
-1. Use `isActive` to style the active link:
+**1.** Use `isActive` to style the active link:
 
 ```vue
 <script setup>
@@ -186,9 +182,11 @@ html {
 </style>
 ```
 
-> :bulb: If you're playing with transitions or dealing with different depths, simply make use of _activeIndex_, _activeId_ and _activeDataset_.
+> :bulb: If you're playing with transitions or dealing with different depths, simply make use of _activeIndex_ and _activeId_.
 
-2. Call `setActive` in your click handler by passing the anchor ID.
+<br />
+
+**2.** Call `setActive` in your click handler by passing the anchor ID.
 
 > :bulb: _setActive_ doesn't scroll to the target, it just ensures proper behavior between scroll/click switch.
 
@@ -213,7 +211,7 @@ const { isActive, setActive } = useActiveTarget(titles)
 </template>
 ```
 
-You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work.
+You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to call `setActive` in your handler.
 
 <br />
 
