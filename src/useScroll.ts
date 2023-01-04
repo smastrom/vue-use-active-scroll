@@ -44,10 +44,18 @@ export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
 		}, IDLE_TIME);
 	}
 
-	// Restart the main scroll listener if attempting to scroll while scrolling from click
+	// Restart the listener if attempting to scroll again while scrolling from click
 	function onRestart() {
 		isClick.value = false;
 		restartCount.value++;
+	}
+
+	function onPointerDown(event: PointerEvent) {
+		switch (event.pointerType) {
+			case 'pen':
+			case 'touch':
+				return onRestart();
+		}
 	}
 
 	onMounted(() => {
@@ -83,16 +91,13 @@ export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
 		isClick,
 		(hasClicked, _, onCleanup) => {
 			if (hasClicked) {
-				if ('ontouchstart' in window) {
-					document.addEventListener('touchstart', onRestart, { once: true });
-				} else {
-					document.addEventListener('wheel', onRestart, { once: true });
-				}
+				document.addEventListener('wheel', onRestart, { once: true });
+				document.addEventListener('pointerdown', onPointerDown, { once: true });
 			}
 
 			onCleanup(() => {
-				document.removeEventListener('touchstart', onRestart);
 				document.removeEventListener('wheel', onRestart);
+				document.removeEventListener('pointerdown', onPointerDown);
 			});
 		},
 		{ flush: 'sync' }
