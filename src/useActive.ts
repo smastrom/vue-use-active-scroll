@@ -1,5 +1,5 @@
 import { ref, Ref, onMounted, computed, unref, watch } from 'vue';
-import { useScroll } from './useScroll';
+import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
 type UseActiveTitleOptions = {
@@ -36,7 +36,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	},
 };
 
-export function useActiveTarget(
+export function useActive(
 	userIds: string[] | Ref<string[]> = [],
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
@@ -157,7 +157,7 @@ export function useActiveTarget(
 		}
 	});
 
-	const isClick = useScroll({
+	const isClick = useListeners({
 		onScroll,
 		minWidth,
 	});

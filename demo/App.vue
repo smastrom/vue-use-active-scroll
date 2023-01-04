@@ -1,13 +1,30 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useFakeData } from './useFakeData';
-import { useActiveTarget } from '../src/useActiveTarget';
+import { useActive } from '../src/useActive';
+import animateScrollTo from 'animated-scroll-to';
+
+function easeInOutCirc(t: number) {
+	if (t < 0.5) {
+		return (1 - Math.sqrt(1 - 4 * t * t)) / 2;
+	} else {
+		return (Math.sqrt(1 - (2 * t - 2) * (2 * t - 2)) + 1) / 2;
+	}
+}
+
+function easeOutBack(t: number): number {
+	const s = 1.70158;
+	const b = 0;
+	const c = 1;
+	const d = 1;
+	return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
+}
 
 const { menuItems, sections, pushSection, shiftSection } = useFakeData();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id));
 
-const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
+const { activeIndex, activeId, setActive } = useActive(titles, {
 	jumpToFirst: true,
 	jumpToLast: true,
 	replaceHash: false,
@@ -18,7 +35,7 @@ const { activeIndex, activeId, setActive } = useActiveTarget(titles, {
 	minWidth: 0,
 });
 
-const scrollBehavior = ref('smooth'); // Demo
+const scrollBehavior = ref('auto'); // Demo
 const isHashEnabled = ref(false); // Demo
 
 watch(activeId, (newId) => {
@@ -27,6 +44,15 @@ watch(activeId, (newId) => {
 		history.replaceState(history.state, '', activeIndex.value <= 0 ? '' : `#${newId}`);
 	}
 });
+
+function customScrollTo(event: MouseEvent, id: string) {
+	setActive(id);
+	animateScrollTo(document.getElementById(id) as HTMLElement, {
+		easing: easeOutBack,
+		minDuration: 300,
+		maxDuration: 600,
+	});
+}
 
 const activeItemHeight = computed(
 	() => document.querySelector(`a[href="#${activeId.value}"]`)?.scrollHeight || 0
@@ -104,7 +130,7 @@ watch(
 
 					<li ref="linkRefs" v-for="item in menuItems" :key="item.href">
 						<a
-							@click="setActive(item.href)"
+							@click="customScrollTo($event, item.href) /* setActive(item.href) */"
 							:href="`#${item.href}`"
 							:class="{
 								Active: item.href === activeId,

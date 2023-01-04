@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => {
 			emptyOutDir: true,
 			minify: 'terser',
 			lib: {
-				entry: '../src/useActiveTarget.ts',
-				name: 'VueReactiveTOC',
+				entry: '../src/useActive.ts',
+				name: 'VueUseActiveScroll',
 				fileName: 'index',
 			},
 			rollupOptions: {
@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
 			vue(),
 			dts({
 				root: '../',
-				include: ['src/useActiveTarget.ts'],
+				include: ['src/useActive.ts'],
 				beforeWriteFile: (_, content) => ({
 					filePath: 'dist/index.d.ts',
 					content,
