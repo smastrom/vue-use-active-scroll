@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useFakeData } from './useFakeData';
 import { useActive } from '../src/useActive';
 import animateScrollTo from 'animated-scroll-to';
@@ -24,21 +24,41 @@ const { menuItems, sections, pushSection, shiftSection } = useFakeData();
 
 const titles = computed<string[]>(() => sections.map((section) => section.id));
 
+const staticTitles = [
+	'title_0',
+	'title_1',
+	'title_2',
+	'title_3',
+	'title_4',
+	'title_5',
+	'title_6',
+	'title_7',
+	'title_8',
+	'title_9',
+	'title_10',
+	'title_11',
+	'title_12',
+	'title_13',
+	'title_14',
+];
+
 const { activeIndex, activeId, setActive } = useActive(titles, {
 	jumpToFirst: true,
 	jumpToLast: true,
 	replaceHash: false,
-	boundaryOffset: {
+	rootId: 'TestContainer',
+	/* 	boundaryOffset: {
 		toTop: -100,
 		toBottom: 150,
-	},
+	}, */
 	minWidth: 0,
 });
 
-const scrollBehavior = ref('auto'); // Demo
+const scrollBehavior = ref('smooth'); // Demo
 const isHashEnabled = ref(false); // Demo
 
 watch(activeId, (newId) => {
+	console.log(titles.value);
 	console.log('activeId', newId);
 	if (/* Demo */ isHashEnabled.value) {
 		history.replaceState(history.state, '', activeIndex.value <= 0 ? '' : `#${newId}`);
@@ -59,27 +79,29 @@ const activeItemHeight = computed(
 ); // Demo
 
 watch(
-	() => scrollBehavior.value === 'smooth',
+	scrollBehavior,
 	(isSmooth) => {
-		document.documentElement.style.scrollBehavior = isSmooth ? 'smooth' : 'auto';
+		document.documentElement.style.setProperty('--ScrollBehavior', isSmooth);
 	},
 	{
 		immediate: true,
 	}
-); // Demo
+);
 </script>
 
 <template>
 	<div class="Wrapper">
 		<!-- Content -->
-		<main>
-			<section v-for="section in sections" :key="section.id">
-				<h1 :id="section.id">
-					{{ section.title }}
-				</h1>
-				<p>{{ section.text }}</p>
-			</section>
-		</main>
+		<div id="TestContainer">
+			<main>
+				<section v-for="section in sections" :key="section.id">
+					<h1 :id="section.id">
+						{{ section.title }}
+					</h1>
+					<p>{{ section.text }}</p>
+				</section>
+			</main>
+		</div>
 
 		<!-- Sidebar -->
 		<aside>
@@ -146,6 +168,19 @@ watch(
 </template>
 
 <style>
+#TestContainer {
+	padding-top: 100px;
+	overflow: auto;
+	max-height: 90%;
+	position: relative;
+	margin-top: 120px;
+	height: 800px;
+	scroll-behavior: var(--ScrollBehavior);
+	max-width: 60%;
+	border: 2px solid #384a5d;
+	border-radius: 10px;
+}
+
 /* App */
 
 :root {
@@ -161,16 +196,17 @@ watch(
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	-webkit-text-size-adjust: 100%;
+	background-color: #222831;
 }
 
 html,
 body {
 	margin: 0;
+	scroll-behavior: auto;
 }
 
 #app {
 	width: 100%;
-	background-color: #222831;
 }
 
 .Wrapper {
@@ -185,7 +221,7 @@ body {
 /* Content */
 
 main {
-	max-width: 60%;
+	/* 	max-width: 60%; */
 	padding: 0 20px;
 	margin-top: 100px;
 }

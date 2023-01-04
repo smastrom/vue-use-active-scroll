@@ -1,12 +1,21 @@
-import { watch, onMounted, ref, onBeforeMount } from 'vue';
-import { IDLE_TIME, isSSR } from './utils';
+import { watch, onMounted, ref, Ref, onBeforeMount, ComputedRef } from 'vue';
+import { IDLE_TIME, isSSR, SCROLLBAR_WIDTH } from './utils';
 
 type UseListenersOptions = {
-	onScroll: (prevPos: number) => void;
+	isHTML: ComputedRef<boolean>;
+	root: Ref<HTMLElement | null>;
+	rootTop: Ref<number>;
+	onScroll: (prevY: number) => void;
 	minWidth: number;
 };
 
-export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOptions) {
+export function useListeners({
+	isHTML,
+	root,
+	rootTop,
+	onScroll: _onScroll,
+	minWidth,
+}: UseListenersOptions) {
 	const isClick = ref(false);
 
 	if (isSSR) {
@@ -15,36 +24,38 @@ export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOpti
 
 	const media = `(min-width: ${minWidth}px)`;
 	const matchMedia = ref(window.matchMedia(media).matches);
-	const isIdle = ref(false);
+	const isReady = ref(false);
 	const restartCount = ref(0);
 
-	let idleTimer: NodeJS.Timeout;
-	let prevY: number | undefined;
+	let readyTimer: NodeJS.Timeout;
+	let prevY: number;
 
 	function onResize() {
+		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
 		matchMedia.value = window.matchMedia(media).matches;
 	}
 
 	function onScroll() {
 		// Do not update results if scrolling from click or on mount
-		if (isIdle.value && !isClick.value) {
+		if (isReady.value && !isClick.value) {
+			const _prevY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 			if (!prevY) {
-				prevY = window.scrollY;
+				prevY = _prevY;
 			}
 			_onScroll(prevY);
-			prevY = window.scrollY;
+			prevY = _prevY;
 		}
 	}
 
-	function onIdle() {
-		clearTimeout(idleTimer);
-		idleTimer = setTimeout(() => {
+	function onReady() {
+		clearTimeout(readyTimer);
+		readyTimer = setTimeout(() => {
 			console.log('Idle');
-			isIdle.value = true;
+			isReady.value = true;
 		}, IDLE_TIME);
 	}
 
-	// Restart scroll listener if attempting to scroll again just right after click
+	// Restart listener if attempting to scroll again just right after click
 	function reScroll() {
 		isClick.value = false;
 		restartCount.value++;
@@ -52,6 +63,12 @@ export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOpti
 
 	function onPointerDown(event: PointerEvent) {
 		switch (event.pointerType) {
+			case 'mouse':
+				const isScrollbar = event.clientX > root.value!.offsetWidth - SCROLLBAR_WIDTH;
+				if (isScrollbar) {
+					reScroll();
+				}
+				break;
 			case 'pen':
 			case 'touch':
 				return reScroll();
@@ -60,27 +77,31 @@ export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOpti
 
 	onMounted(() => {
 		window.addEventListener('resize', onResize, { passive: true });
-		if (window.scrollY > 0) {
-			document.addEventListener('scroll', onIdle, { once: true, passive: true });
+
+		const container = isHTML.value ? document.documentElement : root.value!;
+		const rootEl = isHTML.value ? document : root.value!;
+		if (container.scrollTop > 0) {
+			rootEl.addEventListener('scroll', onReady, { once: true, passive: true });
 		} else {
-			isIdle.value = true;
+			isReady.value = true;
 		}
 	});
 
 	watch(
-		[isIdle, matchMedia, restartCount],
-		([_isIdle, _matchMedia], [], onCleanup) => {
-			if (_isIdle) {
-				if (_matchMedia) {
+		[isReady, matchMedia, root, restartCount],
+		([hasAutoScrolled, matchesMedia, _root], [], onCleanup) => {
+			const rootEl = isHTML.value ? document : _root;
+			if (hasAutoScrolled && rootEl) {
+				if (matchesMedia) {
 					console.log('Attaching scroll...');
-					document.addEventListener('scroll', onScroll, {
+					rootEl.addEventListener('scroll', onScroll, {
 						passive: true,
 					});
 				}
 
 				onCleanup(() => {
 					console.log('Removing scroll...');
-					document.removeEventListener('scroll', onScroll);
+					rootEl.removeEventListener('scroll', onScroll);
 				});
 			}
 		},
@@ -90,14 +111,22 @@ export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOpti
 	watch(
 		isClick,
 		(hasClicked, _, onCleanup) => {
+			const rootEl = isHTML.value ? document : root.value!;
 			if (hasClicked) {
-				document.addEventListener('wheel', reScroll, { once: true });
-				document.addEventListener('pointerdown', onPointerDown, { once: true });
+				rootEl.addEventListener('wheel', reScroll, { once: true });
+				rootEl.addEventListener(
+					'pointerdown',
+					onPointerDown as EventListenerOrEventListenerObject,
+					{ once: true }
+				);
 			}
 
 			onCleanup(() => {
-				document.removeEventListener('wheel', reScroll);
-				document.removeEventListener('pointerdown', onPointerDown);
+				rootEl.removeEventListener('wheel', reScroll);
+				rootEl.removeEventListener(
+					'pointerdown',
+					onPointerDown as EventListenerOrEventListenerObject
+				);
 			});
 		},
 		{ flush: 'sync' }

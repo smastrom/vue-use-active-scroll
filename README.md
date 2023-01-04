@@ -28,18 +28,18 @@ It is a Vue 3 composable that implements a custom scroll observer and returns **
 
 - Accurate results at any scroll speed
 - Customizable boundary offsets for each scroll direction
-- Automatic behavior regulation on mount, scroll and click
-- CSS scroll-behavior/callback agnostic
+- Automatic adaptive behavior on mount, scroll, click and resume
+- CSS scroll-behavior/click callback agnostic
 - ~1.5KB (gzipped) without dependencies
 
 ### What it doesn't do?
 
-- Mutate elements and styles
+- Mutate your elements and styles
 - Scroll to targets
 
 ### Limitations
 
-Currently vue-use-active-scroll doesn't support scrolling containers different than the window or horizontal scrolling. Discussions/PRs are very welcome to extend support.
+Vue Use Active Scroll doesn't support horizontal scrolling.
 
 <br />
 
@@ -55,11 +55,11 @@ pnpm add vue-reactive-toc
 
 ## 1. Provide targets
 
-> :bulb: In other scenarios, you might want to target different elements, but the example below is intended for a TOC menu/sidebar.
+> :bulb: In other scenarios, you might want to target different elements as the example below is intended for a TOC menu/sidebar.
 
 In order to get results consistent with users' reading flow, targets to be observed should match the titles (h2, h3...) of your sections.
 
-Make sure that each target has an unique `id` attribute (which corresponds to the anchor you'll scroll to) and pass them to `useActive`. Order is not important.
+Make sure that each target has an unique `id` attribute (which corresponds to the anchor to scroll to) and pass them to `useActive`. Order is not important.
 
 You most likely will call `useActive` in the [setup function](https://v3.vuejs.org/guide/composition-api-setup.html#setup-function-arguments) of your menu/sidebar component.
 
@@ -67,7 +67,7 @@ You most likely will call `useActive` in the [setup function](https://v3.vuejs.o
 <script setup>
 import { useActive } from 'vue-reactive-toc'
 
-const titleIds = ['title-1', 'title-2', 'title-3']
+const titleIds = ref(['title-1', 'title-2', 'title-3'])
 // or computed(() => /* ... */), or props.titleIds, etc...
 
 const { isActive } = useActive(titleIds)
@@ -131,23 +131,24 @@ const { isActive, setActive } = useActive(titles, {
 })
 ```
 
-| Property       | Type             | Default                   | Description                                                                                                                                                        |
-| -------------- | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| jumpToFirst    | `boolean`        | true                      | Wheter to set the first target on mount as active even if not (yet) intersecting.                                                                                  |
-| jumpToLast     | `boolean`        | true                      | Wheter to set the last target as active once scroll reaches the bottom.                                                                                            |
-| boundaryOffset | `BoundaryOffset` | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection. Respected only when scroll is not originated from click. |
-| replaceHash    | `boolean`        | false                     | Whether to replace URL hash on scroll. If `jumpToFirst` is true, the first target is ignored.                                                                      |
-| minWidth       | `number`         | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                     |
-| overlayHeight  | `number`         | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().                         |
+| Property       | Type               | Default                   | Description                                                                                                                                                        |
+| -------------- | ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                 |
+| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once scroll reaches the bottom.                                                                                           |
+| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection. Respected only when scroll is not originated from click. |
+| rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content is **not scrolled** by the window. If null defaults to documentElement.                                   |
+| replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                           |
+| minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                     |
+| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().                         |
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                |
-| ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| isActive    | `(id: string) => boolean` | Wheter the given Id is active or not                                                                       |
-| setActive   | `(id: string) => void`    | Function to set active targets and ensure proper behavior between wheel/touch scroll or scroll from click. |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                    |
-| activeIndex | `Ref<number>`             | Index of the active target in DOM tree order, `0` for the first target and so on.                          |
+| Name        | Type                      | Description                                                                                                 |
+| ----------- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                       |
+| setActive   | `(id: string) => void`    | Function to set active targets and ensure proper behavior between wheel/touch scroll and scroll from click. |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                     |
+| activeIndex | `Ref<number>`             | Index of the active target in DOM tree order, `0` for the first target and so on.                           |
 
 <br />
 
@@ -176,6 +177,7 @@ const { isActive } = useActive(titles)
 
 <style>
 html {
+  /* or .container { */
   scroll-behavior: smooth; /* or 'auto' */
 }
 
@@ -185,13 +187,13 @@ html {
 </style>
 ```
 
-> :bulb: If you're playing with transitions or dealing with different depths, simply use of _activeIndex_ and _activeId_.
+> :bulb: If you're playing with transitions or advanced styling rules simply use of _activeIndex_ and _activeId_.
 
 <br />
 
 **2.** Call `setActive` in your click handler by passing the anchor ID.
 
-> :bulb: _setActive_ doesn't scroll to the target, it just ensures proper behavior between scroll/click switch.
+> :bulb: _setActive_ doesn't scroll to the target but just ensures proper behavior between wheel/touch scroll and scroll from click.
 
 ```vue
 <script setup>
@@ -230,6 +232,7 @@ import animateScrollTo from 'animated-scroll-to'
 const { isActive, setActive } = useActive(titles)
 
 function scrollTo(event, targetId) {
+  // ...
   setActive(targetId) // 👈🏻 Include setActive
   animateScrollTo(document.getElementById(targetId), {
     easing: easeOutBack,
