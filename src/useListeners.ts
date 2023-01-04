@@ -1,12 +1,12 @@
 import { watch, onMounted, ref, onBeforeMount } from 'vue';
 import { IDLE_TIME, isSSR } from './utils';
 
-type UseScrollOptions = {
+type UseListenersOptions = {
 	onScroll: (prevPos: number) => void;
 	minWidth: number;
 };
 
-export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
+export function useListeners({ onScroll: _onScroll, minWidth }: UseListenersOptions) {
 	const isClick = ref(false);
 
 	if (isSSR) {
@@ -44,8 +44,8 @@ export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
 		}, IDLE_TIME);
 	}
 
-	// Restart the listener if attempting to scroll again while scrolling from click
-	function onRestart() {
+	// Restart scroll listener if attempting to scroll again just right after click
+	function reScroll() {
 		isClick.value = false;
 		restartCount.value++;
 	}
@@ -54,7 +54,7 @@ export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
 		switch (event.pointerType) {
 			case 'pen':
 			case 'touch':
-				return onRestart();
+				return reScroll();
 		}
 	}
 
@@ -91,12 +91,12 @@ export function useScroll({ onScroll: _onScroll, minWidth }: UseScrollOptions) {
 		isClick,
 		(hasClicked, _, onCleanup) => {
 			if (hasClicked) {
-				document.addEventListener('wheel', onRestart, { once: true });
+				document.addEventListener('wheel', reScroll, { once: true });
 				document.addEventListener('pointerdown', onPointerDown, { once: true });
 			}
 
 			onCleanup(() => {
-				document.removeEventListener('wheel', onRestart);
+				document.removeEventListener('wheel', reScroll);
 				document.removeEventListener('pointerdown', onPointerDown);
 			});
 		},
