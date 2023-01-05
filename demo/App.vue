@@ -1,214 +1,24 @@
-<script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { useFakeData } from './useFakeData';
-import { useActive } from '../src/useActive';
-import animateScrollTo from 'animated-scroll-to';
+<script lang="ts" setup>
+import { ref, provide, Ref } from 'vue';
+import Header from './components/Header.vue';
 
-function easeInOutCirc(t: number) {
-	if (t < 0.5) {
-		return (1 - Math.sqrt(1 - 4 * t * t)) / 2;
-	} else {
-		return (Math.sqrt(1 - (2 * t - 2) * (2 * t - 2)) + 1) / 2;
-	}
-}
+const scrollBehavior = ref<'smooth' | 'auto'>('smooth');
+const clickType = ref<'native' | 'custom'>('native');
 
-function easeOutBack(t: number): number {
-	const s = 1.70158;
-	const b = 0;
-	const c = 1;
-	const d = 1;
-	return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
-}
-
-const { menuItems, sections, pushSection, shiftSection } = useFakeData();
-
-const titles = computed<string[]>(() => sections.map((section) => section.id));
-
-const staticTitles = [
-	'title_0',
-	'title_1',
-	'title_2',
-	'title_3',
-	'title_4',
-	'title_5',
-	'title_6',
-	'title_7',
-	'title_8',
-	'title_9',
-	'title_10',
-	'title_11',
-	'title_12',
-	'title_13',
-	'title_14',
-];
-
-const { activeIndex, activeId, setActive } = useActive(titles, {
-	jumpToFirst: true,
-	jumpToLast: true,
-	replaceHash: false,
-	rootId: 'TestContainer',
-	/* 	boundaryOffset: {
-		toTop: -100,
-		toBottom: 150,
-	}, */
-	minWidth: 0,
-});
-
-const scrollBehavior = ref('smooth'); // Demo
-const isHashEnabled = ref(false); // Demo
-
-watch(activeId, (newId) => {
-	console.log(titles.value);
-	console.log('activeId', newId);
-	if (/* Demo */ isHashEnabled.value) {
-		history.replaceState(history.state, '', activeIndex.value <= 0 ? '' : `#${newId}`);
-	}
-});
-
-function customScrollTo(event: MouseEvent, id: string) {
-	setActive(id);
-	animateScrollTo(document.getElementById(id) as HTMLElement, {
-		easing: easeOutBack,
-		minDuration: 300,
-		maxDuration: 600,
-	});
-}
-
-const activeItemHeight = computed(
-	() => document.querySelector(`a[href="#${activeId.value}"]`)?.scrollHeight || 0
-); // Demo
-
-watch(
+provide('DemoRadios', {
 	scrollBehavior,
-	(isSmooth) => {
-		document.documentElement.style.setProperty('--ScrollBehavior', isSmooth);
-	},
-	{
-		immediate: true,
-	}
-);
+	clickType,
+});
 </script>
 
 <template>
 	<div class="Wrapper">
-		<!-- Content -->
-		<div id="TestContainer">
-			<main>
-				<section v-for="section in sections" :key="section.id">
-					<h1 :id="section.id">
-						{{ section.title }}
-					</h1>
-					<p>{{ section.text }}</p>
-				</section>
-			</main>
-		</div>
-
-		<!-- Sidebar -->
-		<aside>
-			<!-- Demo Controls -->
-			<div class="Controls">
-				<fieldset>
-					<legend>scroll-behavior</legend>
-					<div>
-						<label for="Auto">
-							<input
-								type="radio"
-								id="Auto"
-								name="scrollBehavior"
-								value="auto"
-								v-model="scrollBehavior"
-							/>
-							auto
-						</label>
-						<label for="Smooth">
-							<input
-								type="radio"
-								id="Smooth"
-								name="scrollBehavior"
-								value="smooth"
-								v-model="scrollBehavior"
-							/>
-							smooth
-						</label>
-					</div>
-				</fieldset>
-
-				<!-- 				<label for="urlHash"
-					><input id="urlHash" type="checkbox" v-model="isHashEnabled" /> Update URL Hash</label
-				> -->
-
-				<div class="Buttons">
-					<button @click="shiftSection">Shift</button>
-					<button @click="pushSection">Push</button>
-				</div>
-			</div>
-
-			<!-- TOC -->
-			<nav>
-				<ul
-					:style="{ '--ActiveIndex': activeIndex, '--ActiveItemHeight': `${activeItemHeight}px` }"
-				>
-					<span v-if="activeIndex >= 0" class="Tracker" />
-
-					<li ref="linkRefs" v-for="item in menuItems" :key="item.href">
-						<a
-							@click="customScrollTo($event, item.href) /* setActive(item.href) */"
-							:href="`#${item.href}`"
-							:class="{
-								Active: item.href === activeId,
-							}"
-						>
-							{{ item.label }}
-						</a>
-					</li>
-				</ul>
-			</nav>
-		</aside>
+		<Header />
+		<RouterView />
 	</div>
 </template>
 
-<style>
-#TestContainer {
-	padding-top: 100px;
-	overflow: auto;
-	max-height: 90%;
-	position: relative;
-	margin-top: 120px;
-	height: 800px;
-	scroll-behavior: var(--ScrollBehavior);
-	max-width: 60%;
-	border: 2px solid #384a5d;
-	border-radius: 10px;
-}
-
-/* App */
-
-:root {
-	font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-	font-size: 16px;
-	line-height: 24px;
-	font-weight: 400;
-	color-scheme: dark;
-	color: rgba(255, 255, 255, 0.87);
-	background-color: #242424;
-	font-synthesis: none;
-	text-rendering: optimizeLegibility;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	-webkit-text-size-adjust: 100%;
-	background-color: #222831;
-}
-
-html,
-body {
-	margin: 0;
-	scroll-behavior: auto;
-}
-
-#app {
-	width: 100%;
-}
-
+<style scoped>
 .Wrapper {
 	display: flex;
 	max-width: 1280px;
@@ -216,143 +26,47 @@ body {
 	margin: auto;
 	position: relative;
 	justify-content: space-between;
+	flex-direction: column;
 }
+</style>
 
-/* Content */
-
-main {
-	/* 	max-width: 60%; */
-	padding: 0 20px;
-	margin-top: 100px;
-}
-
-h1 {
-	/* 	margin: -100px 0 0 0;
-	padding: 130px 0 30px 0; */
-	padding: 30px 0;
-}
-
-p {
-	margin: 0 0 60px 0;
-}
-
-/* Sidebar */
-
-aside {
-	border-left: 1px solid #384a5d;
-	min-width: 200px;
-	align-self: flex-start;
-	position: sticky;
-	top: 0;
-	padding: 10px;
+<style>
+:root {
+	font-family: Inter, Helvetica, Arial, sans-serif;
+	font-size: 100%;
+	line-height: 24px;
+	font-weight: 400;
+	color: rgba(255, 255, 255, 0.87);
+	background-color: #242424;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+	background-color: var(--BackgroundColor);
+	--SidebarWidth: 200px;
+	--BorderColor: #384a5d;
+	--BackgroundColor: #222831;
 }
 
 @media (max-width: 610px) {
-	aside {
-		min-width: unset;
-	}
+	--SidebarWidth: 180px;
 }
 
-/* Demo Controls */
-
-.Controls {
-	display: flex;
-	flex-direction: column;
-	gap: 20px;
-	margin-bottom: 20px;
+* {
+	box-sizing: border-box;
 }
 
-.Buttons {
-	display: flex;
-	column-gap: 10px;
-	row-gap: 20px;
+html {
+	scroll-behavior: var(--ScrollBehavior);
 }
 
-legend {
-	font-weight: bold;
-	margin: 0 0 5px;
-}
-
-fieldset {
-	padding: 0;
-	border: none;
-	margin: 0;
-	padding-block: 0;
-}
-
-fieldset div {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-}
-
-button {
-	padding: 0.4em 0.6em;
-	border: 1px solid #ffffff36;
-	background-color: #393e46;
-	border-radius: 5px;
-	font-weight: 600;
-	cursor: pointer;
-	transition: border 100ms ease-in-out, background-color 100ms ease-in-out;
-}
-
-button:hover {
-	border: 1px solid white;
-	background-color: #4a5463;
-}
-
-label {
-	cursor: pointer;
-	padding: 5px 0;
-	padding: 0 0 5px;
-}
-
-/* TOC */
-
-.Tracker {
-	width: calc(100% + 12px);
-	height: var(--ActiveItemHeight);
-	position: absolute;
-	left: -10px;
-	right: 10px;
-	top: calc(var(--ActiveItemHeight) * var(--ActiveIndex));
-	background-color: #00adb538;
-	transition: top 100ms;
-	border-left: 4px solid #00adb5;
-}
-
-@media (max-width: 610px) {
-	.Tracker {
-		transition: top 200ms;
-	}
-}
-
-ul {
-	position: relative;
-	list-style: none;
-	padding: 0;
+html,
+body {
 	margin: 0;
 }
 
-li {
-	display: flex;
-}
-
-a {
-	text-decoration: none;
-	transition: color 100ms;
-	white-space: nowrap;
-	transition: background-color 100ms;
-	color: rgba(255, 255, 255, 0.646);
-	padding: 2.5px 0;
+#app {
 	width: 100%;
-}
-
-a:hover {
-	color: white;
-}
-
-.Active {
-	color: white;
 }
 </style>

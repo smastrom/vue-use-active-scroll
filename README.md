@@ -78,7 +78,7 @@ const { isActive } = useActive(titleIds)
 
 <br />
 
-Nuxt Content automatically applies IDs to your headings. It also gives an array of TOC links that you can get by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-content/).
+Nuxt Content automatically applies IDs to your headings. It also gives an array of TOC links that you can get by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-pages/).
 
 ```js
 const { data } = await useAsyncData('about', () => queryContent('/about').findOne())

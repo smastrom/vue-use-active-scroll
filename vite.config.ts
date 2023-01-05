@@ -6,7 +6,7 @@ import terser from '@rollup/plugin-terser';
 const appConfig = {
 	root: 'demo',
 	server: {
-		open: 'index.html',
+		open: '/',
 	},
 };
 
