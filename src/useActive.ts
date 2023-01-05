@@ -155,7 +155,11 @@ export function useActive(
 
 	// Sets first target that left the top of the viewport
 	function onScrollDown() {
-		const offset = overlayHeight + rootTop.value + toBottom!;
+		// OverlayHeight is not needed if margin-top is negative
+		const isCorrected =
+			overlayHeight > 0 &&
+			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
+		const offset = isCorrected ? 0 : overlayHeight + rootTop.value + toBottom!;
 		const firstOut =
 			[...getRects(targets.value, 'top', '<', offset).keys()].at(-1) ??
 			(jumpToFirst ? iDs.value[0] : '');
