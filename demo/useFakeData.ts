@@ -11,7 +11,7 @@ export function useFakeData() {
 	const maxText = isMobile ? 100 : 320;
 
 	const sections = reactive(
-		Array.from({ length: parsedLength <= 1 ? 15 : parsedLength }, (_, index) => {
+		Array.from({ length: parsedLength <= 1 ? 10 : parsedLength }, (_, index) => {
 			return {
 				id: `title_${parsedStart + index}`,
 				title: `${parsedStart + index} `.repeat(6).toUpperCase(),

@@ -19,6 +19,11 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
+	replaceHash: true,
+	boundaryOffset: {
+		toTop: -200,
+		toBottom: 100,
+	},
 });
 
 const activeItemHeight = computed(
@@ -34,7 +39,7 @@ const onClick = computed(() => {
 		setActive(id);
 		animateScrollTo(document.getElementById(id) as HTMLElement, {
 			elementToScroll: rootId ? (document.getElementById(rootId) as HTMLElement) : window,
-			easing: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+			easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
 			minDuration: 300,
 			maxDuration: 600,
 		});
