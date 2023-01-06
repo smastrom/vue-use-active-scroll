@@ -1,4 +1,15 @@
-import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive } from 'vue';
+import {
+	ref,
+	Ref,
+	onMounted,
+	computed,
+	unref,
+	watch,
+	isRef,
+	isReactive,
+	onUpdated,
+	nextTick,
+} from 'vue';
 import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
@@ -68,7 +79,7 @@ export function useActive(
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
-		const _targets = <HTMLElement[]>[];
+		let _targets = <HTMLElement[]>[];
 
 		unref(userIds).forEach((id) => {
 			const target = document.getElementById(id);
@@ -77,11 +88,15 @@ export function useActive(
 			}
 		});
 
+		console.log(document.querySelector('.prose')?.scrollHeight);
+
 		_targets.sort((a, b) => a.offsetTop - b.offsetTop);
 		targets.value = _targets;
+
+		console.log(_targets.length, unref(userIds).length, targets.value.length);
 	}
 
-	onMounted(() => {
+	onMounted(async () => {
 		if (isHTML.value) {
 			root.value = document.documentElement;
 		} else {
@@ -92,6 +107,8 @@ export function useActive(
 			}
 		}
 
+		// Fixes Nuxt Content HMR - https://github.com/nuxt/content/issues/1799
+		await new Promise((resolve) => setTimeout(resolve));
 		setTargets();
 
 		const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
@@ -135,7 +152,7 @@ export function useActive(
 			activeId.value = iDs.value[0];
 			return true;
 		} else if (isBottomReached && jumpToLast) {
-			activeId.value = iDs.value[iDs.value.length - 1];
+			activeId.value = iDs.value.at(-1)!;
 			return true;
 		}
 	}
@@ -159,7 +176,7 @@ export function useActive(
 		const isCorrected =
 			overlayHeight > 0 &&
 			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
-		const offset = isCorrected ? 0 : overlayHeight + rootTop.value + toBottom!;
+		const offset = (isCorrected ? 0 : overlayHeight) + rootTop.value + toBottom!;
 		const firstOut =
 			[...getRects(targets.value, 'top', '<', offset).keys()].at(-1) ??
 			(jumpToFirst ? iDs.value[0] : '');
