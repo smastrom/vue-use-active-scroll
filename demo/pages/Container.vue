@@ -27,10 +27,10 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoContro
 <style scoped>
 #ScrollingContainer {
 	overflow: auto;
+	max-height: calc(100vh - 160px);
 	scroll-behavior: var(--ScrollBehavior);
 	height: 900px;
 	max-width: 600px;
-	max-height: 90%;
 	border: 2px solid var(--BorderColor);
 	border-radius: 10px;
 	padding: 0 20px;
