@@ -1,4 +1,4 @@
-import { ref, Ref, onMounted, computed, unref, watch, isRef } from 'vue';
+import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive } from 'vue';
 import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
@@ -105,7 +105,7 @@ export function useActive(
 	});
 
 	watch(
-		isRef(userIds) ? userIds : () => null,
+		isRef(userIds) || isReactive(userIds) ? userIds : () => null,
 		() => {
 			setTargets();
 		},
@@ -155,7 +155,7 @@ export function useActive(
 
 	// Sets first target that left the top of the viewport
 	function onScrollDown() {
-		// OverlayHeight is not needed if margin-top is negative
+		// OverlayHeight offset not needed if margin-top is negative
 		const isCorrected =
 			overlayHeight > 0 &&
 			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
@@ -175,9 +175,8 @@ export function useActive(
 	function onScrollUp() {
 		const offset = overlayHeight + rootTop.value + toTop!;
 		if (!jumpToFirst) {
-			// TODO: Check if this really appropriate
 			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
-			// Ignore boundaryOffsets when first target becomes inactive
+			// Exclude boundaryOffsets on first target
 			if (firstTargetTop > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
 				return (activeId.value = '');
 			}

@@ -7,7 +7,7 @@ const { menuItems, sections, /* Demo purposes => */ pushSection, shiftSection } 
 
 const targets = computed<string[]>(() => sections.map((section) => section.id));
 
-provide('TOCData', { menuItems, targets, overlayHeight: 80 }); // Injected to TOC.vue
+provide('TOCData', { menuItems, targets, overlayHeight: 60 }); // Injected to TOC.vue
 provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoRadios.vue
 </script>
 
@@ -26,7 +26,7 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoRadios
 
 <style scoped>
 main {
-	--HeaderHeight: 80px;
+	--HeaderHeight: 60px;
 	--HeadingPadding: 40px;
 	max-width: 600px;
 	margin-top: calc(var(--HeaderHeight) + var(--HeadingPadding));
