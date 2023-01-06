@@ -12,5 +12,5 @@ pnpm-debug.log*
 node_modules
 dist
 
-app
+content-app
 demo/dist
