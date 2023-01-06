@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
 				entry: '../src/useActive.ts',
 				name: 'VueUseActiveScroll',
 				fileName: 'index',
+				formats: ['es', 'cjs'],
 			},
 			rollupOptions: {
 				external: ['vue'],
