@@ -8,7 +8,7 @@ const router = createRouter({
 		{
 			path: '/',
 			name: 'Index',
-			component: () => import('./pages/Index.vue'),
+			component: () => import('./pages/Window.vue'),
 		},
 		{
 			path: '/container',

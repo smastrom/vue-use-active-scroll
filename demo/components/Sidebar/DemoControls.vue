@@ -88,6 +88,7 @@ watch(
 legend {
 	font-weight: bold;
 	margin: 0 0 5px;
+	padding: 0;
 }
 
 fieldset {
@@ -127,7 +128,6 @@ button:hover {
 
 label {
 	cursor: pointer;
-	padding: 5px 0;
-	padding: 0 0 5px;
+	padding: 0;
 }
 </style>

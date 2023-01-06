@@ -12,11 +12,12 @@ import TOC from './TOC.vue';
 
 <style scoped>
 aside {
+	min-width: 180px;
 	border-left: 1px solid var(--BorderColor);
 	width: var(--SidebarWidth);
 	align-self: flex-start;
 	position: sticky;
-	top: 80px;
+	top: 60px;
 	padding: 10px;
 }
 </style>

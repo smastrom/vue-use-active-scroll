@@ -36,7 +36,7 @@ export function useListeners({
 	}
 
 	function onScroll() {
-		// Do not update results if scrolling from click or on mount
+		// Do not update results on mount or if click
 		if (isReady.value && !isClick.value) {
 			const _prevY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 			if (!prevY) {
@@ -55,7 +55,7 @@ export function useListeners({
 		}, IDLE_TIME);
 	}
 
-	// Restart listener if attempting to scroll again just right after click
+	// Restart listener if attempting to scroll while scrolling from click
 	function reScroll() {
 		isClick.value = false;
 		restartCount.value++;

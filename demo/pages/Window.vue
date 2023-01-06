@@ -4,7 +4,6 @@ import { useFakeData } from '../useFakeData';
 import PageLayout from './_Layout.vue';
 
 const { menuItems, sections, /* Demo purposes => */ pushSection, shiftSection } = useFakeData();
-
 const targets = computed<string[]>(() => sections.map((section) => section.id));
 
 provide('TOCData', { menuItems, targets }); // Injected to TOC.vue

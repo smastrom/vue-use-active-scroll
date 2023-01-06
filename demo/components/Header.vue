@@ -25,7 +25,7 @@ const isFixedHeader = computed(() => router.currentRoute.value.name === 'FixedHe
 
 nav {
 	border-bottom: 1px solid var(--BorderColor);
-	height: 80px;
+	height: 60px;
 	padding: 0 20px;
 	display: flex;
 	align-items: center;
