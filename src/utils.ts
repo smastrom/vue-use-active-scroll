@@ -5,19 +5,23 @@ export const FIXED_BOUNDARY_OFFSET = 5;
 export const IDLE_TIME = 200;
 export const SCROLLBAR_WIDTH = 17;
 
-export function getRects(
-	targets: HTMLElement[],
-	prop: 'top' | 'bottom',
-	operator?: '>' | '<',
-	userOffset = 0
-) {
-	const offset = FIXED_BOUNDARY_OFFSET + userOffset;
+export function getRects(targets: HTMLElement[], filter: 'IN' | 'OUT' | 'ALL', userOffset = 0) {
+	const extOffset = FIXED_BOUNDARY_OFFSET + userOffset;
 	const map = new Map<string, number>();
 
 	targets.forEach((target) => {
-		const rectProp = target.getBoundingClientRect()[prop];
-		const condition =
-			operator === '>' ? rectProp >= offset : operator === '<' ? rectProp <= offset : true;
+		if (filter === 'ALL') {
+			return map.set(target.id, target.getBoundingClientRect().top);
+		}
+
+		const inView = filter === 'IN';
+		const rectProp = target.getBoundingClientRect()[inView ? 'bottom' : 'top'];
+		const scrollMargin = parseFloat(
+			getComputedStyle(target)[inView ? 'scrollMarginBottom' : 'scrollMarginTop']
+		);
+
+		const offset = extOffset + scrollMargin;
+		const condition = inView ? rectProp >= offset : rectProp <= offset;
 
 		if (condition) {
 			map.set(target.id, rectProp);
