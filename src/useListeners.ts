@@ -38,24 +38,26 @@ export function useListeners({
 	function onScroll() {
 		// Do not update results on mount or if scrolling from click
 		if (isReady.value && !isClick.value) {
-			const _prevY = isHTML.value ? window.scrollY : root.value!.scrollTop;
+			const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 			if (!prevY) {
-				prevY = _prevY;
+				prevY = nextY;
 			}
 			_onScroll(prevY);
-			prevY = _prevY;
+			prevY = nextY;
 		}
 	}
 
+	// If onmount client auto scrolls to hash, wait for scroll to finish (scroll-behavior: smooth)
 	function onReady() {
 		clearTimeout(readyTimer);
 		readyTimer = setTimeout(() => {
-			console.log('Idle');
 			isReady.value = true;
+			const rootEl = isHTML.value ? document : root.value!;
+			rootEl.removeEventListener('scroll', onReady);
 		}, IDLE_TIME);
 	}
 
-	// Restart listener if attempting to scroll while scrolling from click
+	// Restart listener if attempting to scroll while already scrolling from click
 	function reScroll() {
 		isClick.value = false;
 		restartCount.value++;
@@ -80,8 +82,10 @@ export function useListeners({
 
 		const container = isHTML.value ? document.documentElement : root.value!;
 		const rootEl = isHTML.value ? document : root.value!;
-		if (container.scrollTop > 0) {
-			rootEl.addEventListener('scroll', onReady, { once: true, passive: true });
+		const hasSmooth = getComputedStyle(container).scrollBehavior === 'smooth';
+
+		if (hasSmooth && container.scrollTop > 0) {
+			rootEl.addEventListener('scroll', onReady, { passive: true });
 		} else {
 			isReady.value = true;
 		}
@@ -93,14 +97,12 @@ export function useListeners({
 			const rootEl = isHTML.value ? document : _root;
 			if (hasAutoScrolled && rootEl) {
 				if (matchesMedia) {
-					console.log('Attaching scroll...');
 					rootEl.addEventListener('scroll', onScroll, {
 						passive: true,
 					});
 				}
 
 				onCleanup(() => {
-					console.log('Removing scroll...');
 					rootEl.removeEventListener('scroll', onScroll);
 				});
 			}
