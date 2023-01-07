@@ -97,12 +97,14 @@ export function useListeners({
 			const rootEl = isHTML.value ? document : _root;
 			if (hasAutoScrolled && rootEl) {
 				if (matchesMedia) {
+					console.log('Adding listener...');
 					rootEl.addEventListener('scroll', onScroll, {
 						passive: true,
 					});
 				}
 
 				onCleanup(() => {
+					console.log('Removing listener...');
 					rootEl.removeEventListener('scroll', onScroll);
 				});
 			}
