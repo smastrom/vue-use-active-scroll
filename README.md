@@ -2,31 +2,26 @@
 
 ### Reactive TOC/sidebar links without compromises.
 
+Vite: [Demo App]() — Nuxt Content SSR: [TOC]() - [Nested TOC]()
+
 :bulb: Requires Vue 3 or above.
 
 <br />
 
 ## Why?
 
-Highlighting sidebar links using the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) may have various drawbacks:
+The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API to detect when an element is visible in the viewport. However, it is not always the best solution for highlighting sidebar links. You may noticed that:
 
 - Scrolling speed affects accuracy
 - Last links may never be highlighted once reached the bottom
 - Clicking on some links highlights different links (or does nothing).
 - When accessing the page, the active target may not reflect the one in the the URL hash.
-- Observer configuration cannot be tweaked dynamically
 
-> If you're struggling with any of these issues, this package might help you.
-
-<br />
-
-## What is it?
-
-It is a Vue 3 composable that implements a custom scroll observer and returns **reactive data** of the current active target.
+**Vue Use Active Scroll** implements a custom scroll observer that returns reactive, accurate data of the active target.
 
 ### Features
 
-- Accurate results at any scroll speed
+- Precise results at any scroll speed
 - Customizable boundary offsets for each scroll direction
 - Automatic adaptive behavior on mount, scroll, click and resume
 - CSS scroll-behavior/click callback agnostic
@@ -36,10 +31,6 @@ It is a Vue 3 composable that implements a custom scroll observer and returns **
 
 - Mutate your elements and styles
 - Scroll to targets
-
-### Limitations
-
-Vue Use Active Scroll doesn't support horizontal scrolling.
 
 <br />
 
