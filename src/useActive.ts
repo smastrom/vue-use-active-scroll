@@ -1,15 +1,4 @@
-import {
-	ref,
-	Ref,
-	onMounted,
-	computed,
-	unref,
-	watch,
-	isRef,
-	isReactive,
-	onUpdated,
-	nextTick,
-} from 'vue';
+import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive } from 'vue';
 import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
@@ -66,7 +55,6 @@ export function useActive(
 	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
 	// Internal
-
 	const root = ref<HTMLElement | null>(null);
 	const rootTop = ref(0);
 	const targets = ref<HTMLElement[]>([]);
@@ -88,12 +76,8 @@ export function useActive(
 			}
 		});
 
-		console.log(document.querySelector('.prose')?.scrollHeight);
-
 		_targets.sort((a, b) => a.offsetTop - b.offsetTop);
 		targets.value = _targets;
-
-		console.log(_targets.length, unref(userIds).length, targets.value.length);
 	}
 
 	onMounted(async () => {
@@ -107,7 +91,7 @@ export function useActive(
 			}
 		}
 
-		// Fixes Nuxt Content HMR - https://github.com/nuxt/content/issues/1799
+		// https://github.com/nuxt/content/issues/1799
 		await new Promise((resolve) => setTimeout(resolve));
 		setTargets();
 
@@ -180,8 +164,6 @@ export function useActive(
 		const firstOut =
 			[...getRects(targets.value, 'top', '<', offset).keys()].at(-1) ??
 			(jumpToFirst ? iDs.value[0] : '');
-
-		activeId.value = firstOut;
 
 		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
 			activeId.value = firstOut;
