@@ -92,9 +92,10 @@ legend {
 }
 
 fieldset {
+	display: flex;
 	font-size: 90%;
-	padding: 0;
 	border: none;
+	padding: 0;
 	margin: 0;
 	padding-block: 0;
 }

@@ -32,6 +32,10 @@ nav {
 	background-color: var(--BackgroundColor);
 }
 
+nav.FixedHeader ~ div aside {
+	top: 60px;
+}
+
 div {
 	width: max-content;
 	display: grid;
