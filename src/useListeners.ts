@@ -1,21 +1,15 @@
 import { watch, onMounted, ref, Ref, onBeforeMount, ComputedRef } from 'vue';
-import { IDLE_TIME, isSSR, SCROLLBAR_WIDTH } from './utils';
+import { IDLE_TIME, isSSR } from './utils';
 
 type UseListenersOptions = {
 	isHTML: ComputedRef<boolean>;
 	root: Ref<HTMLElement | null>;
 	rootTop: Ref<number>;
-	onScroll: (prevY: number) => void;
+	_setActive: (prevY: number, { isCancel }?: { isCancel: boolean }) => void;
 	minWidth: number;
 };
 
-export function useListeners({
-	isHTML,
-	root,
-	rootTop,
-	onScroll: _onScroll,
-	minWidth,
-}: UseListenersOptions) {
+export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: UseListenersOptions) {
 	const isClick = ref(false);
 
 	if (isSSR) {
@@ -42,12 +36,12 @@ export function useListeners({
 			if (!prevY) {
 				prevY = nextY;
 			}
-			_onScroll(prevY);
+			_setActive(prevY);
 			prevY = nextY;
 		}
 	}
 
-	// If onmount client auto scrolls to hash, wait for scroll to finish (scroll-behavior: smooth)
+	// If onMount client auto smooth-scrolls to hash, wait for scroll to finish
 	function onReady() {
 		clearTimeout(readyTimer);
 		readyTimer = setTimeout(() => {
@@ -57,24 +51,17 @@ export function useListeners({
 		}, IDLE_TIME);
 	}
 
-	// Restart listener if attempting to scroll while already scrolling from click
+	// Restart listener if attempting to scroll again...
 	function reScroll() {
 		isClick.value = false;
 		restartCount.value++;
 	}
 
-	function onPointerDown(event: PointerEvent) {
-		switch (event.pointerType) {
-			case 'mouse':
-				const isScrollbar = event.clientX > root.value!.offsetWidth - SCROLLBAR_WIDTH;
-				if (isScrollbar) {
-					reScroll();
-				}
-				break;
-			case 'pen':
-			case 'touch':
-				return reScroll();
-		}
+	// ... And force set if canceling scroll
+	function onPointerDown() {
+		reScroll();
+		const prevY = isHTML.value ? window.scrollY : root.value!.scrollTop;
+		_setActive(prevY, { isCancel: true });
 	}
 
 	onMounted(() => {
@@ -97,14 +84,12 @@ export function useListeners({
 			const rootEl = isHTML.value ? document : _root;
 			if (hasAutoScrolled && rootEl) {
 				if (matchesMedia) {
-					console.log('Adding listener...');
 					rootEl.addEventListener('scroll', onScroll, {
 						passive: true,
 					});
 				}
 
 				onCleanup(() => {
-					console.log('Removing listener...');
 					rootEl.removeEventListener('scroll', onScroll);
 				});
 			}
@@ -118,19 +103,12 @@ export function useListeners({
 			const rootEl = isHTML.value ? document : root.value!;
 			if (hasClicked) {
 				rootEl.addEventListener('wheel', reScroll, { once: true });
-				rootEl.addEventListener(
-					'pointerdown',
-					onPointerDown as EventListenerOrEventListenerObject,
-					{ once: true }
-				);
+				rootEl.addEventListener('pointerdown', onPointerDown, { once: true });
 			}
 
 			onCleanup(() => {
 				rootEl.removeEventListener('wheel', reScroll);
-				rootEl.removeEventListener(
-					'pointerdown',
-					onPointerDown as EventListenerOrEventListenerObject
-				);
+				rootEl.removeEventListener('pointerdown', onPointerDown);
 			});
 		},
 		{ flush: 'sync' }

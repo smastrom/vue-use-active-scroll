@@ -90,30 +90,27 @@ export function useActive(
 		}
 	}
 
-	function onScroll(prevY: number) {
+	function _setActive(prevY: number, { isCancel } = { isCancel: false }) {
 		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 
 		if (nextY < prevY) {
 			onScrollUp();
 		} else {
-			onScrollDown();
+			onScrollDown({ isCancel });
 		}
 		jumpToEdges();
 	}
 
 	// Sets first target that left the top of the viewport
-	function onScrollDown() {
-		// OverlayHeight offset not needed if margin-top has been adjusted by user
-		const isTopNegative =
-			overlayHeight > 0 &&
-			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
-		const offset = (isTopNegative ? 0 : overlayHeight) + rootTop.value + toBottom!;
+	function onScrollDown({ isCancel } = { isCancel: false }) {
+		// OverlayHeight not needed as 'scroll-margin-top' should be set instead.
+		const offset = rootTop.value + toBottom!;
 
 		const firstOut =
 			[...getRects(targets.value, 'OUT', offset).keys()].at(-1) ??
 			(jumpToFirst ? ids.value[0] : '');
 
-		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
+		if (isCancel || ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
 			activeId.value = firstOut;
 		}
 	}
@@ -125,7 +122,7 @@ export function useActive(
 
 		if (!jumpToFirst && firstIn === ids.value[0]) {
 			const firstTarget = getRects(targets.value, 'ALL').values().next().value;
-			// Exclude boundaryOffsets on first target
+			// Exclude boundaryOffsets on first target when jumpToFirst is false
 			if (firstTarget > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
 				return (activeId.value = '');
 			}
@@ -177,7 +174,6 @@ export function useActive(
 	watch(
 		isRef(userIds) || isReactive(userIds) ? userIds : () => null,
 		() => {
-			console.log('Resetting targets');
 			setTargets();
 		},
 		{ flush: 'post' }
@@ -195,7 +191,7 @@ export function useActive(
 		isHTML,
 		root,
 		rootTop,
-		onScroll,
+		_setActive,
 		minWidth,
 	});
 
