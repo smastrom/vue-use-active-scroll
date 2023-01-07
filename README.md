@@ -17,7 +17,7 @@ But it may not be the one-size-fits-all solution for highlighting menu/sidebar l
 - When accessing the page, active target doesn't reflect the one in the URL hash.
 - Is tricky to customize behavior according to different interactions
 
-> Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns only one active target: **the right one**.
+> Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns the correct active target.
 
 ### Features
 
@@ -62,7 +62,7 @@ const { isActive } = useActive(targets)
 
 > :bulb: For a TOC, you most likely want to target (and scroll) the headings of your content (instead of the whole section) to ensure results coherent with users' reading flow.
 
-<details><summary><strong>Using Inject (recommended)</strong></summary>
+<details><summary><strong>Using Inject</strong></summary>
 
 <br />
 
@@ -208,8 +208,8 @@ const { isActive, setActive } = useActive(targets, {
 | boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection. Respected only when scroll is not originated from click. |
 | rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                        |
 | replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                           |
+| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. Must be paired with a [scroll-margin-top]() rule.                      |
 | minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                     |
-| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight margin]().                           |
 
 ### Return object
 
@@ -218,7 +218,7 @@ const { isActive, setActive } = useActive(targets, {
 | isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                            |
 | setActive   | `(id: string) => void`    | Function to set active targets and ensure proper behavior between scroll from wheel/touch and scroll from click. |
 | activeId    | `Ref<string>`             | Id of the active target                                                                                          |
-| activeIndex | `Ref<number>`             | Index of the active target in DOM tree order, `0` for the first target and so on.                                |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                  |
 
 <br />
 
@@ -341,6 +341,28 @@ useActive(targets, { overlayHeight: 100 })
 .target {
   scroll-margin-top: 100px; /* Add overlayHeight to scroll-margin-top */
 }
+```
+
+<br />
+
+## Vue Router scroll to hash
+
+If using Nuxt, it will automatically scroll to the URL hash on page load.
+
+If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually:
+
+```js
+const router = createRouter({
+  // ...
+  scrollBehavior(to) {
+    if (to.hash) {
+      return {
+        el: to.hash
+        // top: 100 // Eventual overlayHeight value
+      }
+    }
+  }
+})
 ```
 
 <br />

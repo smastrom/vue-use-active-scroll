@@ -26,6 +26,14 @@ const router = createRouter({
 			component: () => import('./pages/Sections.vue'),
 		},
 	],
+	scrollBehavior(to) {
+		if (to.hash) {
+			return {
+				el: to.hash,
+				top: to.name === 'FixedHeader' || to.name === 'Sections' ? 60 : 0,
+			};
+		}
+	},
 });
 
 createApp(App).use(router).mount('#app');
