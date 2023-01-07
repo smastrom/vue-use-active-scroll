@@ -59,11 +59,11 @@ export function useActive(
 	const rootTop = ref(0);
 	const targets = ref<HTMLElement[]>([]);
 	const isHTML = computed(() => rootId == null);
-	const iDs = computed(() => targets.value.map(({ id }) => id));
+	const ids = computed(() => targets.value.map(({ id }) => id));
 
 	// Returned values
 	const activeId = ref('');
-	const activeIndex = computed(() => iDs.value.indexOf(activeId.value));
+	const activeIndex = computed(() => ids.value.indexOf(activeId.value));
 
 	// Runs onMount and whenever the user array changes
 	function setTargets() {
@@ -78,6 +78,75 @@ export function useActive(
 
 		_targets.sort((a, b) => a.offsetTop - b.offsetTop);
 		targets.value = _targets;
+	}
+
+	function jumpToEdges() {
+		const { isBottomReached, isTopReached } = getEdges(root.value!);
+
+		if (isTopReached && jumpToFirst) {
+			return (activeId.value = ids.value[0]), true;
+		} else if (isBottomReached && jumpToLast) {
+			return (activeId.value = ids.value.at(-1)!), true;
+		}
+	}
+
+	function onScroll(prevY: number) {
+		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
+
+		if (nextY < prevY) {
+			onScrollUp();
+		} else {
+			onScrollDown();
+		}
+		jumpToEdges();
+	}
+
+	// Sets first target that left the top of the viewport
+	function onScrollDown() {
+		// OverlayHeight offset not needed if margin-top has been adjusted by user
+		const isTopNegative =
+			overlayHeight > 0 &&
+			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
+		const offset = (isTopNegative ? 0 : overlayHeight) + rootTop.value + toBottom!;
+
+		const firstOut =
+			[...getRects(targets.value, 'OUT', offset).keys()].at(-1) ??
+			(jumpToFirst ? ids.value[0] : '');
+
+		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
+			activeId.value = firstOut;
+		}
+	}
+
+	// Sets first target that entered the top of the viewport
+	function onScrollUp() {
+		const offset = overlayHeight + rootTop.value + toTop!;
+		const firstIn = getRects(targets.value, 'IN', offset).keys().next().value ?? '';
+
+		if (!jumpToFirst && firstIn === ids.value[0]) {
+			const firstTarget = getRects(targets.value, 'ALL').values().next().value;
+			// Exclude boundaryOffsets on first target
+			if (firstTarget > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
+				return (activeId.value = '');
+			}
+		}
+
+		if (ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value)) {
+			activeId.value = firstIn;
+		}
+	}
+
+	// Returned
+	function setActive(id: string) {
+		if (id !== activeId.value) {
+			isClick.value = true;
+			activeId.value = id;
+		}
+	}
+
+	// Returned
+	function isActive(id: string) {
+		return id === activeId.value;
 	}
 
 	onMounted(async () => {
@@ -128,78 +197,6 @@ export function useActive(
 		onScroll,
 		minWidth,
 	});
-
-	function jumpToEdges() {
-		const { isBottomReached, isTopReached } = getEdges(root.value!);
-
-		if (isTopReached && jumpToFirst) {
-			activeId.value = iDs.value[0];
-			return true;
-		} else if (isBottomReached && jumpToLast) {
-			activeId.value = iDs.value.at(-1)!;
-			return true;
-		}
-	}
-
-	function onScroll(prevY: number) {
-		const now = performance.now();
-		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
-
-		if (nextY < prevY) {
-			onScrollUp();
-		} else {
-			onScrollDown();
-		}
-		jumpToEdges();
-		console.log(`onScroll: ${performance.now() - now}ms`);
-	}
-
-	// Sets first target that left the top of the viewport
-	function onScrollDown() {
-		// OverlayHeight offset not needed if margin-top is negative
-		const isCorrected =
-			overlayHeight > 0 &&
-			targets.value.some((target) => getComputedStyle(target).marginTop.includes('-'));
-		const offset = (isCorrected ? 0 : overlayHeight) + rootTop.value + toBottom!;
-		const firstOut =
-			[...getRects(targets.value, 'top', '<', offset).keys()].at(-1) ??
-			(jumpToFirst ? iDs.value[0] : '');
-
-		if (iDs.value.indexOf(firstOut) > iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstOut;
-		}
-	}
-
-	// Sets first target that entered the top of the viewport
-	function onScrollUp() {
-		const offset = overlayHeight + rootTop.value + toTop!;
-		if (!jumpToFirst) {
-			const firstTargetTop = getRects(targets.value, 'top').values().next().value;
-			// Exclude boundaryOffsets on first target
-			if (firstTargetTop > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
-				return (activeId.value = '');
-			}
-		}
-
-		const firstIn = getRects(targets.value, 'bottom', '>', offset).keys().next().value ?? '';
-
-		if (iDs.value.indexOf(firstIn) < iDs.value.indexOf(activeId.value)) {
-			activeId.value = firstIn;
-		}
-	}
-
-	// Returned
-	function setActive(id: string) {
-		if (id !== activeId.value) {
-			isClick.value = true;
-			activeId.value = id;
-		}
-	}
-
-	// Returned
-	function isActive(id: string) {
-		return id === activeId.value;
-	}
 
 	return {
 		isActive,

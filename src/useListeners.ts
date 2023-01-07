@@ -36,7 +36,7 @@ export function useListeners({
 	}
 
 	function onScroll() {
-		// Do not update results on mount or if click
+		// Do not update results on mount or if scrolling from click
 		if (isReady.value && !isClick.value) {
 			const _prevY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 			if (!prevY) {
