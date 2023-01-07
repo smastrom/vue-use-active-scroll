@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ComputedRef, inject } from 'vue';
+import { computed, ComputedRef, inject, watch } from 'vue';
 import { useActive } from '../../../src/useActive';
 import animateScrollTo from 'animated-scroll-to';
 
@@ -19,6 +19,7 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
+	minWidth: 0,
 });
 
 const activeItemHeight = computed(
@@ -33,13 +34,15 @@ function customScroll(id: string) {
 		minDuration: 300,
 		maxDuration: 600,
 		verticalOffset: -overlayHeight || 0,
-		cancelOnUserAction: false,
+		cancelOnUserAction: true,
 	});
 }
 
-const onClick = computed(() =>
-	clickType.value === 'native' ? (id: string) => setActive(id) : customScroll
-);
+watch(activeId, (newId) => {
+	console.log('activeId', newId);
+});
+
+const onClick = computed(() => (clickType.value === 'native' ? setActive : customScroll));
 </script>
 
 <template>

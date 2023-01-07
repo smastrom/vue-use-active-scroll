@@ -36,6 +36,7 @@ main {
 h2 {
 	scroll-margin-top: var(--HeaderHeight);
 	padding: var(--HeadingPadding) 0;
+	margin: 0;
 }
 
 p {

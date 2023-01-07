@@ -93,12 +93,19 @@ export function useActive(
 	function _setActive(prevY: number, { isCancel } = { isCancel: false }) {
 		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
 
+		if (nextY === prevY) {
+			return;
+		}
+
 		if (nextY < prevY) {
 			onScrollUp();
 		} else {
 			onScrollDown({ isCancel });
 		}
-		jumpToEdges();
+
+		if (!isCancel) {
+			jumpToEdges();
+		}
 	}
 
 	// Sets first target that left the top of the viewport
@@ -110,7 +117,11 @@ export function useActive(
 			[...getRects(targets.value, 'OUT', offset).keys()].at(-1) ??
 			(jumpToFirst ? ids.value[0] : '');
 
-		if (isCancel || ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
+		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
+			return (activeId.value = firstOut);
+		}
+
+		if (isCancel) {
 			activeId.value = firstOut;
 		}
 	}
