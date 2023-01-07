@@ -9,21 +9,23 @@
 ## Why?
 
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
-But it may not be the one-size-fits-all solution for highlighting TOC menu/sidebar links. You might noticed that:
+But it may not be the one-size-fits-all solution for highlighting menu/sidebar links. You might noticed that:
 
 - Scrolling speed affects accuracy
-- Is tricky to ensure different behavior on scroll from wheel/touch and scroll from click
 - Clicking on some links highlights different targets (or does nothing).
 - Some targets never intersects once reached the bottom
 - When accessing the page, active target doesn't reflect the one in the URL hash.
+- Is tricky to customize behavior according to different interactions
 
-> Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns accurate, reactive data of the active target.
+> Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns only one active target: **the right one**.
 
 ### Features
 
 - Precise and stable at any scroll speed
 - Customizable boundary offsets for each scroll direction
-- Adaptive target detection on mount, scroll and click
+- Customizable behavior on top/bottom reached
+- Supports containers different than window
+- Adaptive behavior on mount, scroll, click, cancel.
 - CSS scroll-behavior and click callback agnostic
 
 ### What it doesn't do?
@@ -45,7 +47,7 @@ pnpm add vue-use-active-scroll
 
 ## 1. Provide target IDs
 
-In your menu/sidebar component, provide the IDs of the targets to observe to `useActive`:
+In your menu/sidebar component, provide the IDs of the targets to observe to `useActive` (order is not important):
 
 ```vue
 <script setup>
@@ -54,7 +56,7 @@ import { useActive } from 'vue-reactive-toc'
 const targets = ref(['introduction', 'quick-start', 'props', 'events'])
 // or 'reactive' or 'computed' or plain array of strings
 
-const { activeId } = useActive(targets)
+const { isActive } = useActive(targets)
 </script>
 ```
 
@@ -81,7 +83,7 @@ provide('SidebarData', {
 
 <template>
   <!-- <Content /> -->
-  <TocSidebar :targets="targets" />
+  <Sidebar :targets="targets" />
 </template>
 ```
 
@@ -92,7 +94,7 @@ provide('SidebarData', {
 import { inject } from 'vue'
 import { useActive } from 'vue-reactive-toc'
 
-const { targets } = inject('SidebarData')
+const { targets /* ...other stuff */ } = inject('SidebarData')
 
 const { isActive } = useActive(targets)
 </script>
@@ -207,7 +209,7 @@ const { isActive, setActive } = useActive(targets, {
 | rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                        |
 | replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                           |
 | minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                     |
-| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight paddings]().                         |
+| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. See also [adjusting overlayHeight margin]().                           |
 
 ### Return object
 
@@ -327,48 +329,17 @@ html {
 
 <br />
 
-## Adjusting overlayHeight targets' padding
+## Adjusting overlayHeight targets' margin
 
-You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target its top edge may actually be underneath the
-header. You must adjust the paddings and the margins of your titles to compensate the offset:
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target it may be underneath the header. You must set `scroll-margin-top` to your targets:
 
 ```js
 useActive(targets, { overlayHeight: 100 })
 ```
 
-From:
-
 ```css
-.title {
-  margin: 0;
-  padding: 30px 0;
-}
-```
-
-To:
-
-```css
-.title {
-  margin: -100px 0 0 0; // /* Subtract overlayHeight from margin-top */
-  padding: 130px 0 30px 0; /* Add overlayHeight to padding-top */
-}
-```
-
-Which is basically from:
-
-```css
-.title {
-  margin: 0;
-  padding: 0;
-}
-```
-
-to:
-
-```css
-.title {
-  margin: -100px 0 0 0;
-  padding: 100px 0 0 0;
+.target {
+  scroll-margin-top: 100px; /* Add overlayHeight to scroll-margin-top */
 }
 ```
 

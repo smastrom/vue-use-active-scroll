@@ -19,11 +19,6 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
-	/* 	replaceHash: true,
-	boundaryOffset: {
-		toTop: -200,
-		toBottom: 100,
-	}, */
 });
 
 const activeItemHeight = computed(
@@ -37,6 +32,8 @@ function customScroll(id: string) {
 		easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
 		minDuration: 300,
 		maxDuration: 600,
+		verticalOffset: -overlayHeight || 0,
+		cancelOnUserAction: false,
 	});
 }
 
@@ -98,6 +95,7 @@ li {
 a {
 	text-decoration: none;
 	transition: color 100ms;
+	user-select: none;
 	white-space: nowrap;
 	transition: background-color 100ms;
 	color: rgba(255, 255, 255, 0.646);
