@@ -40,7 +40,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 };
 
 export function useActive(
-	userIds: string[] | Ref<string[]>,
+	userIds: string[] | Ref<string[]> = ref([]),
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
@@ -177,6 +177,7 @@ export function useActive(
 	watch(
 		isRef(userIds) || isReactive(userIds) ? userIds : () => null,
 		() => {
+			console.log('Resetting targets');
 			setTargets();
 		},
 		{ flush: 'post' }

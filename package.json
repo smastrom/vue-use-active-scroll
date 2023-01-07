@@ -14,6 +14,7 @@
 		"dev": "vite",
 		"preview": "vite preview"
 	},
+	"dependencies": {},
 	"devDependencies": {
 		"@rollup/plugin-terser": "^0.2.1",
 		"@types/node": "^18.11.18",
