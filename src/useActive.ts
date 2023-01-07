@@ -81,11 +81,11 @@ export function useActive(
 	}
 
 	function jumpToEdges() {
-		const { isBottomReached, isTopReached } = getEdges(root.value!);
+		const { isBottom, isTop } = getEdges(root.value!);
 
-		if (isTopReached && jumpToFirst) {
+		if (isTop && jumpToFirst) {
 			return (activeId.value = ids.value[0]), true;
-		} else if (isBottomReached && jumpToLast) {
+		} else if (isBottom && jumpToLast) {
 			return (activeId.value = ids.value.at(-1)!), true;
 		}
 	}

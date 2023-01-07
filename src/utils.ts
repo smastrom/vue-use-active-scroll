@@ -38,7 +38,7 @@ export function getEdges(root = document.documentElement) {
 	const isOverscrollBottom = root.scrollTop > root.scrollHeight - root.clientHeight;
 
 	return {
-		isTopReached: isTopReached || isOverscrollTop,
-		isBottomReached: isBottomReached || isOverscrollBottom,
+		isTop: isTopReached || isOverscrollTop,
+		isBottom: isBottomReached || isOverscrollBottom,
 	};
 }
