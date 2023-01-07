@@ -19,32 +19,30 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
-	replaceHash: true,
+	/* 	replaceHash: true,
 	boundaryOffset: {
 		toTop: -200,
 		toBottom: 100,
-	},
+	}, */
 });
 
 const activeItemHeight = computed(
 	() => document.querySelector(`a[href="#${activeId.value}"]`)?.scrollHeight || 0
 );
 
-const onClick = computed(() => {
-	if (clickType.value === 'native') {
-		return (id: string) => setActive(id);
-	}
-	// Custom click handler using animated-scroll-to
-	return (id: string) => {
-		setActive(id);
-		animateScrollTo(document.getElementById(id) as HTMLElement, {
-			elementToScroll: rootId ? (document.getElementById(rootId) as HTMLElement) : window,
-			easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
-			minDuration: 300,
-			maxDuration: 600,
-		});
-	};
-});
+function customScroll(id: string) {
+	setActive(id);
+	animateScrollTo(document.getElementById(id) as HTMLElement, {
+		elementToScroll: rootId ? (document.getElementById(rootId) as HTMLElement) : window,
+		easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
+		minDuration: 300,
+		maxDuration: 600,
+	});
+}
+
+const onClick = computed(() =>
+	clickType.value === 'native' ? (id: string) => setActive(id) : customScroll
+);
 </script>
 
 <template>

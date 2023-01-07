@@ -21,4 +21,8 @@ aside {
 	padding: 10px;
 	height: max-content;
 }
+
+.FixedHeader ~ div aside {
+	top: 60px;
+}
 </style>
