@@ -25,6 +25,7 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoContro
 
 <style scoped>
 main {
+	margin-top: 300px;
 	max-width: 600px;
 	padding: 0 20px;
 }
