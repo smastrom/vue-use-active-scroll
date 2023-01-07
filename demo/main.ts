@@ -20,6 +20,11 @@ const router = createRouter({
 			name: 'FixedHeader',
 			component: () => import('./pages/FixedHeader.vue'),
 		},
+		{
+			path: '/sections',
+			name: 'Sections',
+			component: () => import('./pages/Sections.vue'),
+		},
 	],
 });
 

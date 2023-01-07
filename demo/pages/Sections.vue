@@ -14,11 +14,8 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoRadios
 <template>
 	<PageLayout>
 		<main>
-			<section v-for="section in sections" :key="section.id">
-				<h2 :id="section.id">
-					{{ section.title }}
-				</h2>
-				<p>{{ section.text }}</p>
+			<section v-for="section in sections" :key="section.id" :id="section.id">
+				{{ section.title }}
 			</section>
 		</main>
 	</PageLayout>
@@ -27,18 +24,36 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoRadios
 <style scoped>
 main {
 	--HeaderHeight: 60px;
-	--HeadingPadding: 40px;
-	max-width: 600px;
-	margin-top: calc(var(--HeaderHeight) + var(--HeadingPadding));
 	padding: 0 20px;
+	max-width: 600px;
+	width: 100%;
+	margin-top: var(--HeaderHeight);
 }
 
-h2 {
+section {
+	height: 600px;
+	background-color: rgb(217, 173, 255);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 140%;
+	padding: 10px;
+	color: var(--BackgroundColor);
 	scroll-margin-top: var(--HeaderHeight);
-	padding: var(--HeadingPadding) 0;
 }
 
-p {
-	margin: 0 0 60px 0;
+section:nth-child(odd) {
+	height: 400px;
+	background-color: rgb(173, 255, 252);
+}
+
+@media (max-width: 610px) {
+	section {
+		height: 400px !important;
+	}
+
+	section:nth-child(odd) {
+		height: 200px !important;
+	}
 }
 </style>

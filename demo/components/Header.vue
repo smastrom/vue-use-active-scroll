@@ -3,7 +3,11 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const isFixedHeader = computed(() => router.currentRoute.value.name === 'FixedHeader');
+const isFixedHeader = computed(
+	() =>
+		router.currentRoute.value.name === 'FixedHeader' ||
+		router.currentRoute.value.name === 'Sections'
+);
 </script>
 
 <template>
@@ -12,6 +16,7 @@ const isFixedHeader = computed(() => router.currentRoute.value.name === 'FixedHe
 			<RouterLink to="/">Window</RouterLink>
 			<RouterLink to="/container">Container</RouterLink>
 			<RouterLink to="/fixedheader">Fixed Header</RouterLink>
+			<RouterLink to="/sections">Sections</RouterLink>
 		</div>
 	</nav>
 </template>
