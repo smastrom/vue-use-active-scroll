@@ -201,15 +201,15 @@ const { isActive, setActive } = useActive(targets, {
 })
 ```
 
-| Property       | Type               | Default                   | Description                                                                                                                                                        |
-| -------------- | ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                 |
-| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom.                                                                                                  |
-| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection. Respected only when scroll is not originated from click. |
-| rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                        |
-| replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                           |
-| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area. Must be paired with a [scroll-margin-top]() rule.                      |
-| minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                     |
+| Property       | Type               | Default                   | Description                                                                                                                                                           |
+| -------------- | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                    |
+| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom.                                                                                                     |
+| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                                             |
+| rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                           |
+| replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                              |
+| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top]() rule. |
+| minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                        |
 
 ### Return object
 
@@ -238,17 +238,33 @@ const { isActive, setActive } = useActive(targets)
   <nav>
     <a
       v-for="(link, index) in links"
-      @click="setActive(link.href) /* 👈🏻 */"
-      :href="link.href"
-      :key="link.href"
+      @click="setActive(link.targetId) /* 👈🏻 */"
+      :href="`#${link.targetId}`"
+      :key="link.targetId"
     >
       {{ link.label }}
     </a>
   </nav>
 </template>
+
+<style>
+html {
+  /* or .container { */
+  scroll-behavior: smooth; /* or 'auto' */
+}
+</style>
 ```
 
 You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
+
+<details><summary><strong>RouterLink / NuxtLink</strong></summary>
+<br />
+
+Since those links don't navigate to another page, you can safely use an `a` tag with a `href` attribute and avoid to use `RouterLink` or `NuxtLink`.
+
+<br />
+
+</details>
 
 <details><summary><strong>Custom Scroll Callback</strong></summary>
 
@@ -277,11 +293,11 @@ function scrollTo(event, targetId) {
 <template>
   <!-- ... -->
   <a
-    v-for="(item, index) in links"
-    @click="scrollTo($event, item.targetId)"
-    :href="item.targetId"
-    :key="item.targetId"
-    :class="{ active: isActive(item.targetId) }"
+    v-for="(link, index) in links"
+    @click="scrollTo($event, link.targetId)"
+    :href="`#${link.targetId}`"
+    :key="link.targetId"
+    :class="{ active: isActive(link.targetId) }"
   >
     {{ link.label }}
   </a>
@@ -303,10 +319,10 @@ const { isActive } = useActive(targets)
   <nav>
     <a
       v-for="(link, index) in links"
-      @click="setActive(link.href)"
-      :href="link.href"
-      :key="link.href"
-      :class="{ active: isActive(link.href) /* 👈🏻 */ }"
+      @click="setActive(link.targetId)"
+      :href="`#${link.targetId}`"
+      :key="link.targetId"
+      :class="{ active: isActive(link.targetId) /* 👈🏻 */ }"
     >
       {{ link.label }}
     </a>
@@ -345,7 +361,7 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router
+## Vue Router onMount hash scroll
 
 If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load.
 
@@ -370,6 +386,28 @@ html {
   /* Or .container { */
   scroll-behavior: smooth; /* Or auto */
 }
+```
+
+### Containers
+
+The above rule will work if your content is scrolled by the window. If you want to scroll to a target inside a container, you must use `scrollIntoView`:
+
+```js
+const router = createRouter({
+  // ...
+  scrollBehavior(to) {
+    if (to.hash) {
+      // Content scrolled by container
+      if (to.name === 'PageNameWithContainer') {
+        return document.querySelector(to.hash).scrollIntoView()
+      }
+      // Content scrolled by window
+      return {
+        el: to.hash
+      }
+    }
+  }
+})
 ```
 
 <br />

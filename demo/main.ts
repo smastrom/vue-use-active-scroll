@@ -28,6 +28,10 @@ const router = createRouter({
 	],
 	scrollBehavior(to) {
 		if (to.hash) {
+			if (to.name === 'Container') {
+				return document.querySelector(to.hash)?.scrollIntoView();
+			}
+
 			return {
 				el: to.hash,
 				top: to.name === 'FixedHeader' || to.name === 'Sections' ? 60 : 0,

@@ -41,7 +41,6 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 	function onScroll() {
 		// Do not update results if scrolling from click
 		if (!isClick.value) {
-			console.log('onScroll');
 			const nextY = getNextY();
 			if (!prevY) {
 				prevY = nextY;
@@ -61,7 +60,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 			if (typeof prevY === 'undefined' || prevY !== nextY) {
 				frameCount = 0;
 				prevY = nextY;
-				console.log('Scrolling...');
+				// console.log('Scrolling...');
 				return requestAnimationFrame(scrollEnd);
 			}
 			// When equal, wait at least 20 frames to be sure is idle
@@ -79,7 +78,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		rafId = requestAnimationFrame(scrollEnd);
 	}
 
-	// Restore main listener "highlighting" if attempting to scroll again while scrolling from click...
+	// Restore main listener "updating" functionalities if scrolling again while scrolling from click...
 	function reScroll() {
 		isClick.value = false;
 	}
