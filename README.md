@@ -258,6 +258,7 @@ html {
 You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
 
 <details><summary><strong>RouterLink / NuxtLink</strong></summary>
+
 <br />
 
 Since those links don't navigate to another page, you can safely use an `a` tag with a `href` attribute and avoid to use `RouterLink` or `NuxtLink`.
@@ -409,6 +410,8 @@ const router = createRouter({
   }
 })
 ```
+
+> :bulb: No need to set overlayHeight if using `scrollIntoView` as the method reads the `scroll-margin-top` target property.
 
 <br />
 

@@ -1,4 +1,4 @@
-import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive } from 'vue';
+import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive, reactive } from 'vue';
 import { useListeners } from './useListeners';
 import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
 
@@ -58,7 +58,7 @@ export function useActive(
 	const root = ref<HTMLElement | null>(null);
 	const rootTop = ref(0);
 	const targets = ref<HTMLElement[]>([]);
-	const isHTML = computed(() => rootId == null);
+	const isHTML = computed(() => typeof rootId !== 'string');
 	const ids = computed(() => targets.value.map(({ id }) => id));
 
 	// Returned values
@@ -132,9 +132,8 @@ export function useActive(
 		const firstIn = getRects(targets.value, 'IN', offset).keys().next().value ?? '';
 
 		if (!jumpToFirst && firstIn === ids.value[0]) {
-			const firstTarget = getRects(targets.value, 'ALL').values().next().value;
-			// Exclude boundaryOffsets on first target when jumpToFirst is false
-			if (firstTarget > FIXED_TO_TOP_OFFSET + (offset - toTop!)) {
+			const firstTargetTop = getRects(targets.value, 'ALL').values().next().value;
+			if (firstTargetTop > FIXED_TO_TOP_OFFSET + offset) {
 				return (activeId.value = '');
 			}
 		}
