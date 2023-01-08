@@ -147,8 +147,8 @@ export function useActive(
 	// Returned
 	function setActive(id: string) {
 		if (id !== activeId.value) {
-			isClick.value = true;
 			activeId.value = id;
+			isClick.value = true;
 		}
 	}
 

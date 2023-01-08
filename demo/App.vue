@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, provide, Ref } from 'vue';
+import { ref, provide } from 'vue';
 import Header from './components/Header.vue';
 
 const scrollBehavior = ref<'smooth' | 'auto'>('smooth');

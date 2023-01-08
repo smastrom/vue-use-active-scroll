@@ -14,7 +14,7 @@ But it may not be the one-size-fits-all solution for highlighting menu/sidebar l
 - Scrolling speed affects accuracy
 - Clicking on some links highlights different targets (or does nothing).
 - Some targets never intersects once reached the bottom
-- When accessing the page, active target doesn't reflect the one in the URL hash.
+- On page load, active target doesn't match the one in the URL hash.
 - Is tricky to customize behavior according to different interactions
 
 > Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns the correct active target.
@@ -49,6 +49,8 @@ pnpm add vue-use-active-scroll
 
 In your menu/sidebar component, provide the IDs of the targets to observe to `useActive` (order is not important):
 
+> :bulb: For a TOC, you most likely want to target (and scroll) the headings of your content (instead of the whole section) to ensure results coherent with users' reading flow.
+
 ```vue
 <script setup>
 import { useActive } from 'vue-reactive-toc'
@@ -59,8 +61,6 @@ const targets = ref(['introduction', 'quick-start', 'props', 'events'])
 const { isActive } = useActive(targets)
 </script>
 ```
-
-> :bulb: For a TOC, you most likely want to target (and scroll) the headings of your content (instead of the whole section) to ensure results coherent with users' reading flow.
 
 <details><summary><strong>Using Inject</strong></summary>
 
@@ -213,12 +213,12 @@ const { isActive, setActive } = useActive(targets, {
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                      |
-| ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                            |
-| setActive   | `(id: string) => void`    | Function to set active targets and ensure proper behavior between scroll from wheel/touch and scroll from click. |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                          |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                  |
+| Name        | Type                      | Description                                                                                                                                       |
+| ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| setActive   | `(id: string) => void`    | Function to include in your click handlers in order to ensure proper behavior between any interaction which may trigger or cancel a scroll event. |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                             |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                                                           |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                                   |
 
 <br />
 
@@ -226,7 +226,7 @@ const { isActive, setActive } = useActive(targets, {
 
 ### **1.** Call `setActive` in your click handler by passing the anchor ID
 
-> :bulb: _setActive_ doesn't scroll to the target but ensures proper behavior between scroll from wheel/touch scroll and scroll from click.
+> :bulb: _setActive_ doesn't scroll to the target but ensures proper behavior between any interaction which may trigger or cancel a scroll event.
 
 ```vue
 <script setup>
@@ -345,9 +345,9 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router scroll to hash
+## Vue Router
 
-If using Nuxt, it will automatically scroll to the URL hash on page load.
+If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load.
 
 If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually:
 
@@ -363,6 +363,13 @@ const router = createRouter({
     }
   }
 })
+```
+
+```css
+html {
+  /* Or .container { */
+  scroll-behavior: smooth; /* Or auto */
+}
 ```
 
 <br />
