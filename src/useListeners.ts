@@ -1,4 +1,4 @@
-import { watch, onMounted, ref, Ref, ComputedRef, onBeforeUnmount, computed, nextTick } from 'vue';
+import { watch, onMounted, ref, Ref, ComputedRef, onBeforeUnmount, computed, customRef } from 'vue';
 import { isSSR } from './utils';
 
 type UseListenersOptions = {
@@ -9,23 +9,31 @@ type UseListenersOptions = {
 	minWidth: number;
 };
 
+const ONCE = { once: true };
+
 export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: UseListenersOptions) {
-	const isClick = ref(false);
+	const isClick = customRef<boolean>((track, trigger) => {
+		let value = false;
+		return {
+			get() {
+				track();
+				return value;
+			},
+			set(newValue) {
+				value = matchMedia.value ? newValue : false;
+				trigger();
+			},
+		};
+	});
 
 	if (isSSR) {
 		return isClick;
 	}
 
 	const media = `(min-width: ${minWidth}px)`;
-
 	const matchMedia = ref(window.matchMedia(media).matches);
 	const isIdle = ref(false);
-
-	const clickY = computed(() => {
-		if (isClick.value) {
-			return getNextY();
-		}
-	});
+	const clickY = computed(() => (isClick.value ? getNextY() : 0));
 
 	let prevY: number;
 
@@ -33,37 +41,20 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		return isHTML.value ? window.scrollY : root.value!.scrollTop;
 	}
 
-	function onResize() {
-		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
-		matchMedia.value = window.matchMedia(media).matches;
-	}
-
-	function onScroll() {
-		// Do not update results if scrolling from click
-		if (!isClick.value) {
-			const nextY = getNextY();
-			if (!prevY) {
-				prevY = nextY;
-			}
-			_setActive(prevY);
-			prevY = nextY;
-		}
-	}
-
 	function setReady() {
-		let prevY: number;
+		let rafPrevY: number;
 		let rafId: DOMHighResTimeStamp;
 		let frameCount = 0;
 
 		function scrollEnd() {
-			const nextY = getNextY();
-			if (typeof prevY === 'undefined' || prevY !== nextY) {
+			const rafNextY = getNextY();
+			if (typeof rafPrevY === 'undefined' || rafPrevY !== rafNextY) {
 				frameCount = 0;
-				prevY = nextY;
+				rafPrevY = rafNextY;
 				// console.log('Scrolling...');
 				return requestAnimationFrame(scrollEnd);
 			}
-			// When equal, wait at least 20 frames to be sure is idle
+			// When equal, wait for 20 frames to be sure is idle
 			frameCount++;
 			if (frameCount === 20) {
 				isIdle.value = true;
@@ -78,6 +69,23 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		rafId = requestAnimationFrame(scrollEnd);
 	}
 
+	function onResize() {
+		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
+		matchMedia.value = window.matchMedia(media).matches;
+	}
+
+	function onScroll() {
+		// Do not "update" results if scrolling from click
+		if (!isClick.value) {
+			const nextY = getNextY();
+			if (!prevY) {
+				prevY = nextY;
+			}
+			_setActive(prevY);
+			prevY = nextY;
+		}
+	}
+
 	// Restore main listener "updating" functionalities if scrolling again while scrolling from click...
 	function reScroll() {
 		isClick.value = false;
@@ -90,10 +98,10 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 	}
 
 	function onPointerDown(event: PointerEvent) {
-		reScroll();
-		const { tagName } = event.target as HTMLElement;
-		const isLink = tagName === 'A' || tagName === 'BUTTON';
-		if (!isLink) {
+		const isLink = (event.target as HTMLElement).tagName === 'A';
+		const hasLink = (event.target as HTMLElement).closest('a');
+		if (!isLink && !hasLink) {
+			reScroll();
 			// ...and force set if canceling scroll
 			_setActive(clickY.value!, { isCancel: true });
 		}
@@ -101,8 +109,12 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 	onMounted(() => {
 		window.addEventListener('resize', onResize, { passive: true });
-		// Wait for any eventual scroll to hash triggered by browser to end
-		setReady();
+		if (matchMedia.value) {
+			// Wait for any eventual scroll to hash triggered by browser to end
+			setReady();
+		} else {
+			isIdle.value = true;
+		}
 	});
 
 	onBeforeUnmount(() => {
@@ -111,21 +123,18 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 	watch(
 		[isIdle, matchMedia, root],
-		([isIdle, matchMedia, root], [], onCleanup) => {
+		([_isIdle, _matchMedia, root], [], onCleanup) => {
 			const rootEl = isHTML.value ? document : root;
-			if (isIdle && rootEl) {
-				if (matchMedia) {
-					console.log('Adding main listener...');
-					rootEl.addEventListener('scroll', onScroll, {
-						passive: true,
-					});
-				}
+
+			if (_isIdle && rootEl && _matchMedia) {
+				console.log('Adding main listener...');
+				rootEl.addEventListener('scroll', onScroll, {
+					passive: true,
+				});
 
 				onCleanup(() => {
-					if (matchMedia) {
-						console.log('Removing main listener...');
-						rootEl.removeEventListener('scroll', onScroll);
-					}
+					console.log('Removing main listener...');
+					rootEl.removeEventListener('scroll', onScroll);
 				});
 			}
 		},
@@ -134,23 +143,19 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 	watch(
 		isClick,
-		(isClick, _, onCleanup) => {
+		(_isClick, _, onCleanup) => {
 			const rootEl = isHTML.value ? document : root.value!;
 
-			if (isClick) {
+			if (_isClick) {
 				console.log('Adding additional listeners...');
-				rootEl.addEventListener('scroll', setReady, { once: true });
-				rootEl.addEventListener('wheel', reScroll, { once: true });
-				rootEl.addEventListener('keydown', onSpaceBar as EventListener, {
-					once: true,
-				});
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, {
-					once: true,
-				});
+				rootEl.addEventListener('scroll', setReady, ONCE);
+				rootEl.addEventListener('wheel', reScroll, ONCE);
+				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
+				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, ONCE);
 			}
 
 			onCleanup(() => {
-				if (isClick) {
+				if (_isClick) {
 					console.log('Removing additional listeners...');
 					rootEl.removeEventListener('scroll', setReady);
 					rootEl.removeEventListener('wheel', reScroll);

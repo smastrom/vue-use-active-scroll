@@ -19,7 +19,12 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
-	minWidth: 0,
+	minWidth: 610,
+	jumpToFirst: false,
+	jumpToLast: false,
+	boundaryOffset: {
+		toTop: 100,
+	},
 });
 
 const activeItemHeight = computed(
