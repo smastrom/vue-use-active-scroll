@@ -28,12 +28,10 @@ export function getRects(targets: HTMLElement[], filter: 'IN' | 'OUT' | 'ALL', u
 }
 
 export function getEdges(root = document.documentElement) {
-	let scrollTop = root.scrollTop;
-
-	const isTopReached = scrollTop <= FIXED_TO_TOP_OFFSET;
-	const isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - scrollTop) < 1;
-	const isOverscrollTop = scrollTop < 0;
-	const isOverscrollBottom = scrollTop > root.scrollHeight - root.clientHeight;
+	const isTopReached = root.scrollTop <= FIXED_TO_TOP_OFFSET;
+	const isBottomReached = Math.abs(root.scrollHeight - root.clientHeight - root.scrollTop) < 1;
+	const isOverscrollTop = root.scrollTop < 0;
+	const isOverscrollBottom = root.scrollTop > root.scrollHeight - root.clientHeight;
 
 	return {
 		isTop: isTopReached || isOverscrollTop,

@@ -1,4 +1,4 @@
-import { watch, onMounted, ref, Ref, ComputedRef, onBeforeUnmount, computed } from 'vue';
+import { watch, onMounted, ref, Ref, ComputedRef, onBeforeUnmount, computed, nextTick } from 'vue';
 import { isSSR } from './utils';
 
 type UseListenersOptions = {
@@ -51,7 +51,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		}
 	}
 
-	function onIdle() {
+	function setReady() {
 		let prevY: number;
 		let rafId: DOMHighResTimeStamp;
 		let frameCount = 0;
@@ -102,8 +102,8 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 	onMounted(() => {
 		window.addEventListener('resize', onResize, { passive: true });
-		// Wait for any eventual scroll to hash triggered by browser to be ended
-		onIdle();
+		// Wait for any eventual scroll to hash triggered by browser to end
+		setReady();
 	});
 
 	onBeforeUnmount(() => {
@@ -112,10 +112,10 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 	watch(
 		[isIdle, matchMedia, root],
-		([isIdle, matchesMedia, _root], [], onCleanup) => {
-			const rootEl = isHTML.value ? document : _root;
+		([isIdle, matchMedia, root], [], onCleanup) => {
+			const rootEl = isHTML.value ? document : root;
 			if (isIdle && rootEl) {
-				if (matchesMedia) {
+				if (matchMedia) {
 					console.log('Adding main listener...');
 					rootEl.addEventListener('scroll', onScroll, {
 						passive: true,
@@ -123,7 +123,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 				}
 
 				onCleanup(() => {
-					if (matchesMedia) {
+					if (matchMedia) {
 						console.log('Removing main listener...');
 						rootEl.removeEventListener('scroll', onScroll);
 					}
@@ -140,9 +140,11 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 
 			if (isClick) {
 				console.log('Adding additional listeners...');
-				rootEl.addEventListener('scroll', onIdle, { once: true, passive: true });
-				rootEl.addEventListener('keydown', onSpaceBar as EventListener, { once: true });
+				rootEl.addEventListener('scroll', setReady, { once: true });
 				rootEl.addEventListener('wheel', reScroll, { once: true });
+				rootEl.addEventListener('keydown', onSpaceBar as EventListener, {
+					once: true,
+				});
 				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, {
 					once: true,
 				});
@@ -151,9 +153,9 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 			onCleanup(() => {
 				if (isClick) {
 					console.log('Removing additional listeners...');
-					rootEl.removeEventListener('scroll', onIdle);
-					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
+					rootEl.removeEventListener('scroll', setReady);
 					rootEl.removeEventListener('wheel', reScroll);
+					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
 					rootEl.removeEventListener('pointerdown', onPointerDown as EventListener);
 				}
 			});
