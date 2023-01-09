@@ -205,11 +205,11 @@ const { isActive, setActive } = useActive(targets, {
 | -------------- | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                    |
 | jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom.                                                                                                     |
-| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" targets detection.                                                             |
+| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                              |
 | rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                           |
 | replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                              |
 | overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top]() rule. |
-| minWidth       | `number`           | 0                         | Viewport width in px from which scroll listeners should be toggled. Useful if hiding the sidebar with `display: none` within a specific width.                        |
+| minWidth       | `number`           | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                          |
 
 ### Return object
 
@@ -342,7 +342,7 @@ html {
 </style>
 ```
 
-> :bulb: If you're playing with transitions or advanced styling rules simply use of _activeIndex_ and _activeId_.
+> :bulb: If you're playing with transitions or advanced styling rules simply leverage _activeIndex_ and _activeId_.
 
 <br />
 
@@ -411,7 +411,7 @@ const router = createRouter({
 })
 ```
 
-> :bulb: No need to set overlayHeight if using `scrollIntoView` as the method reads the `scroll-margin-top` target property.
+> :bulb: No need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
 <br />
 

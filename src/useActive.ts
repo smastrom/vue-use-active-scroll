@@ -1,6 +1,16 @@
-import { ref, Ref, onMounted, computed, unref, watch, isRef, isReactive, reactive } from 'vue';
-import { useListeners } from './useListeners';
-import { getEdges, getRects, FIXED_TO_TOP_OFFSET } from './utils';
+import {
+	ref,
+	Ref,
+	onMounted,
+	computed,
+	unref,
+	watch,
+	isRef,
+	isReactive,
+	onBeforeUnmount,
+} from 'vue';
+import { useScroll } from './useScroll';
+import { getEdges, getRects, useRestrictedRef, isSSR, FIXED_TO_TOP_OFFSET } from './utils';
 
 type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
@@ -54,15 +64,19 @@ export function useActive(
 		} = defaultOpts.boundaryOffset,
 	}: UseActiveTitleOptions = defaultOpts
 ): UseActiveTitleReturn {
+	const media = `(min-width: ${minWidth}px)`;
+
 	// Internal
 	const root = ref<HTMLElement | null>(null);
 	const rootTop = ref(0);
 	const targets = ref<HTMLElement[]>([]);
+	const matchMedia = ref(isSSR || window.matchMedia(media).matches);
+
 	const isHTML = computed(() => typeof rootId !== 'string');
 	const ids = computed(() => targets.value.map(({ id }) => id));
 
 	// Returned values
-	const activeId = ref('');
+	const activeId = useRestrictedRef(matchMedia, '');
 	const activeIndex = computed(() => ids.value.indexOf(activeId.value));
 
 	// Runs onMount and whenever the user array changes
@@ -85,7 +99,8 @@ export function useActive(
 
 		if (isTop && jumpToFirst) {
 			return (activeId.value = ids.value[0]), true;
-		} else if (isBottom && jumpToLast) {
+		}
+		if (isBottom && jumpToLast) {
 			return (activeId.value = ids.value.at(-1)!), true;
 		}
 	}
@@ -108,15 +123,16 @@ export function useActive(
 		}
 	}
 
-	// Sets first target that left the top of the viewport
+	// Sets first target that LEFT the top
 	function onScrollDown({ isCancel } = { isCancel: false }) {
-		// OverlayHeight not needed as 'scroll-margin-top' should be set instead.
+		// overlayHeight not needed as 'scroll-margin-top' is set instead
 		const offset = rootTop.value + toBottom!;
 
 		const firstOut =
 			[...getRects(targets.value, 'OUT', offset).keys()].at(-1) ??
 			(jumpToFirst ? ids.value[0] : '');
 
+		// Prevent innatural highlighting with smoothscroll/custom easings
 		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
 			return (activeId.value = firstOut);
 		}
@@ -126,7 +142,7 @@ export function useActive(
 		}
 	}
 
-	// Sets first target that entered the top of the viewport
+	// Sets first target that ENTERED the top
 	function onScrollUp() {
 		const offset = overlayHeight + rootTop.value + toTop!;
 		const firstIn = getRects(targets.value, 'IN', offset).keys().next().value ?? '';
@@ -141,6 +157,11 @@ export function useActive(
 		if (ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value)) {
 			activeId.value = firstIn;
 		}
+	}
+
+	function onResize() {
+		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
+		matchMedia.value = window.matchMedia(media).matches;
 	}
 
 	// Returned
@@ -171,23 +192,42 @@ export function useActive(
 		await new Promise((resolve) => setTimeout(resolve));
 		setTargets();
 
-		const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
-		if (hashId) {
-			return (activeId.value = hashId);
-		}
+		window.addEventListener('resize', onResize, { passive: true });
 
-		if (!jumpToEdges()) {
-			onScrollDown();
+		if (matchMedia.value) {
+			const hashId = targets.value.find(({ id }) => id === location.hash.slice(1))?.id;
+			if (hashId) {
+				return (activeId.value = hashId);
+			}
+
+			if (!jumpToEdges()) {
+				onScrollDown();
+			}
 		}
 	});
 
-	watch(
-		isRef(userIds) || isReactive(userIds) ? userIds : () => null,
-		() => {
-			setTargets();
-		},
-		{ flush: 'post' }
-	);
+	onBeforeUnmount(() => {
+		window.removeEventListener('resize', onResize);
+	});
+
+	const isClick = useScroll({
+		isHTML,
+		root,
+		matchMedia,
+		_setActive,
+	});
+
+	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
+		flush: 'post',
+	});
+
+	watch(matchMedia, (_matchMedia) => {
+		if (_matchMedia) {
+			onScrollDown();
+		} else {
+			activeId.value = '';
+		}
+	});
 
 	watch(activeId, (newId) => {
 		if (replaceHash) {
@@ -195,14 +235,6 @@ export function useActive(
 			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
 			history.replaceState(history.state, '', newHash);
 		}
-	});
-
-	const isClick = useListeners({
-		isHTML,
-		root,
-		rootTop,
-		_setActive,
-		minWidth,
 	});
 
 	return {
