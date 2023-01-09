@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, Ref, ComputedRef, computed } from 'vue';
-import { isSSR, useRestrictedRef } from './utils';
+import { isSSR, useMediaRef } from './utils';
 
 type UseListenersOptions = {
 	isHTML: ComputedRef<boolean>;
@@ -11,7 +11,7 @@ type UseListenersOptions = {
 const ONCE = { once: true };
 
 export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListenersOptions) {
-	const isClick = useRestrictedRef(matchMedia, false);
+	const isClick = useMediaRef(matchMedia, false);
 	const isReady = ref(false);
 	const clickY = computed(() => (isClick.value ? getNextY() : 0));
 
@@ -34,7 +34,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 				// console.log('Scrolling...');
 				return requestAnimationFrame(scrollEnd);
 			}
-			// When equal, wait for 20 frames after scroll and 10 after mount to be sure is idle
+			// When equal, wait for n frames after scroll to make sure is idle
 			frameCount++;
 			if (frameCount === maxFrames) {
 				isReady.value = true;
@@ -83,7 +83,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 	}
 
 	onMounted(() => {
-		if (matchMedia.value && location.hash) {
+		if (matchMedia.value && window.location.hash) {
 			// Wait for any eventual scroll to hash triggered by browser to end
 			setReady(10);
 		} else {
@@ -132,6 +132,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 				rootEl.addEventListener('scroll', resetReady, ONCE);
 				rootEl.addEventListener('wheel', reScroll, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
+				rootEl.addEventListener('touchmove', reScroll as EventListener, ONCE);
 				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, ONCE);
 			}
 
@@ -141,6 +142,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 					rootEl.removeEventListener('scroll', resetReady);
 					rootEl.removeEventListener('wheel', reScroll);
 					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
+					rootEl.removeEventListener('touchmove', reScroll as EventListener);
 					rootEl.removeEventListener('pointerdown', onPointerDown as EventListener);
 				}
 			});

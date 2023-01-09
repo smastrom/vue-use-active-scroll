@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ComputedRef, inject, watch } from 'vue';
+import { computed, ComputedRef, inject } from 'vue';
 import { useActive } from '../../../src/useActive';
 import animateScrollTo from 'animated-scroll-to';
 
@@ -19,12 +19,10 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
-	minWidth: 0,
-	/* 	jumpToFirst: false,
-	jumpToLast: false, */
-	boundaryOffset: {
-		toTop: 100,
-	},
+	/* 	boundaryOffset: {
+		toBottom: 100,
+		toTop: -100,
+	}, */
 });
 
 const activeItemHeight = computed(
@@ -100,6 +98,7 @@ a {
 	color: rgba(255, 255, 255, 0.646);
 	padding: 2.5px 0;
 	width: 100%;
+	--webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 a:hover {
