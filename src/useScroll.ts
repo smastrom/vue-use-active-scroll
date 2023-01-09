@@ -1,38 +1,18 @@
-import { watch, onMounted, ref, Ref, ComputedRef, onBeforeUnmount, computed, customRef } from 'vue';
-import { isSSR } from './utils';
+import { watch, onMounted, ref, Ref, ComputedRef, computed } from 'vue';
+import { isSSR, useRestrictedRef } from './utils';
 
 type UseListenersOptions = {
 	isHTML: ComputedRef<boolean>;
 	root: Ref<HTMLElement | null>;
-	rootTop: Ref<number>;
+	matchMedia: Ref<boolean>;
 	_setActive: (prevY: number, isCancel?: { isCancel: boolean }) => void;
-	minWidth: number;
 };
 
 const ONCE = { once: true };
 
-export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: UseListenersOptions) {
-	const isClick = customRef<boolean>((track, trigger) => {
-		let value = false;
-		return {
-			get() {
-				track();
-				return value;
-			},
-			set(newValue) {
-				value = matchMedia.value ? newValue : false;
-				trigger();
-			},
-		};
-	});
-
-	if (isSSR) {
-		return isClick;
-	}
-
-	const media = `(min-width: ${minWidth}px)`;
-	const matchMedia = ref(window.matchMedia(media).matches);
-	const isIdle = ref(false);
+export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListenersOptions) {
+	const isClick = useRestrictedRef(matchMedia, false);
+	const isReady = ref(false);
 	const clickY = computed(() => (isClick.value ? getNextY() : 0));
 
 	let prevY: number;
@@ -57,7 +37,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 			// When equal, wait for 20 frames to be sure is idle
 			frameCount++;
 			if (frameCount === 20) {
-				isIdle.value = true;
+				isReady.value = true;
 				isClick.value = false;
 				console.log('Scroll end.');
 				cancelAnimationFrame(rafId);
@@ -67,11 +47,6 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		}
 
 		rafId = requestAnimationFrame(scrollEnd);
-	}
-
-	function onResize() {
-		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
-		matchMedia.value = window.matchMedia(media).matches;
 	}
 
 	function onScroll() {
@@ -86,7 +61,7 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 		}
 	}
 
-	// Restore main listener "updating" functionalities if scrolling again while scrolling from click...
+	// Restore "updating" functionalities if scrolling again while scrolling from click...
 	function reScroll() {
 		isClick.value = false;
 	}
@@ -108,35 +83,37 @@ export function useListeners({ isHTML, root, rootTop, _setActive, minWidth }: Us
 	}
 
 	onMounted(() => {
-		window.addEventListener('resize', onResize, { passive: true });
-		if (matchMedia.value) {
+		if (matchMedia.value && location.hash) {
 			// Wait for any eventual scroll to hash triggered by browser to end
 			setReady();
 		} else {
-			isIdle.value = true;
+			isReady.value = true;
 		}
 	});
 
-	onBeforeUnmount(() => {
-		window.removeEventListener('resize', onResize);
-	});
-
 	watch(
-		[isIdle, matchMedia, root],
-		([_isIdle, _matchMedia, root], [], onCleanup) => {
-			const rootEl = isHTML.value ? document : root;
+		[isReady, matchMedia, root],
+		([_isReady, _matchMedia, _root], [], onCleanup) => {
+			if (isSSR) {
+				return;
+			}
 
-			if (_isIdle && rootEl && _matchMedia) {
+			const rootEl = isHTML.value ? document : _root;
+			const isActive = rootEl && _isReady && _matchMedia;
+
+			if (isActive) {
 				console.log('Adding main listener...');
 				rootEl.addEventListener('scroll', onScroll, {
 					passive: true,
 				});
+			}
 
-				onCleanup(() => {
+			onCleanup(() => {
+				if (isActive) {
 					console.log('Removing main listener...');
 					rootEl.removeEventListener('scroll', onScroll);
-				});
-			}
+				}
+			});
 		},
 		{ immediate: true, flush: 'sync' }
 	);

@@ -19,9 +19,9 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
-	minWidth: 610,
-	jumpToFirst: false,
-	jumpToLast: false,
+	minWidth: 0,
+	/* 	jumpToFirst: false,
+	jumpToLast: false, */
 	boundaryOffset: {
 		toTop: 100,
 	},
@@ -44,7 +44,7 @@ function customScroll(id: string) {
 }
 
 watch(activeId, (newId) => {
-	console.log('activeId', newId);
+	/* 	console.log('activeId', newId); */
 });
 
 const onClick = computed(() => (clickType.value === 'native' ? setActive : customScroll));
