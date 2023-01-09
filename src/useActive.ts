@@ -97,11 +97,11 @@ export function useActive(
 	function jumpToEdges() {
 		const { isBottom, isTop } = getEdges(root.value!);
 
-		if (isTop && jumpToFirst) {
+		if (jumpToFirst && isTop) {
 			return (activeId.value = ids.value[0]), true;
 		}
-		if (isBottom && jumpToLast) {
-			return (activeId.value = ids.value.at(-1)!), true;
+		if (jumpToLast && isBottom) {
+			return (activeId.value = ids.value[ids.value.length - 1]), true;
 		}
 	}
 
@@ -127,10 +127,8 @@ export function useActive(
 	function onScrollDown({ isCancel } = { isCancel: false }) {
 		// overlayHeight not needed as 'scroll-margin-top' is set instead
 		const offset = rootTop.value + toBottom!;
-
-		const firstOut =
-			[...getRects(targets.value, 'OUT', offset).keys()].at(-1) ??
-			(jumpToFirst ? ids.value[0] : '');
+		const outTargets = Array.from(getRects(targets.value, 'OUT', offset).keys());
+		const firstOut = outTargets[outTargets.length - 1] ?? (jumpToFirst ? ids.value[0] : '');
 
 		// Prevent innatural highlighting with smoothscroll/custom easings
 		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
@@ -162,19 +160,6 @@ export function useActive(
 	function onResize() {
 		rootTop.value = isHTML.value ? 0 : root.value!.getBoundingClientRect().top;
 		matchMedia.value = window.matchMedia(media).matches;
-	}
-
-	// Returned
-	function setActive(id: string) {
-		if (id !== activeId.value) {
-			activeId.value = id;
-			isClick.value = true;
-		}
-	}
-
-	// Returned
-	function isActive(id: string) {
-		return id === activeId.value;
 	}
 
 	onMounted(async () => {
@@ -221,6 +206,14 @@ export function useActive(
 		flush: 'post',
 	});
 
+	watch(activeId, (newId) => {
+		if (replaceHash) {
+			const start = jumpToFirst ? 0 : -1;
+			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
+			history.replaceState(history.state, '', newHash);
+		}
+	});
+
 	watch(matchMedia, (_matchMedia) => {
 		if (_matchMedia) {
 			onScrollDown();
@@ -229,13 +222,18 @@ export function useActive(
 		}
 	});
 
-	watch(activeId, (newId) => {
-		if (replaceHash) {
-			const start = jumpToFirst ? 0 : -1;
-			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
-			history.replaceState(history.state, '', newHash);
+	// Returned
+	function setActive(id: string) {
+		if (id !== activeId.value) {
+			activeId.value = id;
+			isClick.value = true;
 		}
-	});
+	}
+
+	// Returned
+	function isActive(id: string) {
+		return id === activeId.value;
+	}
 
 	return {
 		isActive,

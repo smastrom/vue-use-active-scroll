@@ -43,10 +43,6 @@ function customScroll(id: string) {
 	});
 }
 
-watch(activeId, (newId) => {
-	/* 	console.log('activeId', newId); */
-});
-
 const onClick = computed(() => (clickType.value === 'native' ? setActive : customScroll));
 </script>
 
@@ -81,12 +77,7 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 	background-color: #00adb538;
 	transition: top 100ms;
 	border-left: 4px solid #00adb5;
-}
-
-@media (max-width: 610px) {
-	.Tracker {
-		transition: top 200ms;
-	}
+	border-radius: 0px 5px 5px 0px;
 }
 
 ul {

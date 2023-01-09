@@ -42,6 +42,7 @@ div {
 	display: grid;
 	gap: 30px;
 	grid-auto-flow: column;
+	overflow: auto;
 }
 
 a {
@@ -50,6 +51,7 @@ a {
 	text-decoration: none;
 	cursor: pointer;
 	color: white;
+	white-space: nowrap;
 }
 
 a:hover,
