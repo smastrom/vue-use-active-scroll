@@ -17,7 +17,9 @@ But it may not be the one-size-fits-all solution for highlighting menu/sidebar l
 - On page load, active target doesn't match the one in the URL hash.
 - Is tricky to customize behavior according to different interactions
 
-> Vue Use Active Scroll implements a custom scroll observer that automatically deals with all these drabacks and simply returns the correct active target.
+<br />
+
+**Vue Use Active Scroll** implements a custom scroll observer that automatically deals with all these drabacks and simply returns the correct active target.
 
 ### Features
 
@@ -30,7 +32,7 @@ But it may not be the one-size-fits-all solution for highlighting menu/sidebar l
 
 ### What it doesn't do?
 
-- Mutate your elements and styles
+- Mutate elements and inject styles
 - Scroll to targets
 
 <br />
@@ -237,10 +239,10 @@ const { isActive, setActive } = useActive(targets)
 <template>
   <nav>
     <a
-      v-for="(link, index) in links"
       @click="setActive(link.targetId) /* 👈🏻 */"
-      :href="`#${link.targetId}`"
+      v-for="(link, index) in links"
       :key="link.targetId"
+      :to="`#${link.targetId}`"
     >
       {{ link.label }}
     </a>
@@ -256,16 +258,6 @@ html {
 ```
 
 You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
-
-<details><summary><strong>RouterLink / NuxtLink</strong></summary>
-
-<br />
-
-Since those links don't navigate to another page, you can safely use an `a` tag with a `href` attribute and avoid to use `RouterLink` or `NuxtLink`.
-
-<br />
-
-</details>
 
 <details><summary><strong>Custom Scroll Callback</strong></summary>
 
@@ -296,9 +288,8 @@ function scrollTo(event, targetId) {
   <a
     v-for="(link, index) in links"
     @click="scrollTo($event, link.targetId)"
-    :href="`#${link.targetId}`"
     :key="link.targetId"
-    :class="{ active: isActive(link.targetId) }"
+    :to="`#${link.targetId}`"
   >
     {{ link.label }}
   </a>
@@ -310,20 +301,24 @@ function scrollTo(event, targetId) {
 
 ### **2.** Use `isActive` to style the active link:
 
+> :bulb: If you're playing with transitions or advanced styling rules simply leverage _activeIndex_ and _activeId_.
+
 ```vue
 <script setup>
 // ...
-const { isActive } = useActive(targets)
+const { isActive, setActive } = useActive(targets)
 </script>
 
 <template>
   <nav>
     <a
-      v-for="(link, index) in links"
       @click="setActive(link.targetId)"
-      :href="`#${link.targetId}`"
+      v-for="(link, index) in links"
       :key="link.targetId"
-      :class="{ active: isActive(link.targetId) /* 👈🏻 */ }"
+      :to="`#${link.targetId}`"
+      :class="{
+        active: isActive(link.targetId) /* 👈🏻 or link.targetId === activeId */
+      }"
     >
       {{ link.label }}
     </a>
@@ -342,7 +337,44 @@ html {
 </style>
 ```
 
-> :bulb: If you're playing with transitions or advanced styling rules simply leverage _activeIndex_ and _activeId_.
+<details><summary><strong>RouterLink</strong></summary>
+
+<br />
+
+```vue
+<RouterLink
+  @click.native="setActive(link.targetId)"
+  :to="{ hash: `#${link.targetId}` }"
+  :class="{
+    active: isActive(link.targetId)
+  }"
+  :ariaCurrentValue="`${isActive(link.targetId)}`"
+  activeClass=""
+  exactActiveClass=""
+>
+  {{ link.label }}
+</RouterLink>
+```
+
+</details>
+
+<details><summary><strong>NuxtLink</strong></summary>
+
+<br />
+
+```vue
+<NuxtLink
+  @click="setActive(link.targetId)"
+  :href="`#${link.targetId}`"
+  :class="{
+    active: isActive(link.targetId)
+  }"
+>
+  {{ link.label }}
+</NuxtLink>
+```
+
+</details>
 
 <br />
 

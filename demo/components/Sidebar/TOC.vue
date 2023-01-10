@@ -2,6 +2,7 @@
 import { computed, ComputedRef, inject } from 'vue';
 import { useActive } from '../../../src/useActive';
 import animateScrollTo from 'animated-scroll-to';
+import { routerKey, useRoute } from 'vue-router';
 
 type TOCData = {
 	menuItems: { label: string; href: string }[];
@@ -25,8 +26,10 @@ const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	}, */
 });
 
+const route = useRoute();
+
 const activeItemHeight = computed(
-	() => document.querySelector(`a[href="#${activeId.value}"]`)?.scrollHeight || 0
+	() => document.querySelector(`a[href="${route.path}#${activeId.value}"]`)?.scrollHeight || 0
 );
 
 function customScroll(id: string) {
@@ -50,15 +53,18 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 			<span v-if="activeIndex >= 0" class="Tracker" />
 
 			<li v-for="item in menuItems" :key="item.href">
-				<a
-					@click="onClick(item.href)"
-					:href="`#${item.href}`"
+				<RouterLink
+					@click.native="onClick(item.href)"
+					:ariaCurrentValue="`${isActive(item.href)}`"
+					:to="{ hash: `#${item.href}` }"
 					:class="{
 						Active: isActive(item.href),
 					}"
+					activeClass=""
+					exactActiveClass=""
 				>
 					{{ item.label }}
-				</a>
+				</RouterLink>
 			</li>
 		</ul>
 	</nav>
@@ -101,8 +107,10 @@ a {
 	--webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-a:hover {
-	color: white;
+@media (hover: hover) {
+	a:hover {
+		color: white;
+	}
 }
 
 .Active {
