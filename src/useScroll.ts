@@ -83,7 +83,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 	}
 
 	onMounted(() => {
-		if (matchMedia.value && window.location.hash) {
+		if (matchMedia.value && location.hash) {
 			// Wait for any eventual scroll to hash triggered by browser to end
 			setReady(10);
 		} else {

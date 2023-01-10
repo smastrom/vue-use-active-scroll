@@ -11,13 +11,11 @@ export function useFakeData() {
 	const maxText = isMobile ? 100 : 320;
 
 	const sections = reactive(
-		Array.from({ length: parsedLength <= 1 ? 10 : parsedLength }, (_, index) => {
-			return {
-				id: `title_${parsedStart + index}`,
-				title: `${parsedStart + index} `.repeat(6).toUpperCase(),
-				text: 'Text '.repeat(getInt(minText, maxText)),
-			};
-		})
+		Array.from({ length: parsedLength <= 1 ? 10 : parsedLength }, (_, index) => ({
+			id: `title_${parsedStart + index}`,
+			title: `${parsedStart + index} `.repeat(6).toUpperCase(),
+			text: 'Text '.repeat(getInt(minText, maxText)),
+		}))
 	);
 
 	const lastNum = computed(() => parseInt(sections[sections.length - 1].title));

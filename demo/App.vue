@@ -55,9 +55,6 @@ provide('DemoRadios', {
 
 * {
 	box-sizing: border-box;
-}
-
-html {
 	scroll-behavior: var(--ScrollBehavior);
 }
 

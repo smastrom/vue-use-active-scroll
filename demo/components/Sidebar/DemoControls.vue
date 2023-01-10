@@ -122,6 +122,10 @@ button {
 	transition: border 100ms ease-in-out, background-color 100ms ease-in-out;
 }
 
+input {
+	margin: 0;
+}
+
 button:hover {
 	border: 1px solid white;
 	background-color: #4a5463;
@@ -129,6 +133,9 @@ button:hover {
 
 label {
 	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 5px;
 	padding: 0;
 }
 </style>
