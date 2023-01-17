@@ -9,26 +9,22 @@
 ## Why?
 
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
-But it may not be the one-size-fits-all solution for highlighting menu/sidebar links. You might noticed that:
+But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-- Scrolling speed affects accuracy
-- Clicking on some links highlights different targets (or does nothing).
-- Some targets never intersects once reached the bottom
-- On page load, active target doesn't match the one in the URL hash.
-- Is tricky to customize behavior according to different interactions
+You may noticed that clicking on some links highlights the wrong one (or does nothing) and that the active link may not reflect the one in the URL hash. But most important, you noticed that's tricky to obtain different behaviors according to different scroll interactions.
 
-<br />
+For example, you want to immediately highlight targets when scroll is originated from click but not when scroll is originated from wheel/touch.
 
-**Vue Use Active Scroll** implements a custom scroll observer that automatically deals with all these drabacks and simply returns the correct active target.
+**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to different interactions and always returns the "correct" active target.
 
 ### Features
 
-- Precise and stable at any scroll speed
-- Customizable boundary offsets for each scroll direction
+- Precise and stable at any speed
+- CSS scroll-behavior and callback agnostic
+- Adaptive behavior on mount, scroll, click, cancel.
+- Customizable boundary offsets for each direction
 - Customizable behavior on top/bottom reached
 - Supports containers different than window
-- Adaptive behavior on mount, scroll, click, cancel.
-- CSS scroll-behavior and click callback agnostic
 
 ### What it doesn't do?
 
@@ -49,108 +45,56 @@ pnpm add vue-use-active-scroll
 
 ## 1. Provide target IDs
 
-In your menu/sidebar component, provide the IDs of the targets to observe to `useActive` (order is not important):
+Assuming your content looks like:
 
-> :bulb: For a TOC, you most likely want to target (and scroll) the headings of your content (instead of the whole section) to ensure results coherent with users' reading flow.
-
-```vue
-<script setup>
-import { useActive } from 'vue-reactive-toc'
-
-const targets = ref(['introduction', 'quick-start', 'props', 'events'])
-// or 'reactive' or 'computed' or plain array of strings
-
-const { isActive } = useActive(targets)
-</script>
+```html
+<h2 id="introduction">Introduction</h2>
+<p>...</p>
+<h2 id="quick-start">Quick Start</h2>
+<p>...</p>
+<h2 id="props">Props</h2>
+<p>...</p>
 ```
 
-<details><summary><strong>Using Inject</strong></summary>
+And your links look like:
 
-<br />
-
-```vue
-<!-- PageLayout.vue -->
-
-<script setup>
-impoty { ref, provide } from 'vue'
-
-const targets = ref(['introduction', 'quick-start', 'props', 'events'])
-// You most likely will compute them from your content
-
-provide('SidebarData', {
-  targets
-  // Other stuff...
-})
-</script>
-
-<template>
-  <!-- <Content /> -->
-  <Sidebar :targets="targets" />
-</template>
+```html
+<nav>
+  <a href="#introduction">Introduction</a>
+  <a href="#quick-start">Quick Start</a>
+  <a href="#props">Props</a>
+</nav>
 ```
+
+In your menu/sidebar component, provide the IDs of the targets to observe to `useActive` (order is not
+important).
 
 ```vue
 <!-- Sidebar.vue -->
 
 <script setup>
-import { inject } from 'vue'
 import { useActive } from 'vue-reactive-toc'
 
-const { targets /* ...other stuff */ } = inject('SidebarData')
+const links = ref([
+  { href: 'introduction', label: 'Introduction' },
+  { href: 'quick-start', label: 'Quick Start' },
+  { href: 'props', label: 'Props' }
+]) // Data used to render your links
+
+const targets = computed(() => links.map(({ href }) => href))
+// console.log(targets.value) => ['introduction', 'quick-start', 'props']
 
 const { isActive } = useActive(targets)
 </script>
 ```
 
-</details>
-
-<details><summary><strong>Using Props</strong></summary>
-
-<br />
-
-```vue
-<!-- PageLayout.vue -->
-
-<script setup>
-impoty { ref } from 'vue'
-
-const targets = ref(['introduction', 'quick-start', 'props', 'events'])
-// You most likely will compute them from your content
-</script>
-
-<template>
-  <!-- <Content /> -->
-  <TocSidebar :targets="targets" />
-</template>
-```
-
-```vue
-<!-- Sidebar.vue -->
-
-<script setup>
-impoty { toRef } from 'vue'
-import { useActive } from 'vue-reactive-toc'
-
-const props = defineProps({
-  targets: {
-    type: Array,
-    required: true
-  }
-})
-
-const targets = toRef(props, 'targets')
-
-const { isActive } = useActive(targets)
-</script>
-```
-
-</details>
+> :bulb: For a TOC, you want to target (and scroll) the headings of your sections (instead of the whole section) to ensure results better-aligned with users' reading flow.
 
 <details><summary><strong>Nuxt Content</strong></summary>
 
 <br />
 
-Nuxt Content automatically applies IDs to your headings. You can get the TOC links by accessing `data.body.toc.links` using [queryContent](https://content.nuxtjs.org/api/composables/query-pages/).
+Nuxt Content automatically applies IDs to your headings. You can get the TOC links by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-pages/).
 
 ```js
 const { data } = await useAsyncData('about', () => queryContent('/about').findOne())
@@ -199,14 +143,14 @@ const { isActive } = useActive(targets)
 
 ```js
 const { isActive, setActive } = useActive(targets, {
-  // Options...
+  // ...
 })
 ```
 
 | Property       | Type               | Default                   | Description                                                                                                                                                           |
 | -------------- | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                    |
-| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom.                                                                                                     |
+| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                       |
 | boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                              |
 | rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                           |
 | replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                              |
@@ -228,8 +172,6 @@ const { isActive, setActive } = useActive(targets, {
 
 ### **1.** Call `setActive` in your click handler by passing the anchor ID
 
-> :bulb: _setActive_ doesn't scroll to the target but ensures proper behavior between any interaction which may trigger or cancel a scroll event.
-
 ```vue
 <script setup>
 // ...
@@ -239,10 +181,10 @@ const { isActive, setActive } = useActive(targets)
 <template>
   <nav>
     <a
-      @click="setActive(link.targetId) /* 👈🏻 */"
+      @click="setActive(link.href) /* 👈🏻 */"
       v-for="(link, index) in links"
-      :key="link.targetId"
-      :to="`#${link.targetId}`"
+      :key="link.href"
+      :href="`#${link.href}`"
     >
       {{ link.label }}
     </a>
@@ -257,7 +199,7 @@ html {
 </style>
 ```
 
-You are totally free to create your own click handler and choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a scroll library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
+Feel free to create your own click handler and to choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
 
 <details><summary><strong>Custom Scroll Callback</strong></summary>
 
@@ -272,10 +214,10 @@ import animateScrollTo from 'animated-scroll-to'
 
 const { isActive, setActive } = useActive(targets)
 
-function scrollTo(event, targetId) {
+function scrollTo(event, id) {
   // ...
-  setActive(targetId) // 👈🏻 Include setActive
-  animateScrollTo(document.getElementById(targetId), {
+  setActive(id) // 👈🏻 Include setActive
+  animateScrollTo(document.getElementById(id), {
     easing: easeOutBack,
     minDuration: 300,
     maxDuration: 600
@@ -287,9 +229,9 @@ function scrollTo(event, targetId) {
   <!-- ... -->
   <a
     v-for="(link, index) in links"
-    @click="scrollTo($event, link.targetId)"
-    :key="link.targetId"
-    :to="`#${link.targetId}`"
+    @click="scrollTo($event, link.href)"
+    :key="link.href"
+    :href="`#${link.href}`"
   >
     {{ link.label }}
   </a>
@@ -312,12 +254,12 @@ const { isActive, setActive } = useActive(targets)
 <template>
   <nav>
     <a
-      @click="setActive(link.targetId)"
+      @click="setActive(link.href)"
       v-for="(link, index) in links"
-      :key="link.targetId"
-      :to="`#${link.targetId}`"
+      :key="link.href"
+      :href="`#${link.href}`"
       :class="{
-        active: isActive(link.targetId) /* 👈🏻 or link.targetId === activeId */
+        active: isActive(link.href) /* 👈🏻 or link.href === activeId */
       }"
     >
       {{ link.label }}
@@ -343,12 +285,12 @@ html {
 
 ```vue
 <RouterLink
-  @click.native="setActive(link.targetId)"
-  :to="{ hash: `#${link.targetId}` }"
+  @click.native="setActive(link.href)"
+  :to="{ hash: `#${link.href}` }"
   :class="{
-    active: isActive(link.targetId)
+    active: isActive(link.href)
   }"
-  :ariaCurrentValue="`${isActive(link.targetId)}`"
+  :ariaCurrentValue="`${isActive(link.href)}`"
   activeClass=""
   exactActiveClass=""
 >
@@ -364,10 +306,10 @@ html {
 
 ```vue
 <NuxtLink
-  @click="setActive(link.targetId)"
-  :href="`#${link.targetId}`"
+  @click="setActive(link.href)"
+  :href="`#${link.href}`"
   :class="{
-    active: isActive(link.targetId)
+    active: isActive(link.href)
   }"
 >
   {{ link.label }}
