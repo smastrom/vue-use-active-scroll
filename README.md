@@ -11,7 +11,7 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that clicking on some links highlights the wrong one (or does nothing) and that the active link may not reflect the one in the URL hash. But most important, you noticed that's tricky to obtain different behaviors according to different scroll interactions.
+You may noticed that clicking on some links highlights the wrong one (or does nothing) or that the active link doesn't reflect the one in the URL hash. But most important, you noticed that's tricky to obtain different behaviors according to different scroll interactions.
 
 For example, you want to immediately highlight targets when scroll is originated from click but not when scroll is originated from wheel/touch.
 
