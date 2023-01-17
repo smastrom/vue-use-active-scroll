@@ -98,7 +98,7 @@ export function useActive(
 			}
 		});
 
-		_targets.sort((a, b) => a.offsetTop - b.offsetTop);
+		_targets.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
 		targets.elements = _targets;
 
 		const rootTop = getTop();
