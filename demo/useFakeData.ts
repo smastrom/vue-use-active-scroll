@@ -1,6 +1,6 @@
 import { watch, computed, reactive } from 'vue';
 
-export function useFakeData() {
+export function useFakeData(length = 10) {
 	const parsedStart = parseInt(sessionStorage.getItem('firstNumber') || '0');
 	const parsedEnd = parseInt(sessionStorage.getItem('lastNumber') || '0');
 	const parsedLength = parsedEnd - parsedStart + 1;
@@ -11,7 +11,7 @@ export function useFakeData() {
 	const maxText = isMobile ? 100 : 320;
 
 	const sections = reactive(
-		Array.from({ length: parsedLength <= 1 ? 10 : parsedLength }, (_, index) => ({
+		Array.from({ length: parsedLength <= 1 ? length : parsedLength }, (_, index) => ({
 			id: `title_${parsedStart + index}`,
 			title: `${parsedStart + index} `.repeat(6).toUpperCase(),
 			text: 'Text '.repeat(getInt(minText, maxText)),
