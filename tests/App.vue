@@ -5,12 +5,15 @@ import { useActive } from '../src/useActive';
 
 const props = defineProps<{
 	targetsLength: number;
+	jumpToLast: boolean;
 }>();
 
 const { sections, menuItems } = useFakeData(props.targetsLength);
 
 const targets = computed(() => sections.map(({ id }) => id));
-const { setActive, isActive } = useActive(targets);
+const { setActive, isActive } = useActive(targets, {
+	jumpToLast: props.jumpToLast,
+});
 </script>
 
 <template>

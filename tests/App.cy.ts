@@ -1,30 +1,45 @@
 // @ts-ignore
 import App from './App.vue';
-import { getInt, getRandomSequence } from '../cypress/support/component';
+import { getIntRange, getRandomSequence } from '../cypress/support/component';
 
-it('Should give priority to URL hash on mount', () => {
-	const targetsLength = 30;
+it('Should jump to last target', () => {
+	const targetsLength = 20;
 
 	cy.mount(App, {
 		props: {
+			jumpToLast: true,
 			targetsLength,
 		},
 	});
 
-	const randomIndex = getInt(targetsLength);
+	cy.scrollTo('bottom');
+	cy.wait(2000);
 
 	cy.get('a')
-		.eq(randomIndex)
-		.click()
-		.should('have.class', 'active')
-		.invoke('attr', 'href')
-		.then((href) => {
-			cy.hash().should('eq', href);
-		});
+		.eq(targetsLength - 1)
+		.should('have.class', 'active');
 });
 
-it.only('Should set active clicked links without scroll interferences', () => {
-	const targetsLength = 30;
+it('Should not jump to last target', () => {
+	const targetsLength = 20;
+
+	cy.mount(App, {
+		props: {
+			jumpToLast: false,
+			targetsLength,
+		},
+	});
+
+	cy.scrollTo('bottom');
+	cy.wait(2000);
+
+	cy.get('a')
+		.eq(targetsLength - 1)
+		.should('not.have.class', 'active');
+});
+
+it('Should set active clicked links without scroll interferences', () => {
+	const targetsLength = 20;
 
 	cy.mount(App, {
 		props: {
@@ -35,15 +50,36 @@ it.only('Should set active clicked links without scroll interferences', () => {
 	const randomIndices = getRandomSequence(targetsLength);
 
 	randomIndices.forEach((index) => {
-		cy.wait(100); // Trigger smoothscroll
 		cy.get('a').eq(index).click().should('have.class', 'active');
-		cy.wait(100);
+		cy.wait(200); // Wait for some smoothscrolling
+		cy.get('a').eq(index).should('have.class', 'active');
 	});
 });
 
-/* it('Should update targets on cancel while scrolling from click', () => {});
+it('Should update targets on cancel while scrolling from click', () => {
+	const targetsLength = 20;
 
-it('Should jump to first target', () => {});
+	cy.mount(App, {
+		props: {
+			jumpToLast: true,
+			targetsLength,
+		},
+	});
+
+	for (let i = 0; i < 10; i++) {
+		const randomIndex = getIntRange(10, 19);
+		cy.get('a').eq(randomIndex).click().should('have.class', 'active');
+
+		cy.get('.Content').trigger('pointerdown', { force: true });
+		cy.get('a').eq(randomIndex).should('not.have.class', 'active');
+
+		// Back to top
+		cy.get('a').eq(0).click();
+		cy.wait(1000);
+	}
+});
+
+/* it('Should jump to first target', () => {});
 
 it('Should jump to last target', () => {});
 
