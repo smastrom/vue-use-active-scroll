@@ -4,21 +4,23 @@ import { useFakeData } from '../demo/useFakeData';
 import { useActive } from '../src/useActive';
 
 const props = defineProps<{
-	targetsLength: number;
 	jumpToLast: boolean;
+	jumpToFirst: boolean;
+	marginTop: number;
 }>();
 
-const { sections, menuItems } = useFakeData(props.targetsLength);
+const { sections, menuItems } = useFakeData(20);
 
 const targets = computed(() => sections.map(({ id }) => id));
 const { setActive, isActive } = useActive(targets, {
 	jumpToLast: props.jumpToLast,
+	jumpToFirst: props.jumpToFirst,
 });
 </script>
 
 <template>
 	<div class="Wrapper">
-		<div class="Content">
+		<div class="Content" :style="`margin-top: ${marginTop || 0}px`">
 			<section v-for="section in sections" :key="section.id">
 				<h1 :id="section.id">{{ section.title }}</h1>
 				<p>{{ section.text }}</p>
