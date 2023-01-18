@@ -11,7 +11,7 @@ import {
 	type Ref,
 } from 'vue';
 import { useScroll } from './useScroll';
-import { getEdges, useMediaRef, isSSR, FIXED_OFFSET } from './utils';
+import { getEdges, useMediaRef, isSSR, FIXED_OFFSET, type DeepNonNullable } from './utils';
 
 type UseActiveTitleOptions = {
 	jumpToFirst?: boolean;
@@ -33,9 +33,6 @@ type UseActiveTitleReturn = {
 	activeIndex: Ref<number>;
 };
 
-// https://github.com/microsoft/TypeScript/issues/28374#issuecomment-538052842
-type DeepNonNullable<T> = { [P in keyof T]-?: NonNullable<T[P]> } & NonNullable<T>;
-
 const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
@@ -46,6 +43,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 		toTop: 0,
 		toBottom: 0,
 	},
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	rootId: null,
 };
@@ -76,7 +74,7 @@ export function useActive(
 		bottom: new Map<string, number>(),
 	});
 
-	const isHTML = computed(() => typeof rootId !== 'string');
+	const isWindow = computed(() => root.value === document.documentElement);
 	const ids = computed(() => targets.elements.map(({ id }) => id));
 
 	// Returned values
@@ -84,12 +82,15 @@ export function useActive(
 	const activeIndex = computed(() => ids.value.indexOf(activeId.value));
 
 	function getTop() {
-		return root.value!.getBoundingClientRect().top - (isHTML.value ? 0 : root.value!.scrollTop);
+		if (root.value) {
+			return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop);
+		}
+		return 0;
 	}
 
 	// Runs onMount, onResize and whenever the user array changes
 	function setTargets() {
-		let _targets = <HTMLElement[]>[];
+		const _targets = <HTMLElement[]>[];
 
 		unref(userIds).forEach((id) => {
 			const target = document.getElementById(id);
@@ -110,7 +111,7 @@ export function useActive(
 	}
 
 	function jumpToEdges() {
-		const { isBottom, isTop } = getEdges(root.value!);
+		const { isBottom, isTop } = getEdges(root.value as HTMLElement);
 
 		if (jumpToFirst && isTop) {
 			return (activeId.value = ids.value[0]), true;
@@ -121,7 +122,7 @@ export function useActive(
 	}
 
 	function _setActive(prevY: number, { isCancel } = { isCancel: false }) {
-		const nextY = isHTML.value ? window.scrollY : root.value!.scrollTop;
+		const nextY = isWindow.value ? window.scrollY : (root.value as HTMLElement).scrollTop;
 
 		if (nextY === prevY) {
 			return;
@@ -139,7 +140,7 @@ export function useActive(
 	}
 
 	function getSentinel() {
-		return isHTML.value ? getTop() : -root.value!.scrollTop;
+		return isWindow.value ? getTop() : -(root.value as HTMLElement).scrollTop;
 	}
 
 	// Sets first target that LEFT the top
@@ -147,7 +148,7 @@ export function useActive(
 		let firstOut = jumpToFirst ? ids.value[0] : '';
 
 		const sentinel = getSentinel();
-		const offset = FIXED_OFFSET + overlayHeight + toBottom!;
+		const offset = FIXED_OFFSET + overlayHeight + toBottom;
 
 		Array.from(targets.top).some(([id, top]) => {
 			if (sentinel + top < offset) {
@@ -172,7 +173,7 @@ export function useActive(
 		let firstIn = '';
 
 		const sentinel = getSentinel();
-		const offset = FIXED_OFFSET + overlayHeight + toTop!;
+		const offset = FIXED_OFFSET + overlayHeight + toTop;
 
 		Array.from(targets.bottom).some(([id, bottom]) => {
 			if (sentinel + bottom > offset) {
@@ -197,9 +198,9 @@ export function useActive(
 	}
 
 	onMounted(async () => {
-		root.value = isHTML.value
-			? document.documentElement
-			: document.getElementById(rootId as string);
+		root.value = rootId
+			? document.getElementById(rootId) ?? document.documentElement
+			: document.documentElement;
 
 		// https://github.com/nuxt/content/issues/1799
 		await new Promise((resolve) => setTimeout(resolve));
@@ -225,7 +226,7 @@ export function useActive(
 	});
 
 	const isClick = useScroll({
-		isHTML,
+		isWindow,
 		root,
 		matchMedia,
 		_setActive,

@@ -1,8 +1,8 @@
-import { watch, onMounted, ref, Ref, ComputedRef, computed } from 'vue';
+import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
 import { isSSR, useMediaRef } from './utils';
 
 type UseListenersOptions = {
-	isHTML: ComputedRef<boolean>;
+	isWindow: ComputedRef<boolean>;
 	root: Ref<HTMLElement | null>;
 	matchMedia: Ref<boolean>;
 	_setActive: (prevY: number, isCancel?: { isCancel: boolean }) => void;
@@ -10,7 +10,7 @@ type UseListenersOptions = {
 
 const ONCE = { once: true };
 
-export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListenersOptions) {
+export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListenersOptions) {
 	const isClick = useMediaRef(matchMedia, false);
 	const isReady = ref(false);
 	const clickY = computed(() => (isClick.value ? getNextY() : 0));
@@ -18,12 +18,12 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 	let prevY: number;
 
 	function getNextY() {
-		return isHTML.value ? window.scrollY : root.value!.scrollTop;
+		return isWindow.value ? window.scrollY : root.value?.scrollTop || 0;
 	}
 
 	function setReady(maxFrames: number) {
+		let rafId: DOMHighResTimeStamp | undefined = undefined;
 		let rafPrevY: number;
-		let rafId: DOMHighResTimeStamp;
 		let frameCount = 0;
 
 		function scrollEnd() {
@@ -31,7 +31,6 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 			if (typeof rafPrevY === 'undefined' || rafPrevY !== rafNextY) {
 				frameCount = 0;
 				rafPrevY = rafNextY;
-				// console.log('Scrolling...');
 				return requestAnimationFrame(scrollEnd);
 			}
 			// When equal, wait for n frames after scroll to make sure is idle
@@ -39,8 +38,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 			if (frameCount === maxFrames) {
 				isReady.value = true;
 				isClick.value = false;
-				console.log('Scroll end.');
-				cancelAnimationFrame(rafId);
+				cancelAnimationFrame(rafId as DOMHighResTimeStamp);
 			} else {
 				requestAnimationFrame(scrollEnd);
 			}
@@ -78,7 +76,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 		if (!isLink && !hasLink) {
 			reScroll();
 			// ...and force set if canceling scroll
-			_setActive(clickY.value!, { isCancel: true });
+			_setActive(clickY.value, { isCancel: true });
 		}
 	}
 
@@ -93,16 +91,15 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 
 	watch(
 		[isReady, matchMedia, root],
-		([_isReady, _matchMedia, _root], [], onCleanup) => {
+		([_isReady, _matchMedia, _root], _, onCleanup) => {
 			if (isSSR) {
 				return;
 			}
 
-			const rootEl = isHTML.value ? document : _root;
+			const rootEl = isWindow.value ? document : _root;
 			const isActive = rootEl && _isReady && _matchMedia;
 
 			if (isActive) {
-				console.log('Adding main listener...');
 				rootEl.addEventListener('scroll', onScroll, {
 					passive: true,
 				});
@@ -110,7 +107,6 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 
 			onCleanup(() => {
 				if (isActive) {
-					console.log('Removing main listener...');
 					rootEl.removeEventListener('scroll', onScroll);
 				}
 			});
@@ -125,10 +121,9 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 	watch(
 		isClick,
 		(_isClick, _, onCleanup) => {
-			const rootEl = isHTML.value ? document : root.value!;
+			const rootEl = isWindow.value ? document : root.value;
 
-			if (_isClick) {
-				console.log('Adding additional listeners...');
+			if (_isClick && rootEl) {
 				rootEl.addEventListener('scroll', resetReady, ONCE);
 				rootEl.addEventListener('wheel', reScroll, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
@@ -137,8 +132,7 @@ export function useScroll({ isHTML, root, _setActive, matchMedia }: UseListeners
 			}
 
 			onCleanup(() => {
-				if (_isClick) {
-					console.log('Removing additional listeners...');
+				if (_isClick && rootEl) {
 					rootEl.removeEventListener('scroll', resetReady);
 					rootEl.removeEventListener('wheel', reScroll);
 					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
