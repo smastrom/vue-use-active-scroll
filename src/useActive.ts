@@ -51,7 +51,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 };
 
 export function useActive(
-	userIds: string[] | Ref<string[]> = ref([]),
+	userIds: string[] | Ref<string[]>,
 	{
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
