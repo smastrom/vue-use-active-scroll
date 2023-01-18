@@ -38,3 +38,18 @@ export function getEdges(root: HTMLElement) {
 		isBottom: isBottomReached || isOverscrollBottom,
 	};
 }
+
+// https://github.com/esamattis/utils/blob/master/src/DeepRequired.ts
+type NotNull<T> = T extends null | undefined ? never : T;
+type Primitive = undefined | null | boolean | string | number;
+
+export type DeepNonNullable<T> = T extends Primitive
+	? NotNull<T>
+	: {
+			[P in keyof T]-?: T[P] extends Array<infer U>
+				? Array<DeepNonNullable<U>>
+				: T[P] extends ReadonlyArray<infer U2>
+				? DeepNonNullable<U2>
+				: DeepNonNullable<T[P]>;
+			// eslint-disable-next-line no-mixed-spaces-and-tabs
+	  };
