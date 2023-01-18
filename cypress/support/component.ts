@@ -39,6 +39,12 @@ export function getInt(max: number) {
 	return Math.floor(Math.random() * max);
 }
 
+export function getIntRange(min: number, max: number) {
+	min = Math.ceil(min);
+	max = Math.floor(max);
+	return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
 export function getRandomSequence(maxLength: number) {
 	const sequence: number[] = [];
 
