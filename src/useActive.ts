@@ -124,10 +124,6 @@ export function useActive(
 	function _setActive(prevY: number, { isCancel } = { isCancel: false }) {
 		const nextY = isWindow.value ? window.scrollY : (root.value as HTMLElement).scrollTop;
 
-		if (nextY === prevY) {
-			return;
-		}
-
 		if (nextY < prevY) {
 			onScrollUp();
 		} else {

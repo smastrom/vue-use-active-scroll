@@ -5,6 +5,8 @@ export const isSSR = typeof window === 'undefined';
 export const FIXED_TO_TOP_OFFSET = 10;
 export const FIXED_OFFSET = 5;
 
+export const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+
 // When users set refs, if no media match, set default value
 export function useMediaRef<T>(matchMedia: Ref<boolean>, defaultValue: T): Ref<T> {
 	const _customRef = customRef<T>((track, trigger) => {

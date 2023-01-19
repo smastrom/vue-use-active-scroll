@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isSSR, useMediaRef } from './utils';
+import { isChrome, isSSR, useMediaRef } from './utils';
 
 type UseListenersOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -70,14 +70,15 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 		}
 	}
 
-	function resetReady() {
+	function waitForIdle() {
 		setReady(20);
 	}
 
 	function onPointerDown(event: PointerEvent) {
 		const isLink = (event.target as HTMLElement).tagName === 'A';
 		const hasLink = (event.target as HTMLElement).closest('a');
-		if (!isLink && !hasLink) {
+
+		if (!isChrome && !isLink && !hasLink) {
 			reScroll();
 			// ...and force set if canceling scroll
 			_setActive(clickY.value, { isCancel: true });
@@ -124,19 +125,19 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 			const rootEl = isWindow.value ? document : root.value;
 
 			if (_isClick && rootEl) {
-				rootEl.addEventListener('scroll', resetReady, ONCE);
+				rootEl.addEventListener('scroll', waitForIdle, ONCE);
 				rootEl.addEventListener('wheel', reScroll, ONCE);
+				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('touchmove', reScroll as EventListener, ONCE);
 				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, ONCE);
 			}
 
 			onCleanup(() => {
 				if (_isClick && rootEl) {
-					rootEl.removeEventListener('scroll', resetReady);
+					rootEl.removeEventListener('scroll', waitForIdle);
 					rootEl.removeEventListener('wheel', reScroll);
+					rootEl.removeEventListener('touchmove', reScroll);
 					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
-					rootEl.removeEventListener('touchmove', reScroll as EventListener);
 					rootEl.removeEventListener('pointerdown', onPointerDown as EventListener);
 				}
 			});
