@@ -2,7 +2,7 @@
 	"name": "vue-use-active-scroll",
 	"version": "0.8.8",
 	"private": false,
-	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue.",
+	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue 3.",
 	"keywords": [
 		"vue",
 		"vue3",
