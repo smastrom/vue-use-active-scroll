@@ -11,7 +11,9 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that clicking on some links highlights the wrong one (or does nothing) or that the active link doesn't reflect the one in the URL hash. But most important, you noticed that's tricky to obtain different behaviors according to different scroll interactions.
+In some cases, you may noticed that last targets may never intersect and that by clicking on the correspondent links highlights the wrong ones (or does nothing). Same may happen with the URL hash, which in some cases may not reflect the actual active target.
+
+But most important, you noticed that's tricky to customize behavior according to different scroll interactions.
 
 For example, you want to immediately highlight targets when scroll is originated from click but not when scroll is originated from wheel/touch.
 
@@ -97,7 +99,9 @@ const { isActive } = useActive(targets)
 Nuxt Content automatically applies IDs to your headings. You can get the TOC links by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-pages/).
 
 ```js
-const { data } = await useAsyncData('about', () => queryContent('/about').findOne())
+const { data } = await useAsyncData('about', () =>
+  queryContent('/about').findOne()
+)
 ```
 
 ```js

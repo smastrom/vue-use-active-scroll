@@ -59,7 +59,7 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 		}
 	}
 
-	// Restore "updating" functionalities if scrolling again while scrolling from click...
+	// Restore "highlighting" if scrolling again while already scrolling from click...
 	function reScroll() {
 		isClick.value = false;
 	}
@@ -68,6 +68,10 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 		if (event.code === 'Space') {
 			reScroll();
 		}
+	}
+
+	function resetReady() {
+		setReady(20);
 	}
 
 	function onPointerDown(event: PointerEvent) {
@@ -113,10 +117,6 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 		},
 		{ immediate: true, flush: 'sync' }
 	);
-
-	function resetReady() {
-		setReady(20);
-	}
 
 	watch(
 		isClick,

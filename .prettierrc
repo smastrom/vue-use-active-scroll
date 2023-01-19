@@ -7,7 +7,7 @@
 		{
 			"files": "README.md",
 			"options": {
-				"printWidth": 100,
+				"printWidth": 80,
 				"trailingComma": "none",
 				"useTabs": false,
 				"semi": false
