@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, ComputedRef, inject } from 'vue';
-import { useActive } from '../../../src/useActive';
+import { useRoute } from 'vue-router';
 import animateScrollTo from 'animated-scroll-to';
-import { routerKey, useRoute } from 'vue-router';
+import { useActive } from '../../../src/useActive';
 
 type TOCData = {
 	menuItems: { label: string; href: string }[];
@@ -37,7 +37,6 @@ function customScroll(id: string) {
 	animateScrollTo(document.getElementById(id) as HTMLElement, {
 		elementToScroll: rootId ? (document.getElementById(rootId) as HTMLElement) : window,
 		easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
-		minDuration: 300,
 		maxDuration: 600,
 		verticalOffset: -overlayHeight || 0,
 		cancelOnUserAction: true,

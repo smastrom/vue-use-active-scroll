@@ -139,7 +139,7 @@ export function useActive(
 		return isWindow.value ? getTop() : -(root.value as HTMLElement).scrollTop;
 	}
 
-	// Sets first target that LEFT the top
+	// Sets first target top that LEFT the viewport
 	function onScrollDown({ isCancel } = { isCancel: false }) {
 		let firstOut = jumpToFirst ? ids.value[0] : '';
 
@@ -164,7 +164,7 @@ export function useActive(
 		}
 	}
 
-	// Sets first target that ENTERED the top
+	// Sets first target bottom that ENTERED the viewport
 	function onScrollUp() {
 		let firstIn = '';
 
