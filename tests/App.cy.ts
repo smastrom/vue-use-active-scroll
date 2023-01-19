@@ -92,3 +92,5 @@ it('Should update targets on cancel while scrolling from click', () => {
 		cy.wait(1000);
 	}
 });
+
+// More tests to be done

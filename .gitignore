@@ -13,3 +13,5 @@ dist
 
 content-app
 demo/dist
+*.tgz
+.eslintcache

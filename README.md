@@ -1,6 +1,6 @@
 # Vue Use Active Scroll
 
-**Examples:** Vite: [Demo App]() — Nuxt Content: [TOC]() - [Nested TOC]()
+**Examples:** Vite: [Demo App]() — Nuxt Content: [TOC](https://stackblitz.com/edit/github-tlaeiq?file=pages%2F[...slug].vue) - [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=pages%2F[...slug].vue)
 
 :bulb: Requires Vue 3 or above.
 
@@ -11,7 +11,7 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-In some cases, you may noticed that last targets may never intersect and that by clicking on the correspondent links highlights the wrong ones (or does nothing). Same may happen with the URL hash, which in some cases may not reflect the actual active target.
+In some cases, you may noticed that last targets never intersect and that by clicking on the correspondent links highlights the wrong ones (or does nothing). Same may happen with the URL hash, which in some cases may not reflect the actual active target.
 
 But most important, you noticed that's tricky to customize behavior according to different scroll interactions.
 
@@ -203,7 +203,7 @@ html {
 </style>
 ```
 
-Feel free to create your own click handler and to choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to include `setActive` in your handler.
+Feel free to create your own click handler and to choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to call `setActive` in your handler.
 
 <details><summary><strong>Custom Scroll Callback</strong></summary>
 
