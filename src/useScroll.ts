@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isChrome, isSSR, useMediaRef } from './utils';
+import { isChromium, isSSR, useMediaRef } from './utils';
 
 type UseListenersOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -78,7 +78,7 @@ export function useScroll({ isWindow, root, _setActive, matchMedia }: UseListene
 		const isLink = (event.target as HTMLElement).tagName === 'A';
 		const hasLink = (event.target as HTMLElement).closest('a');
 
-		if (!isChrome && !isLink && !hasLink) {
+		if (!isChromium && !isLink && !hasLink) {
 			reScroll();
 			// ...and force set if canceling scroll
 			_setActive(clickY.value, { isCancel: true });
