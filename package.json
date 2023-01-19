@@ -1,6 +1,6 @@
 {
 	"name": "vue-use-active-scroll",
-	"version": "0.8.8",
+	"version": "0.9.0",
 	"private": false,
 	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue 3.",
 	"keywords": [
@@ -17,6 +17,14 @@
 		"vue-toc",
 		"vue toc"
 	],
+	"homepage": "https://vue-use-active-scroll.netlify.app/",
+	"bugs": {
+		"url": "https://github.com/smastrom/vue-use-active-scroll/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/smastrom/vue-use-active-scroll.git"
+	},
 	"license": "MIT",
 	"author": {
 		"name": "Simone Mastromattei",
@@ -41,6 +49,7 @@
 		"*.{ts,vue}": "eslint --cache --fix",
 		"*.{ts,vue,md}": "prettier --write"
 	},
+	"dependencies": {},
 	"devDependencies": {
 		"@rollup/plugin-terser": "^0.3.0",
 		"@types/node": "^18.11.18",

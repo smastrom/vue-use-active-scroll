@@ -50,7 +50,9 @@ provide('DemoRadios', {
 }
 
 @media (max-width: 610px) {
-	--SidebarWidth: 180px;
+	:root {
+		--SidebarWidth: 180px;
+	}
 }
 
 * {
