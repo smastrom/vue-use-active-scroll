@@ -42,9 +42,7 @@ export function getEdges(root: HTMLElement) {
 }
 
 // https://github.com/esamattis/utils/blob/master/src/DeepRequired.ts
-type Primitive = undefined | null | boolean | string | number;
-
-export type DeepNonNullable<T> = T extends Primitive
+export type DeepNonNullable<T> = T extends undefined | null | boolean | string | number
 	? NonNullable<T>
 	: {
 			[P in keyof T]-?: T[P] extends Array<infer U>
