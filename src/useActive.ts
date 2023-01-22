@@ -13,7 +13,7 @@ import {
 import { useScroll } from './useScroll';
 import { getEdges, useMediaRef, isSSR, FIXED_OFFSET, type DeepNonNullable } from './utils';
 
-type UseActiveTitleOptions = {
+type UseActiveOptions = {
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
 	overlayHeight?: number;
@@ -26,14 +26,14 @@ type UseActiveTitleOptions = {
 	};
 };
 
-type UseActiveTitleReturn = {
+type UseActiveReturn = {
 	isActive: (id: string) => boolean;
 	setActive: (id: string) => void;
 	activeId: Ref<string>;
 	activeIndex: Ref<number>;
 };
 
-const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
+const defaultOpts: DeepNonNullable<UseActiveOptions> = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	overlayHeight: 0,
@@ -43,8 +43,7 @@ const defaultOpts: DeepNonNullable<UseActiveTitleOptions> = {
 		toTop: 0,
 		toBottom: 0,
 	},
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	// @ts-ignore
+	// @ts-ignore - Internal
 	rootId: null,
 };
 
@@ -61,9 +60,11 @@ export function useActive(
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
 		} = defaultOpts.boundaryOffset,
-	}: UseActiveTitleOptions = defaultOpts
-): UseActiveTitleReturn {
+	}: UseActiveOptions = defaultOpts
+): UseActiveReturn {
 	const media = `(min-width: ${minWidth}px)`;
+
+	// Reactivity
 
 	// Internal
 	const matchMedia = ref(isSSR || window.matchMedia(media).matches);
@@ -77,9 +78,11 @@ export function useActive(
 	const isWindow = computed(() => root.value === document.documentElement);
 	const ids = computed(() => targets.elements.map(({ id }) => id));
 
-	// Returned values
+	// Returned
 	const activeId = useMediaRef(matchMedia, '');
 	const activeIndex = computed(() => ids.value.indexOf(activeId.value));
+
+	// Functions
 
 	function getTop() {
 		if (root.value) {
@@ -110,7 +113,7 @@ export function useActive(
 		});
 	}
 
-	function jumpToEdges() {
+	function onEdgeReached() {
 		const { isBottom, isTop } = getEdges(root.value as HTMLElement);
 
 		if (jumpToFirst && isTop) {
@@ -118,20 +121,6 @@ export function useActive(
 		}
 		if (jumpToLast && isBottom) {
 			return (activeId.value = ids.value[ids.value.length - 1]), true;
-		}
-	}
-
-	function _setActive(prevY: number, { isCancel } = { isCancel: false }) {
-		const nextY = isWindow.value ? window.scrollY : (root.value as HTMLElement).scrollTop;
-
-		if (nextY < prevY) {
-			onScrollUp();
-		} else {
-			onScrollDown({ isCancel });
-		}
-
-		if (!isCancel) {
-			jumpToEdges();
 		}
 	}
 
@@ -193,6 +182,8 @@ export function useActive(
 		setTargets();
 	}
 
+	// Lifecycle
+
 	onMounted(async () => {
 		root.value = rootId
 			? document.getElementById(rootId) ?? document.documentElement
@@ -211,7 +202,7 @@ export function useActive(
 				return (activeId.value = hashId);
 			}
 
-			if (!jumpToEdges()) {
+			if (!onEdgeReached()) {
 				onScrollDown();
 			}
 		}
@@ -221,12 +212,7 @@ export function useActive(
 		window.removeEventListener('resize', onResize);
 	});
 
-	const isClick = useScroll({
-		isWindow,
-		root,
-		matchMedia,
-		_setActive,
-	});
+	// Watchers
 
 	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
 		flush: 'post',
@@ -248,22 +234,23 @@ export function useActive(
 		}
 	});
 
-	// Returned
-	function setActive(id: string) {
-		if (id !== activeId.value) {
-			activeId.value = id;
-			isClick.value = true;
-		}
-	}
+	// Composables
 
-	// Returned
-	function isActive(id: string) {
-		return id === activeId.value;
-	}
+	const setClick = useScroll({
+		isWindow,
+		root,
+		matchMedia,
+		onScrollUp,
+		onScrollDown,
+		onEdgeReached,
+	});
 
 	return {
-		isActive,
-		setActive,
+		isActive: (id) => id === activeId.value,
+		setActive: (id) => {
+			activeId.value = id;
+			setClick();
+		},
 		activeId,
 		activeIndex,
 	};

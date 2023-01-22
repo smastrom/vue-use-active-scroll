@@ -19,6 +19,12 @@
 		"curly": ["error", "all"],
 		"no-useless-return": "error",
 		"no-else-return": "error",
-		"nonblock-statement-body-position": ["error", "below"]
+		"nonblock-statement-body-position": ["error", "below"],
+		"@typescript-eslint/ban-ts-comment": [
+			"error",
+			{
+				"ts-ignore": "allow-with-description"
+			}
+		]
 	}
 }
