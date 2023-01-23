@@ -1,6 +1,6 @@
 # Vue Use Active Scroll
 
-**Examples:** Vite: [Demo App]() — Nuxt Content: [TOC](https://stackblitz.com/edit/github-tlaeiq?file=pages%2F[...slug].vue) - [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=pages%2F[...slug].vue)
+**Examples:** Vite: [Demo App]() — Nuxt Content: [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
 
 :bulb: Requires Vue 3 or above.
 
@@ -11,9 +11,9 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-In some cases, you may noticed that last targets never intersect and that by clicking on the correspondent links highlights the wrong ones (or does nothing). Same may happen with the URL hash, which in some cases may not reflect the actual active target.
+You may noticed that last targets, never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
 
-But most important, you noticed that's tricky to customize behavior according to different scroll interactions.
+But also, it's tricky to customize behavior according to different scroll interactions.
 
 For example, you want to immediately highlight targets when scroll is originated from click but not when scroll is originated from wheel/touch.
 
@@ -92,37 +92,38 @@ const { isActive } = useActive(targets)
 
 > :bulb: For a TOC, you want to target (and scroll) the headings of your sections (instead of the whole section) to ensure results better-aligned with users' reading flow.
 
-<details><summary><strong>Nuxt Content</strong></summary>
+<details><summary><strong>Nuxt Content 2</strong></summary>
 
 <br />
 
-Nuxt Content automatically applies IDs to your headings. You can get the TOC links by accessing `data.body.toc.links` via [queryContent](https://content.nuxtjs.org/api/composables/query-pages/).
+Nuxt Content automatically applies IDs to your headings. If enabled the [document-driven mode](https://content.nuxtjs.org/guide/writing/document-driven/) you can directly query the TOC in your sidebar component:
+
+```js
+const { toc } = useContent()
+```
+
+Then just compute the array of the IDs to observe (assuming max depth is 3):
+
+```js
+const targets = computed(() =>
+  toc.value.links.flatMap(({ id, children = [] }) => [
+    id,
+    ...children.map(({ id }) => id)
+  ])
+)
+
+const { setActive, isActive } = useActive(targets)
+```
+
+<details><summary><strong>Without Document-driven</strong></summary>
+
+<br />
 
 ```js
 const { data } = await useAsyncData('about', () =>
   queryContent('/about').findOne()
 )
-```
 
-```js
-// data.body.toc.links
-
-;[
-  {
-    id: 'title-1',
-    depth: 2,
-    text: 'Title 1',
-    children: [{ id: 'subtitle-1', depth: 3, text: 'Subtitle 1' }] // Nested
-  },
-  { id: 'title-2', depth: 2, text: 'Title 2' },
-  { id: 'title-3', depth: 2, text: 'Title 3' },
-  { id: 'title-4', depth: 2, text: 'Title 4' }
-]
-```
-
-You can compute a flat array of the IDs to observe by mapping `data.body.toc.links`:
-
-```js
 const targets = computed(() =>
   data.value
     ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
@@ -132,10 +133,10 @@ const targets = computed(() =>
     : []
 )
 
-// console.log(targets.value) => ['title-1', 'subtitle-1', 'title-2', 'title-3', 'title-4']
-
 const { isActive } = useActive(targets)
 ```
+
+</details>
 
 </details>
 
@@ -163,12 +164,12 @@ const { isActive, setActive } = useActive(targets, {
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                                                       |
-| ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| setActive   | `(id: string) => void`    | Function to include in your click handlers in order to ensure proper behavior between any interaction which may trigger or cancel a scroll event. |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                             |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                                                           |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                                   |
+| Name        | Type                      | Description                                                                                                                           |
+| ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| setActive   | `(id: string) => void`    | Function to include in your click handlers to ensure proper behavior between any interaction which may trigger or alter highlighting. |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                 |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                                               |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                       |
 
 <br />
 
