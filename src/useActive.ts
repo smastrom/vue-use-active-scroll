@@ -246,7 +246,7 @@ export function useActive(
 	});
 
 	watch(activeId, (newId) => {
-		if (!replaceHash) {
+		if (replaceHash) {
 			const start = jumpToFirst ? 0 : -1;
 			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
 			history.replaceState(history.state, '', newHash);
