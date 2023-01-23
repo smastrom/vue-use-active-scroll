@@ -1,4 +1,4 @@
-import { customRef, Ref } from 'vue';
+import { customRef, type Ref } from 'vue';
 
 export const isSSR = typeof window === 'undefined';
 

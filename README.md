@@ -14,11 +14,9 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that last targets may never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
+You may noticed that's tricky to customize behavior according to different interactions.
 
-But also, it's tricky to customize behavior according to different scroll interactions.
-
-For example, you want to immediately highlight targets when scroll is originated from click but not when scroll is originated from wheel/touch.
+For example, you want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You want also to highlight any clicked link even if it will never intersect.
 
 **Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to different interactions and always returns the "correct" active target.
 
@@ -26,7 +24,7 @@ For example, you want to immediately highlight targets when scroll is originated
 
 - Precise and stable at any speed
 - CSS scroll-behavior and callback agnostic
-- Adaptive behavior on mount, back/forward navigation, scroll, click, cancel.
+- Adaptive behavior on mount, back/forward hash navigation, scroll, click, cancel.
 - Customizable boundary offsets for each direction
 - Customizable behavior on top/bottom reached
 - Supports containers different than window
@@ -168,12 +166,12 @@ const { isActive, setActive } = useActive(targets, {
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                                       |
-| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior between any futher scroll/cancel interaction. |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                             |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                                           |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                   |
+| Name        | Type                      | Description                                                                                                                                   |
+| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior between any interaction that may cancel or resume scroll. |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                         |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                                                       |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                               |
 
 <br />
 
@@ -369,11 +367,13 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router scroll to hash on page mount
+## Vue Router scroll to hash on mount
 
-If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load, back/forward navigation.
+If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load or back/forward navigation.
 
-If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually:
+If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually.
+
+### Window
 
 ```js
 const router = createRouter({
@@ -389,11 +389,11 @@ const router = createRouter({
 })
 ```
 
-> :bulb: If you using native CSS scroll-behavior, [adding the rule](#define-scroll-behavior) to your CSS is enough. No need to set it again in Vue Router.
+> :bulb: There's need to define _smooth_ or _auto_ here. Adding the [CSS rule](#2-define-scroll-behavior) is enough. Same applies below.
 
-### Containers
+### Container
 
-If you want to scroll to a target inside a container, you must use `scrollIntoView`:
+To scroll to a target scrolled by a container, you must use `scrollIntoView`:
 
 ```js
 const router = createRouter({
