@@ -182,6 +182,31 @@ export function useActive(
 		setTargets();
 	}
 
+	function getHashId() {
+		return targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
+	}
+
+	function onHashChange(event: HashChangeEvent) {
+		if (matchMedia.value) {
+			if (!event.newURL.includes('#') && activeId.value) {
+				const prevY = getSentinel();
+
+				requestAnimationFrame(() => {
+					// If scrolled on its own reset activeId, if not keep current
+					const newY = getSentinel();
+					if (prevY !== newY) {
+						return (activeId.value = jumpToFirst ? ids.value[0] : '');
+					}
+				});
+			}
+
+			const hashId = getHashId();
+			if (hashId) {
+				activeId.value = hashId;
+			}
+		}
+	}
+
 	// Lifecycle
 
 	onMounted(async () => {
@@ -195,9 +220,10 @@ export function useActive(
 		setTargets();
 
 		window.addEventListener('resize', onResize, { passive: true });
+		window.addEventListener('hashchange', onHashChange);
 
 		if (matchMedia.value) {
-			const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
+			const hashId = getHashId();
 			if (hashId) {
 				return (activeId.value = hashId);
 			}
@@ -210,6 +236,7 @@ export function useActive(
 
 	onBeforeUnmount(() => {
 		window.removeEventListener('resize', onResize);
+		window.removeEventListener('hashchange', onHashChange);
 	});
 
 	// Watchers
@@ -219,7 +246,7 @@ export function useActive(
 	});
 
 	watch(activeId, (newId) => {
-		if (replaceHash) {
+		if (!replaceHash) {
 			const start = jumpToFirst ? 0 : -1;
 			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
 			history.replaceState(history.state, '', newHash);
