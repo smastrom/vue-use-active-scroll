@@ -2,7 +2,6 @@ import { customRef, Ref } from 'vue';
 
 export const isSSR = typeof window === 'undefined';
 
-export const FIXED_TO_TOP_OFFSET = 10;
 export const FIXED_OFFSET = 5;
 
 export function isFirefox() {
@@ -32,7 +31,7 @@ export function getEdges(root: HTMLElement) {
 	// Mobile devices
 	const clientHeight = root === document.documentElement ? window.innerHeight : root.clientHeight;
 
-	const isTopReached = root.scrollTop <= FIXED_TO_TOP_OFFSET;
+	const isTopReached = root.scrollTop <= FIXED_OFFSET * 2;
 	const isBottomReached = Math.abs(root.scrollHeight - clientHeight - root.scrollTop) <= 1;
 	const isOverscrollTop = root.scrollTop < 0;
 	const isOverscrollBottom = root.scrollTop > root.scrollHeight - clientHeight;

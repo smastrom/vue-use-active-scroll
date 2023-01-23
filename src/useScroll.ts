@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isFirefox, useMediaRef } from './utils';
+import { isFirefox, isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -24,10 +24,10 @@ export function useScroll({
 	const isIdle = ref(false);
 	const clickY = computed(() => (isClick.value ? getY() : 0));
 
-	let prevY = getY();
+	let prevY = isSSR ? 0 : getY();
 
 	function getY() {
-		return isWindow.value ? window.scrollY : root.value?.scrollTop || 0; // SSR safe
+		return isWindow.value ? window.scrollY : root.value?.scrollTop ?? 0;
 	}
 
 	function setIdle(maxFrames = 20) {
