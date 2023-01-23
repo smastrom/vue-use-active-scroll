@@ -1,6 +1,9 @@
+![npm](https://img.shields.io/npm/v/vue-use-active-scroll?color=46c119) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/smastrom/vue-use-active-scroll/tests.yml?branch=main&label=tests)
+![dependency-count](https://img.shields.io/badge/dependency%20count-0-success)
+
 # Vue Use Active Scroll
 
-**Examples:** Vite: [Demo App]() — Nuxt Content: [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
+**Examples:** Vite: [Demo App](https://vue-use-active-scroll.netlify.app) — Nuxt Content: [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
 
 :bulb: Requires Vue 3 or above.
 
@@ -153,15 +156,15 @@ const { isActive, setActive } = useActive(targets, {
 })
 ```
 
-| Property       | Type               | Default                   | Description                                                                                                                                                           |
-| -------------- | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                    |
-| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                       |
-| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                              |
-| rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                           |
-| replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                              |
-| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top]() rule. |
-| minWidth       | `number`           | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                          |
+| Property       | Type               | Default                   | Description                                                                                                                                                                                                       |
+| -------------- | ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                                                                |
+| jumpToLast     | `boolean`          | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
+| boundaryOffset | `BoundaryOffset`   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
+| rootId         | `string` \| `null` | null                      | Id of the scrolling element. Set it only if your content **is not scrolled** by the window.                                                                                                                       |
+| replaceHash    | `boolean`          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
+| overlayHeight  | `number`           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
+| minWidth       | `number`           | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
 
 ### Return object
 
@@ -326,7 +329,7 @@ html {
 
 <br />
 
-## Adjusting overlayHeight targets' margin
+## Setting scroll-margin-top for fixed headers
 
 You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target it may be underneath the header. You must set `scroll-margin-top` to your targets:
 
