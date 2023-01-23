@@ -20,6 +20,7 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	rootId,
 	overlayHeight,
+	replaceHash: true,
 	/* 	boundaryOffset: {
 		toBottom: 100,
 		toTop: -100,
