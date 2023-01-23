@@ -14,7 +14,7 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that last targets, may never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
+You may noticed that last targets may never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
 
 But also, it's tricky to customize behavior according to different scroll interactions.
 
@@ -26,7 +26,7 @@ For example, you want to immediately highlight targets when scroll is originated
 
 - Precise and stable at any speed
 - CSS scroll-behavior and callback agnostic
-- Adaptive behavior on mount (hash), scroll, click, cancel.
+- Adaptive behavior on mount, back/forward navigation, scroll, click, cancel.
 - Customizable boundary offsets for each direction
 - Customizable behavior on top/bottom reached
 - Supports containers different than window
@@ -179,11 +179,14 @@ const { isActive, setActive } = useActive(targets, {
 
 ## 3. Create your sidebar
 
-### **1.** Call `setActive` in your click handler by passing the anchor ID
+### **1.** Call _setActive_ in your click handler by passing the anchor ID
 
 ```vue
+<!-- Sidebar.vue -->
+
 <script setup>
 // ...
+
 const { isActive, setActive } = useActive(targets)
 </script>
 
@@ -199,18 +202,37 @@ const { isActive, setActive } = useActive(targets)
     </a>
   </nav>
 </template>
-
-<style>
-html {
-  /* or .container { */
-  scroll-behavior: smooth; /* or 'auto' */
-}
-</style>
 ```
 
-Feel free to create your own click handler and to choose the scrolling strategy: CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to) with custom easings will work. Just remember to call `setActive` in your handler.
+<br />
 
-<details><summary><strong>Custom Scroll Callback</strong></summary>
+### **2.** Define scroll behavior
+
+You're free to choose between CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
+
+#### A. Using CSS scroll-behavior
+
+- If content is scrolled by the window, add the following CSS rule to your `html` element:
+
+```css
+html {
+  scroll-behavior: smooth; /* or 'auto' */
+}
+```
+
+- If content is scrolled by a container:
+
+```css
+html {
+  scroll-behavior: auto; /* Keep it 'auto' */
+}
+
+.container {
+  scroll-behavior: smooth;
+}
+```
+
+<details><summary><strong>B. Custom Scroll Animation</strong></summary>
 
 <br />
 
@@ -250,9 +272,11 @@ function scrollTo(event, id) {
 
 </details>
 
-### **2.** Use `isActive` to style the active link:
+<br />
 
-> :bulb: If you're playing with transitions or advanced styling rules simply leverage _activeIndex_ and _activeId_.
+### **3.** Use _isActive_ or _activeId_ to style the active link:
+
+> :bulb: If you're playing with transitions simply leverage _activeIndex_.
 
 ```vue
 <script setup>
@@ -345,9 +369,9 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router onMount hash scroll
+## Vue Router scroll to hash on page mount
 
-If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load.
+If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load, back/forward navigation.
 
 If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually:
 
@@ -358,23 +382,18 @@ const router = createRouter({
     if (to.hash) {
       return {
         el: to.hash
-        // top: 100 // Eventual overlayHeight value
+        // top: 100 // Eventual fixed header (overlayHeight)
       }
     }
   }
 })
 ```
 
-```css
-html {
-  /* Or .container { */
-  scroll-behavior: smooth; /* Or auto */
-}
-```
+> :bulb: If you using native CSS scroll-behavior, [adding the rule](#define-scroll-behavior) to your CSS is enough. No need to set it again in Vue Router.
 
 ### Containers
 
-The above rule will work if your content is scrolled by the window. If you want to scroll to a target inside a container, you must use `scrollIntoView`:
+If you want to scroll to a target inside a container, you must use `scrollIntoView`:
 
 ```js
 const router = createRouter({
