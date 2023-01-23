@@ -11,7 +11,7 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that last targets, never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
+You may noticed that last targets, may never intersect if entirely visible in the viewport. Clicking on their links highlights other links or does nothing. In addition to that, the URL hash may not reflect the active link.
 
 But also, it's tricky to customize behavior according to different scroll interactions.
 
@@ -23,7 +23,7 @@ For example, you want to immediately highlight targets when scroll is originated
 
 - Precise and stable at any speed
 - CSS scroll-behavior and callback agnostic
-- Adaptive behavior on mount, scroll, click, cancel.
+- Adaptive behavior on mount (hash), scroll, click, cancel.
 - Customizable boundary offsets for each direction
 - Customizable behavior on top/bottom reached
 - Supports containers different than window
@@ -75,13 +75,14 @@ important).
 <!-- Sidebar.vue -->
 
 <script setup>
-import { useActive } from 'vue-reactive-toc'
+import { useActive } from 'vue-use-active-scroll'
 
+// Data used to render your links
 const links = ref([
   { href: 'introduction', label: 'Introduction' },
   { href: 'quick-start', label: 'Quick Start' },
   { href: 'props', label: 'Props' }
-]) // Data used to render your links
+])
 
 const targets = computed(() => links.map(({ href }) => href))
 // console.log(targets.value) => ['introduction', 'quick-start', 'props']
@@ -164,12 +165,12 @@ const { isActive, setActive } = useActive(targets, {
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                                           |
-| ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| setActive   | `(id: string) => void`    | Function to include in your click handlers to ensure proper behavior between any interaction which may trigger or alter highlighting. |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                 |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                                               |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                       |
+| Name        | Type                      | Description                                                                                                                       |
+| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior between any futher scroll/cancel interaction. |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                             |
+| activeId    | `Ref<string>`             | Id of the active target                                                                                                           |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                   |
 
 <br />
 
@@ -212,7 +213,7 @@ Feel free to create your own click handler and to choose the scrolling strategy:
 
 ```vue
 <script setup>
-import { useActive } from 'vue-active-target'
+import { useActive } from 'vue-use-active-scroll'
 import animateScrollTo from 'animated-scroll-to'
 
 // ...
