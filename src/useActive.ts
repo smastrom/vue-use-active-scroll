@@ -188,6 +188,7 @@ export function useActive(
 
 	function onHashChange(event: HashChangeEvent) {
 		if (matchMedia.value) {
+			// If hash is not in the URL
 			if (!event.newURL.includes('#') && activeId.value) {
 				const prevY = getSentinel();
 
@@ -200,6 +201,7 @@ export function useActive(
 				});
 			}
 
+			// Else set it as active
 			const hashId = getHashId();
 			if (hashId) {
 				activeId.value = hashId;
