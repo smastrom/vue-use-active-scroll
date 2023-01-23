@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isChromium, isSSR, useMediaRef } from './utils';
+import { isFirefox, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -86,9 +86,8 @@ export function useScroll({
 
 	function onPointerDown(event: PointerEvent) {
 		const isLink = (event.target as HTMLElement).tagName === 'A';
-		const hasLink = (event.target as HTMLElement).closest('a');
 
-		if (!isChromium && !isLink && !hasLink) {
+		if (!isLink && isFirefox()) {
 			reScroll();
 			// ...and force set if canceling scroll
 			setActive({ prevY: clickY.value, isCancel: true });
@@ -113,10 +112,6 @@ export function useScroll({
 	watch(
 		[isIdle, matchMedia, root],
 		([_isIdle, _matchMedia, _root], _, onCleanup) => {
-			if (isSSR) {
-				return;
-			}
-
 			const rootEl = isWindow.value ? document : _root;
 			const isActive = rootEl && _isIdle && _matchMedia;
 

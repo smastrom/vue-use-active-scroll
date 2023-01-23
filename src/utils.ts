@@ -5,7 +5,9 @@ export const isSSR = typeof window === 'undefined';
 export const FIXED_TO_TOP_OFFSET = 10;
 export const FIXED_OFFSET = 5;
 
-export const isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+export function isFirefox() {
+	return CSS.supports('-moz-appearance', 'none');
+}
 
 // When users set refs, if no media match, set default value
 export function useMediaRef<T>(matchMedia: Ref<boolean>, defaultValue: T): Ref<T> {
