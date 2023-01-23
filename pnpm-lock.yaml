@@ -7,7 +7,6 @@ specifiers:
   '@typescript-eslint/parser': ^5.48.2
   '@vitejs/plugin-vue': ^4.0.0
   animated-scroll-to: ^2.3.0
-  csstype: ^3.1.1
   cypress: ^12.3.0
   eslint: ^8.32.0
   eslint-plugin-vue: ^9.9.0
@@ -29,7 +28,6 @@ devDependencies:
   '@typescript-eslint/parser': 5.48.2_7uibuqfxkfaozanbtbziikiqje
   '@vitejs/plugin-vue': 4.0.0_vite@4.0.4+vue@3.2.45
   animated-scroll-to: 2.3.0
-  csstype: 3.1.1
   cypress: 12.3.0
   eslint: 8.32.0
   eslint-plugin-vue: 9.9.0_eslint@8.32.0
@@ -1142,10 +1140,6 @@ packages:
 
   /csstype/2.6.21:
     resolution: {integrity: sha512-Z1PhmomIfypOpoMjRQB70jfvy/wxT50qW08YXO5lMIJkrdq4yOTR+AW7FqutScmB9NkLwxo+jU+kZLbofZZq/w==}
-    dev: true
-
-  /csstype/3.1.1:
-    resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
     dev: true
 
   /cypress/12.3.0:
