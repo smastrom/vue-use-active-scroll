@@ -84,10 +84,8 @@ export function useScroll({
 		isClick.value = false;
 	}
 
-	function onPointerDown(event: PointerEvent) {
-		const isLink = (event.target as HTMLElement).tagName === 'A';
-
-		if (!isLink && isFirefox()) {
+	function onPointerDown() {
+		if (isFirefox()) {
 			reScroll();
 			// ...and force set if canceling scroll
 			setActive({ prevY: clickY.value, isCancel: true });
@@ -140,7 +138,7 @@ export function useScroll({
 				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, ONCE);
+				rootEl.addEventListener('pointerdown', onPointerDown, ONCE);
 			}
 
 			onCleanup(() => {
@@ -149,7 +147,7 @@ export function useScroll({
 					rootEl.removeEventListener('touchmove', reScroll);
 					rootEl.removeEventListener('scroll', setIdle as unknown as EventListener);
 					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
-					rootEl.removeEventListener('pointerdown', onPointerDown as EventListener);
+					rootEl.removeEventListener('pointerdown', onPointerDown);
 				}
 			});
 		},
