@@ -26,7 +26,15 @@ const router = createRouter({
 			component: () => import('./pages/Sections.vue'),
 		},
 	],
-	scrollBehavior(to) {
+	scrollBehavior(to, from) {
+		if (from.hash && !to.hash) {
+			if (to.name === 'Container' && from.name === 'Container') {
+				return document.querySelector('#ScrollingContainer')?.scroll(0, 0);
+			}
+
+			return { top: 0 };
+		}
+
 		if (to.hash) {
 			if (to.name === 'Container') {
 				return document.querySelector(to.hash)?.scrollIntoView();

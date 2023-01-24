@@ -114,6 +114,10 @@ export function useActive(
 	}
 
 	function onEdgeReached() {
+		if (!jumpToFirst && !jumpToLast) {
+			return false;
+		}
+
 		const { isBottom, isTop } = getEdges(root.value as HTMLElement);
 
 		if (jumpToFirst && isTop) {
@@ -173,7 +177,7 @@ export function useActive(
 		}
 
 		if (ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value)) {
-			activeId.value = firstIn;
+			return (activeId.value = firstIn);
 		}
 	}
 
@@ -188,17 +192,9 @@ export function useActive(
 
 	function onHashChange(event: HashChangeEvent) {
 		if (matchMedia.value) {
-			// If hash is not anymore in the URL
+			// If scrolled to top
 			if (!event.newURL.includes('#') && activeId.value) {
-				const prevY = getSentinel();
-
-				requestAnimationFrame(() => {
-					// If scrolled to top on its own, reset activeId
-					const newY = getSentinel();
-					if (prevY !== newY) {
-						return (activeId.value = jumpToFirst ? ids.value[0] : '');
-					}
-				});
+				return (activeId.value = jumpToFirst ? ids.value[0] : '');
 			}
 
 			// Else set hash as active
