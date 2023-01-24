@@ -4,10 +4,6 @@ export const isSSR = typeof window === 'undefined';
 
 export const FIXED_OFFSET = 5;
 
-export function isFirefox() {
-	return CSS.supports('-moz-appearance', 'none');
-}
-
 // When users set refs, if no media match, set default value
 export function useMediaRef<T>(matchMedia: Ref<boolean>, defaultValue: T): Ref<T> {
 	const _customRef = customRef<T>((track, trigger) => {

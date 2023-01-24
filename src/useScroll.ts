@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isFirefox, isSSR, useMediaRef } from './utils';
+import { isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -87,7 +87,7 @@ export function useScroll({
 	function onPointerDown(event: PointerEvent) {
 		const isAnchor = (event.target as HTMLElement).tagName === 'A';
 
-		if (isFirefox() && !isAnchor) {
+		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
 			reScroll();
 			// ...and force set if canceling scroll
 			setActive({ prevY: clickY.value, isCancel: true });

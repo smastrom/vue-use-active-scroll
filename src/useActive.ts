@@ -188,17 +188,9 @@ export function useActive(
 
 	function onHashChange(event: HashChangeEvent) {
 		if (matchMedia.value) {
-			// If hash is not anymore in the URL
+			// If scrolled to top
 			if (!event.newURL.includes('#') && activeId.value) {
-				const prevY = getSentinel();
-
-				requestAnimationFrame(() => {
-					// If scrolled to top on its own, reset activeId
-					const newY = getSentinel();
-					if (prevY !== newY) {
-						return (activeId.value = jumpToFirst ? ids.value[0] : '');
-					}
-				});
+				return (activeId.value = jumpToFirst ? ids.value[0] : '');
 			}
 
 			// Else set hash as active
