@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
-import { isFirefox, isSSR, useMediaRef } from './utils';
+import { isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	isWindow: ComputedRef<boolean>;
@@ -63,8 +63,10 @@ export function useScroll({
 		const nextY = getY();
 
 		if (nextY < prevY) {
+			console.log('Up');
 			onScrollUp();
 		} else {
+			console.log('Down');
 			onScrollDown({ isCancel });
 		}
 
@@ -87,7 +89,8 @@ export function useScroll({
 	function onPointerDown(event: PointerEvent) {
 		const isAnchor = (event.target as HTMLElement).tagName === 'A';
 
-		if (isFirefox() && !isAnchor) {
+		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
+			console.log('PointerDown');
 			reScroll();
 			// ...and force set if canceling scroll
 			setActive({ prevY: clickY.value, isCancel: true });
@@ -136,15 +139,17 @@ export function useScroll({
 			const rootEl = isWindow.value ? document : root.value;
 
 			if (_isClick && rootEl) {
+				console.log('Adding additional listeners');
 				rootEl.addEventListener('wheel', reScroll, ONCE);
 				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener, ONCE);
+				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel with Firefox
 			}
 
 			onCleanup(() => {
 				if (_isClick && rootEl) {
+					console.log('Removing additional listeners');
 					rootEl.removeEventListener('wheel', reScroll);
 					rootEl.removeEventListener('touchmove', reScroll);
 					rootEl.removeEventListener('scroll', setIdle as unknown as EventListener);
