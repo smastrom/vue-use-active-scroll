@@ -1,6 +1,6 @@
 {
 	"name": "vue-use-active-scroll",
-	"version": "0.9.4",
+	"version": "0.9.6",
 	"private": false,
 	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue 3.",
 	"keywords": [

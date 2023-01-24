@@ -16,14 +16,14 @@ But it may not be the one-size-fits-all solution to highlight menu/sidebar links
 
 You may noticed that's tricky to customize behavior according to different interactions.
 
-For example, you want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You want also to highlight any clicked link even if it will never intersect.
+For example, you want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You also want to highlight any clicked link even if it will never intersect.
 
-**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to different interactions and always returns the "correct" active target.
+**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behaviors and interactions and always returns the "correct" active target.
 
 ### Features
 
 - Precise and stable at any speed
-- CSS scroll-behavior and callback agnostic
+- CSS scroll-behavior or JS scroll agnostic
 - Adaptive behavior on mount, back/forward hash navigation, scroll, click, cancel.
 - Customizable boundary offsets for each direction
 - Customizable behavior on top/bottom reached
@@ -69,7 +69,7 @@ And your links look like:
 </nav>
 ```
 
-In your menu/sidebar component, provide the IDs of the targets to observe to `useActive` (order is not
+In your menu/sidebar component, provide the IDs to observe to `useActive` (order is not
 important).
 
 ```vue
@@ -166,12 +166,12 @@ const { isActive, setActive } = useActive(targets, {
 
 ### Return object
 
-| Name        | Type                      | Description                                                                                                                                   |
-| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior between any interaction that may cancel or resume scroll. |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                                                                         |
-| activeId    | `Ref<string>`             | Id of the active target                                                                                                                       |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.                                                               |
+| Name        | Type                      | Description                                                                          |
+| ----------- | ------------------------- | ------------------------------------------------------------------------------------ |
+| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior. |
+| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                |
+| activeId    | `Ref<string>`             | Id of the active target                                                              |
+| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.      |
 
 <br />
 
@@ -230,7 +230,7 @@ html {
 }
 ```
 
-<details><summary><strong>B. Custom Scroll Animation</strong></summary>
+<details><summary><strong>B. Custom JS Scroll</strong></summary>
 
 <br />
 
@@ -353,7 +353,7 @@ html {
 
 ## Setting scroll-margin-top for fixed headers
 
-You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target it may be underneath the header. You must set `scroll-margin-top` to your targets:
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target it may be underneath the header. You must add `scroll-margin-top` to your targets:
 
 ```js
 useActive(targets, { overlayHeight: 100 })
@@ -367,19 +367,25 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router scroll to hash on mount
+## Vue Router Scroll Hash Navigation
 
-If using Nuxt, Vue Router is already configured to scroll to the URL hash on page load or back/forward navigation.
+> :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
-If not using Nuxt and you're setting up Vue Router from scratch, you must enable the feature manually.
+### Scrolling to hash
 
-### Window
+For content scrolled by the window, simply return the target element. To scroll to a target scrolled by a container, use _scrollIntoView_ method.
 
 ```js
 const router = createRouter({
   // ...
   scrollBehavior(to) {
     if (to.hash) {
+      // Content scrolled by a container
+      if (to.name === 'PageNameUsingContainer') {
+        return document.querySelector(to.hash).scrollIntoView()
+      }
+
+      // Content scrolled by the window
       return {
         el: to.hash
         // top: 100 // Eventual fixed header (overlayHeight)
@@ -389,31 +395,33 @@ const router = createRouter({
 })
 ```
 
-> :bulb: There's need to define _smooth_ or _auto_ here. Adding the [CSS rule](#2-define-scroll-behavior) is enough. Same applies below.
+> :bulb: There's no need to define _smooth_ or _auto_ here. Adding the [CSS rule](#2-define-scroll-behavior) is enough.
 
-### Container
+> :bulb: There's no need need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
-To scroll to a target scrolled by a container, you must use `scrollIntoView`:
+### Scrolling from hash to the top of the page
+
+To navigate back to the top of the same page (e.g. clicking on browser back button from a hash to the page root), use the _scroll_ method for containers and return _top_ for content scrolled by the window.
 
 ```js
 const router = createRouter({
   // ...
-  scrollBehavior(to) {
-    if (to.hash) {
-      // Content scrolled by container
-      if (to.name === 'PageNameWithContainer') {
-        return document.querySelector(to.hash).scrollIntoView()
+  scrollBehavior(to, from) {
+    if (from.hash && !to.hash) {
+      // Content scrolled by a container
+      if (
+        to.name === 'PageNameUsingContainer' &&
+        from.name === 'PageNameUsingContainer'
+      ) {
+        return document.querySelector('#ScrollingContainer').scroll(0, 0)
       }
-      // Content scrolled by window
-      return {
-        el: to.hash
-      }
+
+      // Content scrolled by the window
+      return { top: 0 }
     }
   }
 })
 ```
-
-> :bulb: No need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
 <br />
 
