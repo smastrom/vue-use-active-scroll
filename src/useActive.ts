@@ -9,17 +9,18 @@ import {
 	onBeforeUnmount,
 	reactive,
 	type Ref,
+	type ComputedRef,
 } from 'vue';
 import { useScroll } from './useScroll';
-import { getEdges, useMediaRef, isSSR, FIXED_OFFSET, type DeepNonNullable } from './utils';
+import { getEdges, useMediaRef, isSSR, FIXED_OFFSET } from './utils';
 
 type UseActiveOptions = {
+	root?: Ref<HTMLElement | null> | HTMLElement | null;
 	jumpToFirst?: boolean;
 	jumpToLast?: boolean;
 	overlayHeight?: number;
 	minWidth?: number;
 	replaceHash?: boolean;
-	rootId?: string | null;
 	boundaryOffset?: {
 		toTop?: number;
 		toBottom?: number;
@@ -33,29 +34,28 @@ type UseActiveReturn = {
 	activeIndex: Ref<number>;
 };
 
-const defaultOpts: DeepNonNullable<UseActiveOptions> = {
+const defaultOpts = {
 	jumpToFirst: true,
 	jumpToLast: true,
 	overlayHeight: 0,
 	minWidth: 0,
 	replaceHash: false,
+	root: null,
 	boundaryOffset: {
 		toTop: 0,
 		toBottom: 0,
 	},
-	// @ts-ignore - Internal
-	rootId: null,
-};
+} as const;
 
 export function useActive(
 	userIds: string[] | Ref<string[]>,
 	{
+		root: _root = defaultOpts.root,
 		jumpToFirst = defaultOpts.jumpToFirst,
 		jumpToLast = defaultOpts.jumpToLast,
 		overlayHeight = defaultOpts.overlayHeight,
 		minWidth = defaultOpts.minWidth,
 		replaceHash = defaultOpts.replaceHash,
-		rootId = defaultOpts.rootId,
 		boundaryOffset: {
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
@@ -70,12 +70,15 @@ export function useActive(
 
 	// Internal
 	const matchMedia = ref(isSSR || window.matchMedia(media).matches);
-	const root = ref<HTMLElement | null>(null);
 	const targets = reactive({
 		elements: [] as HTMLElement[],
 		top: new Map<string, number>(),
 		bottom: new Map<string, number>(),
 	});
+
+	const root = computed(() =>
+		isSSR ? null : unref(_root) instanceof HTMLElement ? unref(_root) : document.documentElement
+	) as ComputedRef<HTMLElement>;
 
 	const isWindow = computed(() => root.value === document.documentElement);
 	const ids = computed(() => targets.elements.map(({ id }) => id));
@@ -87,10 +90,7 @@ export function useActive(
 	// Functions
 
 	function getTop() {
-		if (root.value) {
-			return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop);
-		}
-		return 0;
+		return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop);
 	}
 
 	// Runs onMount, on root resize and whenever the user array changes
@@ -122,7 +122,7 @@ export function useActive(
 			return false;
 		}
 
-		const { isBottom, isTop } = getEdges(root.value as HTMLElement);
+		const { isBottom, isTop } = getEdges(root.value);
 
 		if (jumpToFirst && isTop) {
 			return (activeId.value = ids.value[0]), true;
@@ -133,10 +133,10 @@ export function useActive(
 	}
 
 	function getSentinel() {
-		return isWindow.value ? getTop() : -(root.value as HTMLElement).scrollTop;
+		return isWindow.value ? getTop() : -root.value.scrollTop;
 	}
 
-	// Sets first target top that LEFT the viewport
+	// Sets first target-top that LEFT the viewport
 	function onScrollDown({ isCancel } = { isCancel: false }) {
 		let firstOut = jumpToFirst ? ids.value[0] : '';
 
@@ -173,7 +173,7 @@ export function useActive(
 		}
 	}
 
-	// Sets first target bottom that ENTERED the viewport
+	// Sets first target-bottom that ENTERED the viewport
 	function onScrollUp() {
 		let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : '';
 
@@ -237,9 +237,7 @@ export function useActive(
 			});
 		});
 
-		if (root.value) {
-			resizeObserver.observe(root.value);
-		}
+		resizeObserver.observe(root.value);
 	}
 
 	function destroyObserver() {
@@ -261,10 +259,6 @@ export function useActive(
 	onMounted(async () => {
 		window.addEventListener('resize', onResize, { passive: true });
 
-		root.value = rootId
-			? document.getElementById(rootId) ?? document.documentElement
-			: document.documentElement;
-
 		// https://github.com/nuxt/content/issues/1799
 		await new Promise((resolve) => setTimeout(resolve));
 
@@ -273,7 +267,7 @@ export function useActive(
 			setObserver();
 			addHashListener();
 
-			// Hash has priority only on first mount
+			// Hash has priority only on mount...
 			if (!setFromHash() && !onEdgeReached()) {
 				onScrollDown();
 			}
@@ -288,7 +282,7 @@ export function useActive(
 			setObserver();
 			addHashListener();
 
-			// ...but not on further resize
+			// ...but not on resize
 			if (!onEdgeReached()) {
 				onScrollDown();
 			}
@@ -298,6 +292,16 @@ export function useActive(
 			destroyObserver();
 		}
 	});
+
+	watch(
+		root,
+		() => {
+			setTargets();
+		},
+		{
+			flush: 'post',
+		}
+	);
 
 	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
 		flush: 'post',
@@ -322,6 +326,7 @@ export function useActive(
 	// Composables
 
 	const setClick = useScroll({
+		userIds,
 		isWindow,
 		root,
 		matchMedia,

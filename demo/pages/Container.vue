@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue';
+import { computed, provide, ref } from 'vue';
 import PageLayout from './_Layout.vue';
 import { useFakeData } from '../useFakeData';
 
@@ -7,13 +7,15 @@ const { menuItems, sections, /* Demo purposes => */ pushSection, shiftSection } 
 
 const targets = computed<string[]>(() => sections.map((section) => section.id));
 
-provide('TOCData', { menuItems, targets, rootId: 'ScrollingContainer' }); // Injected to TOC.vue
+const containerRef = ref<HTMLElement | null>(null);
+
+provide('TOCData', { menuItems, targets, containerRef }); // Injected to TOC.vue
 provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoControls.vue
 </script>
 
 <template>
 	<PageLayout>
-		<div id="ScrollingContainer">
+		<div ref="containerRef" class="Container">
 			<section
 				v-for="(section, index) in sections"
 				:key="section.id"
@@ -35,7 +37,7 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoContro
 </template>
 
 <style scoped>
-#ScrollingContainer {
+.Container {
 	overflow: auto;
 	max-height: calc(100vh - 160px);
 	scroll-behavior: var(--ScrollBehavior);
