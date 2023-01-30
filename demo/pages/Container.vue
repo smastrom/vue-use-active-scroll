@@ -17,7 +17,13 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoContro
 			<section
 				v-for="(section, index) in sections"
 				:key="section.id"
-				:style="`${index === sections.length - 1 ? 'margin-bottom: 2000px;' : ''}`"
+				:style="`${
+					index === sections.length - 1
+						? 'margin-bottom: 2000px;'
+						: index === 0
+						? 'margin-top: 2000px;'
+						: ''
+				}`"
 			>
 				<h2 :id="section.id">
 					{{ section.title }}

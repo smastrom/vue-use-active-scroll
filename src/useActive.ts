@@ -62,6 +62,8 @@ export function useActive(
 		} = defaultOpts.boundaryOffset,
 	}: UseActiveOptions = defaultOpts
 ): UseActiveReturn {
+	let resizeObserver: ResizeObserver;
+
 	const media = `(min-width: ${minWidth}px)`;
 
 	// Reactivity
@@ -91,7 +93,7 @@ export function useActive(
 		return 0;
 	}
 
-	// Runs onMount, onResize and whenever the user array changes
+	// Runs onMount, on root resize and whenever the user array changes
 	function setTargets() {
 		const _targets = <HTMLElement[]>[];
 
@@ -106,6 +108,7 @@ export function useActive(
 		targets.elements = _targets;
 
 		const rootTop = getTop();
+
 		targets.elements.forEach((target) => {
 			const { top, bottom } = target.getBoundingClientRect();
 			targets.top.set(target.id, top - rootTop);
@@ -146,9 +149,10 @@ export function useActive(
 			return true; // Set last
 		});
 
-		// When jumpToLast is false, remove activeId when last target is out of view
+		// When jumpToLast is false, remove activeId when last target-bottom is out of view
 		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
 			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
+
 			if (sentinel + lastBottom < offset) {
 				return (activeId.value = '');
 			}
@@ -178,7 +182,7 @@ export function useActive(
 			}
 		});
 
-		// If jumpToFirst is false, remove activeId if first target is completely in view
+		// If jumpToFirst is false, remove activeId once first target-top is in view
 		if (!jumpToFirst && firstIn === ids.value[0]) {
 			if (sentinel + targets.top.values().next().value > offset) {
 				return (activeId.value = '');
@@ -200,7 +204,6 @@ export function useActive(
 
 	function onResize() {
 		matchMedia.value = window.matchMedia(media).matches;
-		setTargets();
 	}
 
 	function getHashId() {
@@ -237,6 +240,12 @@ export function useActive(
 		window.addEventListener('resize', onResize, { passive: true });
 		window.addEventListener('hashchange', onHashChange);
 
+		resizeObserver = new ResizeObserver(() => {
+			setTargets();
+		});
+
+		resizeObserver.observe(root.value);
+
 		if (matchMedia.value) {
 			const hashId = getHashId();
 			if (hashId) {
@@ -252,6 +261,7 @@ export function useActive(
 	onBeforeUnmount(() => {
 		window.removeEventListener('resize', onResize);
 		window.removeEventListener('hashchange', onHashChange);
+		resizeObserver.disconnect();
 	});
 
 	// Watchers

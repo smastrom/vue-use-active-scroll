@@ -90,7 +90,6 @@ export function useScroll({
 		const isAnchor = (event.target as HTMLElement).tagName === 'A';
 
 		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
-			console.log('PointerDown');
 			reScroll();
 			// ...and force set if canceling scroll
 			setActive({ prevY: clickY.value, isCancel: true });
