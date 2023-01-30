@@ -143,15 +143,16 @@ export function useActive(
 			if (sentinel + top < offset) {
 				return (firstOut = id), false;
 			}
-			return true; // Return last
+			return true; // Set last
 		});
 
+		// When jumpToLast is false, remove activeId when last target is out of view
 		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
 			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
 			if (sentinel + lastBottom < offset) {
 				return (activeId.value = '');
 			}
-		} // NEW
+		}
 
 		// Prevent innatural highlighting with smoothscroll/custom easings...
 		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
@@ -173,23 +174,25 @@ export function useActive(
 
 		Array.from(targets.bottom).some(([id, bottom]) => {
 			if (sentinel + bottom > offset) {
-				return (firstIn = id), true; // Return first
+				return (firstIn = id), true; // Set first
 			}
 		});
 
-		if (jumpToLast && !firstIn) {
-			return (activeId.value = ids.value[ids.value.length - 1]);
-		} // NEW
-
+		// If jumpToFirst is false, remove activeId if first target is completely in view
 		if (!jumpToFirst && firstIn === ids.value[0]) {
 			if (sentinel + targets.top.values().next().value > offset) {
 				return (activeId.value = '');
 			}
 		}
 
+		// When no targets intersect, if jumpToLast is true, set last target as active
+		if (jumpToLast && !firstIn) {
+			return (activeId.value = ids.value[ids.value.length - 1]);
+		}
+
 		if (
 			ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
-			(firstIn && !activeId.value) // NEW
+			(firstIn && !activeId.value)
 		) {
 			return (activeId.value = firstIn);
 		}
