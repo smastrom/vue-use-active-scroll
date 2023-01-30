@@ -14,9 +14,7 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-You may noticed that's tricky to customize behavior according to different interactions.
-
-For example, you want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You also want to highlight any clicked link even if it will never intersect.
+When smooth-scrolling, you may want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You may also want to highlight any clicked link even if it will never intersect.
 
 **Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behaviors and interactions and always returns the "correct" active target.
 
@@ -62,11 +60,9 @@ Assuming your content looks like:
 And your links look like:
 
 ```html
-<nav>
-  <a href="#introduction">Introduction</a>
-  <a href="#quick-start">Quick Start</a>
-  <a href="#props">Props</a>
-</nav>
+<a href="#introduction">Introduction</a>
+<a href="#quick-start">Quick Start</a>
+<a href="#props">Props</a>
 ```
 
 In your menu/sidebar component, provide the IDs to observe to `useActive` (order is not
@@ -156,15 +152,15 @@ const { isActive, setActive } = useActive(targets, {
 })
 ```
 
-| Property       | Type                                               | Default                   | Description                                                                                                                                                                                                       |
-| -------------- | -------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`                                          | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                                                                |
-| jumpToLast     | `boolean`                                          | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
-| boundaryOffset | `BoundaryOffset`                                   | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
-| root           | `HTMLElement \| null` \| `RefHTMLElement \| null>` | null                      | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to documentElement.                                                                                         |
-| replaceHash    | `boolean`                                          | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
-| overlayHeight  | `number`                                           | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
-| minWidth       | `number`                                           | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
+| Property       | Type                                                | Default                   | Description                                                                                                                                                                                                       |
+| -------------- | --------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`                                           | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                                                                |
+| jumpToLast     | `boolean`                                           | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
+| boundaryOffset | `BoundaryOffset`                                    | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
+| root           | `HTMLElement \| null` \| `Ref<HTMLElement \| null>` | null                      | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to documentElement.                                                                                         |
+| replaceHash    | `boolean`                                           | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
+| overlayHeight  | `number`                                            | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
+| minWidth       | `number`                                            | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
 
 ### Return object
 
@@ -210,7 +206,7 @@ const { isActive, setActive } = useActive(targets)
 
 You're free to choose between CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
 
-#### A. Using CSS scroll-behavior
+#### A. Using native CSS scroll-behavior
 
 - If content is scrolled by the window, add the following CSS rule to your `html` element:
 
@@ -430,7 +426,7 @@ const router = createRouter({
 
 ## Without hash navigation
 
-Prevent the default anchor click behavior and use _scrollIntoView_ method to scroll to a target (or a custom scroll library).
+If you don't want the hash to be pushed to the URL, prevent the default behavior in your click handler any JS method to scroll to the target.
 
 ```vue
 <script setup>
@@ -458,6 +454,33 @@ function onClick(event, id) {
     </a>
   </nav>
 </template>
+```
+
+<br />
+
+## Custom initialization / reinitialization
+
+When targets is an empty array, _useActive_ won't initialize the scroll observer.
+
+Whenever `root` or `targets` are updated, _useActive_ will reinitialize the observer.
+
+```vue
+<script setup>
+// ...
+
+const targets = ref([])
+const root = ref(null)
+
+const { isActive, setActive } = useActive(targets)
+
+watch(someReactiveValue, async (newValue) => {
+  await someAsyncFunction()
+
+  // Whenever ready, update targets and root
+  targets.value = ['id-1', 'id-2', 'id-3']
+  root.value = document.getElementById('Container')
+})
+</script>
 ```
 
 <br />
