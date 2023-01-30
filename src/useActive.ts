@@ -9,7 +9,6 @@ import {
 	onBeforeUnmount,
 	reactive,
 	type Ref,
-	type ComputedRef,
 } from 'vue';
 import { useScroll } from './useScroll';
 import { getEdges, useMediaRef, isSSR, FIXED_OFFSET } from './utils';
@@ -78,7 +77,7 @@ export function useActive(
 
 	const root = computed(() =>
 		isSSR ? null : unref(_root) instanceof HTMLElement ? unref(_root) : document.documentElement
-	) as ComputedRef<HTMLElement>;
+	) as Ref<HTMLElement>;
 
 	const isWindow = computed(() => root.value === document.documentElement);
 	const ids = computed(() => targets.elements.map(({ id }) => id));

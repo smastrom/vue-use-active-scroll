@@ -1,10 +1,10 @@
-import { watch, onMounted, ref, unref, computed, type Ref, type ComputedRef } from 'vue';
+import { watch, onMounted, ref, unref, computed, type Ref } from 'vue';
 import { isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	userIds: string[] | Ref<string[]>;
-	root: ComputedRef<HTMLElement>;
-	isWindow: ComputedRef<boolean>;
+	root: Ref<HTMLElement>;
+	isWindow: Ref<boolean>;
 	matchMedia: Ref<boolean>;
 	onScrollUp: () => void;
 	onScrollDown: ({ isCancel }: { isCancel: boolean }) => void;
@@ -65,10 +65,8 @@ export function useScroll({
 		const nextY = getY();
 
 		if (nextY < prevY) {
-			console.log('Up');
 			onScrollUp();
 		} else {
-			console.log('Down');
 			onScrollDown({ isCancel });
 		}
 
@@ -145,7 +143,7 @@ export function useScroll({
 				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel with Firefox
+				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel
 			}
 
 			onCleanup(() => {
