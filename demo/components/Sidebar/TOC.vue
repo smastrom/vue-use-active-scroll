@@ -20,8 +20,7 @@ const { clickType } = inject('DemoRadios') as {
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	root: containerRef,
 	overlayHeight,
-	replaceHash: false,
-	minWidth: 610,
+	replaceHash: true,
 });
 
 const route = useRoute();
