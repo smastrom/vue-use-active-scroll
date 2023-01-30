@@ -63,7 +63,7 @@ export function useActive(
 	}: UseActiveOptions = defaultOpts
 ): UseActiveReturn {
 	let resizeObserver: ResizeObserver;
-
+	let skipObserverCallback = true;
 	const media = `(min-width: ${minWidth}px)`;
 
 	// Reactivity
@@ -95,6 +95,7 @@ export function useActive(
 
 	// Runs onMount, on root resize and whenever the user array changes
 	function setTargets() {
+		console.log('Updating targets...');
 		const _targets = <HTMLElement[]>[];
 
 		unref(userIds).forEach((id) => {
@@ -108,6 +109,9 @@ export function useActive(
 		targets.elements = _targets;
 
 		const rootTop = getTop();
+
+		targets.top.clear();
+		targets.bottom.clear();
 
 		targets.elements.forEach((target) => {
 			const { top, bottom } = target.getBoundingClientRect();
@@ -229,12 +233,16 @@ export function useActive(
 
 	function setObserver() {
 		resizeObserver = new ResizeObserver(() => {
-			setTargets();
-			requestAnimationFrame(() => {
-				if (!onEdgeReached()) {
-					onScrollDown();
-				}
-			});
+			if (!skipObserverCallback) {
+				setTargets();
+				requestAnimationFrame(() => {
+					if (!onEdgeReached()) {
+						onScrollDown();
+					}
+				});
+			} else {
+				skipObserverCallback = false;
+			}
 		});
 
 		resizeObserver.observe(root.value);

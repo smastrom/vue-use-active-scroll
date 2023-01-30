@@ -33,7 +33,7 @@ const activeItemHeight = computed(
 function customScroll(id: string) {
 	setActive(id);
 	animateScrollTo(document.getElementById(id) as HTMLElement, {
-		elementToScroll: containerRef.value ?? window,
+		elementToScroll: containerRef?.value ?? window,
 		easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
 		maxDuration: 600,
 		verticalOffset: -overlayHeight || 0,
