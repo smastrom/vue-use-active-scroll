@@ -146,6 +146,13 @@ export function useActive(
 			return true; // Return last
 		});
 
+		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
+			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
+			if (sentinel + lastBottom < offset) {
+				return (activeId.value = '');
+			}
+		} // NEW
+
 		// Prevent innatural highlighting with smoothscroll/custom easings...
 		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
 			return (activeId.value = firstOut);
@@ -170,13 +177,20 @@ export function useActive(
 			}
 		});
 
+		if (jumpToLast && !firstIn) {
+			return (activeId.value = ids.value[ids.value.length - 1]);
+		} // NEW
+
 		if (!jumpToFirst && firstIn === ids.value[0]) {
 			if (sentinel + targets.top.values().next().value > offset) {
 				return (activeId.value = '');
 			}
 		}
 
-		if (ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value)) {
+		if (
+			ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
+			(firstIn && !activeId.value) // NEW
+		) {
 			return (activeId.value = firstIn);
 		}
 	}
