@@ -366,7 +366,7 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router scrollBehavior hash navigation
+## Vue Router hash navigation behavior
 
 > :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
@@ -463,7 +463,7 @@ If you still want the hash to be added to the URL but to not create a new histor
 ```js
 function handleClick(event, id) {
   event.preventDefault()
-  setActive(id) // 👈🏻 Set active target
+  setActive(id)
   history.replaceState(history.state, '', `#${id}`) // 👈🏻 Replace hash
   document.getElementById(id).scrollIntoView()
 }
@@ -489,7 +489,7 @@ const { isActive, setActive } = useActive(targets)
 watch(someReactiveValue, async (newValue) => {
   await someAsyncFunction()
 
-  // Whenever ready, update targets and root
+  // Whenever ready, update targets or root
   targets.value = ['id-1', 'id-2', 'id-3']
   root.value = document.getElementById('Container')
 })
