@@ -1,10 +1,10 @@
-import { watch, onMounted, ref, unref, computed, type Ref } from 'vue';
+import { watch, onMounted, ref, unref, computed, type Ref, type ComputedRef } from 'vue';
 import { isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	userIds: string[] | Ref<string[]>;
 	root: Ref<HTMLElement>;
-	isWindow: Ref<boolean>;
+	isWindow: ComputedRef<boolean>;
 	matchMedia: Ref<boolean>;
 	onScrollUp: () => void;
 	onScrollDown: ({ isCancel }: { isCancel: boolean }) => void;

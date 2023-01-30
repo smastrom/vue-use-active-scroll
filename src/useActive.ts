@@ -50,7 +50,7 @@ const defaultOpts = {
 	},
 	edgeOffset: {
 		first: 100,
-		last: 100,
+		last: -100,
 	},
 } as const;
 
@@ -75,6 +75,7 @@ export function useActive(
 ): UseActiveReturn {
 	let resizeObserver: ResizeObserver;
 	let skipObserverCallback = true;
+
 	const media = `(min-width: ${minWidth}px)`;
 
 	// Reactivity
@@ -106,7 +107,6 @@ export function useActive(
 
 	// Runs onMount, on root resize and whenever the user array changes
 	function setTargets() {
-		console.log('Updating targets...');
 		const _targets = <HTMLElement[]>[];
 
 		unref(userIds).forEach((id) => {

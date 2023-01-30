@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed, inject, ComputedRef, Ref } from 'vue';
+import { computed, inject, type ComputedRef, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import animateScrollTo from 'animated-scroll-to';
 import { useActive } from '../../../src/useActive';
@@ -21,16 +21,6 @@ const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	root: containerRef,
 	overlayHeight,
 	replaceHash: true,
-	jumpToFirst: false,
-	jumpToLast: false,
-	boundaryOffset: {
-		toTop: -100,
-		toBottom: 100,
-	},
-	edgeOffset: {
-		first: 100,
-		last: -100,
-	},
 });
 
 const route = useRoute();
@@ -62,7 +52,7 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 				<RouterLink
 					@click.native="onClick(item.href)"
 					:ariaCurrentValue="`${isActive(item.href)}`"
-					:to="{ hash: `#${item.href}` }"
+					:to="{ hash: `#${item.href}` /* , replace: true */ }"
 					:class="{
 						Active: isActive(item.href),
 					}"

@@ -16,7 +16,7 @@ provide('DemoButtons', { pushSection, shiftSection }); // Injected to DemoContro
 <template>
 	<PageLayout>
 		<div ref="containerRef" class="Container">
-			<section v-for="(section, index) in sections" :key="section.id">
+			<section v-for="section in sections" :key="section.id">
 				<h2 :id="section.id">
 					{{ section.title }}
 				</h2>

@@ -24,12 +24,14 @@ When smooth-scrolling, you may want to immediately highlight targets when scroll
 - CSS scroll-behavior or JS scroll agnostic
 - Adaptive behavior on mount, back/forward hash navigation, scroll, click, cancel.
 - Customizable boundary offsets for each direction
+- Customizable offsets for first/last targets
 - Customizable behavior on top/bottom reached
-- Supports containers different than window
+- Supports custom scrolling containers
 
 ### What it doesn't do?
 
 - Mutate elements and inject styles
+- Force specific scroll behavior / callbacks
 - Scroll to targets
 
 <br />
@@ -367,7 +369,7 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router hash navigation scroll behavior
+## Vue Router - Scroll to hash onMount / navigation
 
 > :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
@@ -399,7 +401,7 @@ const router = createRouter({
 
 > :bulb: There's no need need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
-### Scrolling from hash to the top of the page
+### Scrolling from hash back to the top of the page
 
 To navigate back to the top of the same page (e.g. clicking on browser back button from a hash to the page root), use the _scroll_ method for containers and return _top_ for content scrolled by the window.
 
@@ -425,58 +427,33 @@ const router = createRouter({
 
 <br />
 
-## Prevent hash from being pushed
+## Vue Router - Prevent hash from being pushed
 
 You may noticed that when clicking on a link, a new entry is added to the history. When navigating back, the page will scroll to the previous target and so on.
 
-If you don't like that, you can prevent the hash from being pushed at all to the history:
+If you don't like that, choose to replace instead of pushing the hash:
 
 ```vue
-<script setup>
-// ...
-
-function handleClick(event, id) {
-  event.preventDefault() // 👈🏻 Prevent default behavior
-  setActive(id) // 👈🏻 Set active target
-  document.getElementById(id).scrollIntoView() // 👈🏻 Scroll to target with JS
-}
-</script>
-
 <template>
-  <nav>
-    <a
-      @click="handleClick($event, link.href)"
-      v-for="(link, index) in links"
-      :key="link.href"
-      :href="`#${link.href}`"
-      :class="{
-        active: isActive(link.href)
-      }"
-    >
-      {{ link.label }}
-    </a>
-  </nav>
+  <!-- ... -->
+  <RouterLink
+    @click.native="setActive(link.href)"
+    :to="{ hash: `#${item.href}`, replace: true /* 👈🏻 */ }"
+    :class="{
+      active: isActive(link.href)
+    }"
+  />
+  <!-- ... -->
 </template>
-```
-
-If you still want the hash to be added to the URL but to not create a new history entry, you can use the _replaceState_ method.
-
-```js
-function handleClick(event, id) {
-  event.preventDefault()
-  setActive(id)
-  history.replaceState(history.state, '', `#${id}`) // 👈🏻 Replace hash
-  document.getElementById(id).scrollIntoView()
-}
 ```
 
 <br />
 
-## Custom initialization / reinitialization
+## Custom initialization / re-initialization
 
 If the targets array is empty, _useActive_ won't initialize the scroll observer.
 
-Whenever `root` or `targets` are updated, _useActive_ will reinitialize the observer.
+Whenever `root` or `targets` are updated (and not empty), _useActive_ will re-initialize the observer.
 
 ```vue
 <script setup>
@@ -485,14 +462,14 @@ Whenever `root` or `targets` are updated, _useActive_ will reinitialize the obs
 const targets = ref([])
 const root = ref(null)
 
-const { isActive, setActive } = useActive(targets)
+const { isActive, setActive } = useActive(targets) // Nothing is initialized
 
 watch(someReactiveValue, async (newValue) => {
   await someAsyncFunction()
 
-  // Whenever ready, update targets or root
+  // Whenever ready, update targets or root and init
   targets.value = ['id-1', 'id-2', 'id-3']
-  root.value = document.getElementById('Container')
+  root.value = document.getElementById('my_container')
 })
 </script>
 ```
