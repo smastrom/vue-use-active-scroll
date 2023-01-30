@@ -424,25 +424,27 @@ const router = createRouter({
 
 <br />
 
-## Without hash navigation
+## Prevent hash from being pushed
 
-If you don't want the hash to be pushed to the URL, prevent the default behavior in your click handler any JS method to scroll to the target.
+You may noticed that when clicking on a link, a new entry is added to the history. When navigating back, the page will scroll to the previous target and so on.
+
+If you don't like that, you can prevent the hash from being pushed at all to the history:
 
 ```vue
 <script setup>
 // ...
 
-function onClick(event, id) {
+function handleClick(event, id) {
   event.preventDefault() // 👈🏻 Prevent default behavior
-  setActive(id)
-  document.getElementById(id).scrollIntoView()
+  setActive(id) // 👈🏻 Set active target
+  document.getElementById(id).scrollIntoView() // 👈🏻 Scroll to target with JS
 }
 </script>
 
 <template>
   <nav>
     <a
-      @click="onClick($event, link.href)"
+      @click="handleClick($event, link.href)"
       v-for="(link, index) in links"
       :key="link.href"
       :href="`#${link.href}`"
@@ -456,11 +458,22 @@ function onClick(event, id) {
 </template>
 ```
 
+If you still want the hash to be added to the URL but to not create a new history entry, you can use the _replaceState_ method.
+
+```js
+function handleClick(event, id) {
+  event.preventDefault()
+  setActive(id) // 👈🏻 Set active target
+  history.replaceState(history.state, '', `#${id}`) // 👈🏻 Replace hash
+  document.getElementById(id).scrollIntoView()
+}
+```
+
 <br />
 
 ## Custom initialization / reinitialization
 
-When targets is an empty array, _useActive_ won't initialize the scroll observer.
+If the targets array is empty, _useActive_ won't initialize the scroll observer.
 
 Whenever `root` or `targets` are updated, _useActive_ will reinitialize the observer.
 
