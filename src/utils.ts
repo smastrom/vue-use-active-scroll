@@ -35,15 +35,3 @@ export function getEdges(root: HTMLElement) {
 		isBottom,
 	};
 }
-
-// https://github.com/esamattis/utils/blob/master/src/DeepRequired.ts
-export type DeepNonNullable<T> = T extends undefined | null | boolean | string | number
-	? NonNullable<T>
-	: {
-			[P in keyof T]-?: T[P] extends Array<infer U>
-				? Array<DeepNonNullable<U>>
-				: T[P] extends ReadonlyArray<infer U2>
-				? DeepNonNullable<U2>
-				: DeepNonNullable<T[P]>;
-			// eslint-disable-next-line no-mixed-spaces-and-tabs
-	  };

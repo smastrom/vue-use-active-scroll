@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ComputedRef, inject } from 'vue';
+import { computed, inject, type ComputedRef, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import animateScrollTo from 'animated-scroll-to';
 import { useActive } from '../../../src/useActive';
@@ -7,24 +7,20 @@ import { useActive } from '../../../src/useActive';
 type TOCData = {
 	menuItems: { label: string; href: string }[];
 	targets: ComputedRef<string[]>;
-	rootId?: string | null;
+	containerRef: Ref<HTMLElement | null>;
 	overlayHeight?: number;
 };
 
-const { menuItems, targets, rootId = null, overlayHeight = 0 } = inject('TOCData') as TOCData;
+const { menuItems, targets, containerRef, overlayHeight = 0 } = inject('TOCData') as TOCData;
 
 const { clickType } = inject('DemoRadios') as {
 	clickType: ComputedRef<'native' | 'custom'>;
 };
 
 const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
-	rootId,
+	root: containerRef,
 	overlayHeight,
 	replaceHash: true,
-	/* 	boundaryOffset: {
-		toBottom: 100,
-		toTop: -100,
-	}, */
 });
 
 const route = useRoute();
@@ -36,7 +32,7 @@ const activeItemHeight = computed(
 function customScroll(id: string) {
 	setActive(id);
 	animateScrollTo(document.getElementById(id) as HTMLElement, {
-		elementToScroll: rootId ? (document.getElementById(rootId) as HTMLElement) : window,
+		elementToScroll: containerRef?.value ?? window,
 		easing: (x: number) => 1 + (1.70158 + 1) * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
 		maxDuration: 600,
 		verticalOffset: -overlayHeight || 0,
@@ -56,7 +52,7 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 				<RouterLink
 					@click.native="onClick(item.href)"
 					:ariaCurrentValue="`${isActive(item.href)}`"
-					:to="{ hash: `#${item.href}` }"
+					:to="{ hash: `#${item.href}` /* , replace: true */ }"
 					:class="{
 						Active: isActive(item.href),
 					}"
