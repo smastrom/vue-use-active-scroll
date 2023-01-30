@@ -116,6 +116,7 @@ export function useActive(
 		});
 	}
 
+	// Returns true if target has been set as active
 	function onEdgeReached() {
 		if (!jumpToFirst && !jumpToLast) {
 			return false;
@@ -146,10 +147,10 @@ export function useActive(
 			if (sentinel + top < offset) {
 				return (firstOut = id), false;
 			}
-			return true; // Set last
+			return true; // Get last in ascending
 		});
 
-		// When jumpToLast is false, remove activeId when last target-bottom is out of view
+		// If jumpToLast is false, remove activeId once last target-bottom is out of view
 		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
 			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
 
@@ -159,7 +160,10 @@ export function useActive(
 		}
 
 		// Prevent innatural highlighting with smoothscroll/custom easings...
-		if (ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value)) {
+		if (
+			ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value) ||
+			(firstOut && !activeId.value)
+		) {
 			return (activeId.value = firstOut);
 		}
 
@@ -171,14 +175,14 @@ export function useActive(
 
 	// Sets first target bottom that ENTERED the viewport
 	function onScrollUp() {
-		let firstIn = '';
+		let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : '';
 
 		const sentinel = getSentinel();
 		const offset = FIXED_OFFSET + overlayHeight + toTop;
 
 		Array.from(targets.bottom).some(([id, bottom]) => {
 			if (sentinel + bottom > offset) {
-				return (firstIn = id), true; // Set first
+				return (firstIn = id), true; // Get first in ascending
 			}
 		});
 
@@ -189,12 +193,8 @@ export function useActive(
 			}
 		}
 
-		// When no targets intersect, if jumpToLast is true, set last target as active
-		if (jumpToLast && !firstIn) {
-			return (activeId.value = ids.value[ids.value.length - 1]);
-		}
-
 		if (
+			// Prevent innatural highlighting with smoothscroll/custom easings
 			ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
 			(firstIn && !activeId.value)
 		) {
@@ -206,8 +206,13 @@ export function useActive(
 		matchMedia.value = window.matchMedia(media).matches;
 	}
 
-	function getHashId() {
-		return targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
+	// Returns true if hash has been set as active
+	function setFromHash() {
+		const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
+
+		if (hashId) {
+			return (activeId.value = hashId), true;
+		}
 	}
 
 	function onHashChange(event: HashChangeEvent) {
@@ -218,16 +223,44 @@ export function useActive(
 			}
 
 			// Else set hash as active
-			const hashId = getHashId();
-			if (hashId) {
-				activeId.value = hashId;
-			}
+			setFromHash();
 		}
+	}
+
+	function setObserver() {
+		resizeObserver = new ResizeObserver(() => {
+			setTargets();
+			requestAnimationFrame(() => {
+				if (!onEdgeReached()) {
+					onScrollDown();
+				}
+			});
+		});
+
+		if (root.value) {
+			resizeObserver.observe(root.value);
+		}
+	}
+
+	function destroyObserver() {
+		if (resizeObserver) {
+			resizeObserver.disconnect();
+		}
+	}
+
+	function addHashListener() {
+		window.addEventListener('hashchange', onHashChange);
+	}
+
+	function removeHashListener() {
+		window.removeEventListener('hashchange', onHashChange);
 	}
 
 	// Lifecycle
 
 	onMounted(async () => {
+		window.addEventListener('resize', onResize, { passive: true });
+
 		root.value = rootId
 			? document.getElementById(rootId) ?? document.documentElement
 			: document.documentElement;
@@ -235,36 +268,36 @@ export function useActive(
 		// https://github.com/nuxt/content/issues/1799
 		await new Promise((resolve) => setTimeout(resolve));
 
-		setTargets();
-
-		window.addEventListener('resize', onResize, { passive: true });
-		window.addEventListener('hashchange', onHashChange);
-
-		resizeObserver = new ResizeObserver(() => {
-			setTargets();
-		});
-
-		resizeObserver.observe(root.value);
-
 		if (matchMedia.value) {
-			const hashId = getHashId();
-			if (hashId) {
-				return (activeId.value = hashId);
-			}
+			setTargets();
+			setObserver();
+			addHashListener();
 
-			if (!onEdgeReached()) {
+			// Hash has priority only on first mount
+			if (!setFromHash() && !onEdgeReached()) {
 				onScrollDown();
 			}
 		}
 	});
 
-	onBeforeUnmount(() => {
-		window.removeEventListener('resize', onResize);
-		window.removeEventListener('hashchange', onHashChange);
-		resizeObserver.disconnect();
-	});
-
 	// Watchers
+
+	watch(matchMedia, (_matchMedia) => {
+		if (_matchMedia) {
+			setTargets();
+			setObserver();
+			addHashListener();
+
+			// ...but not on further resize
+			if (!onEdgeReached()) {
+				onScrollDown();
+			}
+		} else {
+			activeId.value = '';
+			removeHashListener();
+			destroyObserver();
+		}
+	});
 
 	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
 		flush: 'post',
@@ -278,12 +311,12 @@ export function useActive(
 		}
 	});
 
-	watch(matchMedia, (_matchMedia) => {
-		if (_matchMedia) {
-			onScrollDown();
-		} else {
-			activeId.value = '';
-		}
+	// Destroy
+
+	onBeforeUnmount(() => {
+		window.removeEventListener('resize', onResize);
+		removeHashListener();
+		destroyObserver();
 	});
 
 	// Composables

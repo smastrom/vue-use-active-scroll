@@ -91,7 +91,7 @@ export function useScroll({
 
 		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
 			reScroll();
-			// ...and force set if canceling scroll
+			// ...and force set if canceling scroll on Firefox
 			setActive({ prevY: clickY.value, isCancel: true });
 		}
 	}
@@ -138,7 +138,6 @@ export function useScroll({
 			const rootEl = isWindow.value ? document : root.value;
 
 			if (_isClick && rootEl) {
-				console.log('Adding additional listeners');
 				rootEl.addEventListener('wheel', reScroll, ONCE);
 				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
@@ -148,7 +147,6 @@ export function useScroll({
 
 			onCleanup(() => {
 				if (_isClick && rootEl) {
-					console.log('Removing additional listeners');
 					rootEl.removeEventListener('wheel', reScroll);
 					rootEl.removeEventListener('touchmove', reScroll);
 					rootEl.removeEventListener('scroll', setIdle as unknown as EventListener);
