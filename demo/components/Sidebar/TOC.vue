@@ -21,6 +21,16 @@ const { activeIndex, activeId, setActive, isActive } = useActive(targets, {
 	root: containerRef,
 	overlayHeight,
 	replaceHash: true,
+	jumpToFirst: false,
+	jumpToLast: false,
+	boundaryOffset: {
+		toTop: -100,
+		toBottom: 100,
+	},
+	edgeOffset: {
+		first: 100,
+		last: -100,
+	},
 });
 
 const route = useRoute();

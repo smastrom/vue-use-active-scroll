@@ -20,6 +20,10 @@ type UseActiveOptions = {
 	overlayHeight?: number;
 	minWidth?: number;
 	replaceHash?: boolean;
+	edgeOffset?: {
+		first?: number;
+		last?: number;
+	};
 	boundaryOffset?: {
 		toTop?: number;
 		toBottom?: number;
@@ -44,6 +48,10 @@ const defaultOpts = {
 		toTop: 0,
 		toBottom: 0,
 	},
+	edgeOffset: {
+		first: 100,
+		last: 100,
+	},
 } as const;
 
 export function useActive(
@@ -59,6 +67,10 @@ export function useActive(
 			toTop = defaultOpts.boundaryOffset.toTop,
 			toBottom = defaultOpts.boundaryOffset.toTop,
 		} = defaultOpts.boundaryOffset,
+		edgeOffset: {
+			first: firstOffset = defaultOpts.edgeOffset.first,
+			last: lastOffset = defaultOpts.edgeOffset.last,
+		} = defaultOpts.edgeOffset,
 	}: UseActiveOptions = defaultOpts
 ): UseActiveReturn {
 	let resizeObserver: ResizeObserver;
@@ -146,8 +158,10 @@ export function useActive(
 		const sentinel = getSentinel();
 		const offset = FIXED_OFFSET + overlayHeight + toBottom;
 
-		Array.from(targets.top).some(([id, top]) => {
-			if (sentinel + top < offset) {
+		Array.from(targets.top).some(([id, top], index) => {
+			const _firstOffset = !jumpToFirst && index === 0 ? firstOffset : 0;
+
+			if (sentinel + top < offset + _firstOffset) {
 				return (firstOut = id), false;
 			}
 			return true; // Get last in ascending
@@ -157,7 +171,7 @@ export function useActive(
 		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
 			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
 
-			if (sentinel + lastBottom < offset) {
+			if (sentinel + lastBottom < offset + lastOffset) {
 				return (activeId.value = '');
 			}
 		}
@@ -183,15 +197,17 @@ export function useActive(
 		const sentinel = getSentinel();
 		const offset = FIXED_OFFSET + overlayHeight + toTop;
 
-		Array.from(targets.bottom).some(([id, bottom]) => {
-			if (sentinel + bottom > offset) {
+		Array.from(targets.bottom).some(([id, bottom], index) => {
+			const _lastOffset = !jumpToLast && index === ids.value.length - 1 ? lastOffset : 0;
+
+			if (sentinel + bottom > offset + _lastOffset) {
 				return (firstIn = id), true; // Get first in ascending
 			}
 		});
 
 		// If jumpToFirst is false, remove activeId once first target-top is in view
 		if (!jumpToFirst && firstIn === ids.value[0]) {
-			if (sentinel + targets.top.values().next().value > offset) {
+			if (sentinel + targets.top.values().next().value > offset + firstOffset) {
 				return (activeId.value = '');
 			}
 		}
@@ -261,7 +277,7 @@ export function useActive(
 		window.removeEventListener('hashchange', onHashChange);
 	}
 
-	// Lifecycle
+	// Mount
 
 	onMounted(async () => {
 		window.addEventListener('resize', onResize, { passive: true });
@@ -281,7 +297,7 @@ export function useActive(
 		}
 	});
 
-	// Watchers
+	// Update
 
 	watch(matchMedia, (_matchMedia) => {
 		if (_matchMedia) {

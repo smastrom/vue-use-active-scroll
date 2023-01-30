@@ -142,7 +142,7 @@ const { isActive } = useActive(targets)
 
 <br />
 
-## 2. Configure the composable (optional)
+## 2. Customize the composable (optional)
 
 `useActive` accepts an optional configuration object as its second argument:
 
@@ -152,15 +152,16 @@ const { isActive, setActive } = useActive(targets, {
 })
 ```
 
-| Property       | Type                                                | Default                   | Description                                                                                                                                                                                                       |
-| -------------- | --------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jumpToFirst    | `boolean`                                           | true                      | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                                                                |
-| jumpToLast     | `boolean`                                           | true                      | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
-| boundaryOffset | `BoundaryOffset`                                    | { toTop: 0, toBottom: 0 } | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
-| root           | `HTMLElement \| null` \| `Ref<HTMLElement \| null>` | null                      | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to documentElement.                                                                                         |
-| replaceHash    | `boolean`                                           | false                     | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
-| overlayHeight  | `number`                                            | 0                         | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
-| minWidth       | `number`                                            | 0                         | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
+| Property       | Type                                                | Default                    | Description                                                                                                                                                                                                       |
+| -------------- | --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| jumpToFirst    | `boolean`                                           | true                       | Whether to set the first target on mount as active even if not (yet) intersecting.                                                                                                                                |
+| jumpToLast     | `boolean`                                           | true                       | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
+| boundaryOffset | `BoundaryOffset`                                    | { toTop: 0, toBottom: 0 }  | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
+| edgeOffset     | `EdgeOffset`                                        | { first: 100, last: -100 } | Offset in px for fist and last target. `first` has no effect if `jumpToFirst` is true. Same for `last` if `jumpToLast` is true.                                                                                   |
+| root           | `HTMLElement \| null` \| `Ref<HTMLElement \| null>` | null                       | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to documentElement.                                                                                         |
+| replaceHash    | `boolean`                                           | false                      | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
+| overlayHeight  | `number`                                            | 0                          | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
+| minWidth       | `number`                                            | 0                          | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
 
 ### Return object
 
@@ -366,7 +367,7 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router hash navigation behavior
+## Vue Router hash navigation scroll behavior
 
 > :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
