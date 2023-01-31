@@ -1,9 +1,10 @@
-import { watch, onMounted, ref, computed, type Ref, type ComputedRef } from 'vue';
+import { watch, onMounted, ref, unref, computed, type Ref, type ComputedRef } from 'vue';
 import { isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
+	userIds: string[] | Ref<string[]>;
+	root: ComputedRef<HTMLElement>;
 	isWindow: ComputedRef<boolean>;
-	root: Ref<HTMLElement | null>;
 	matchMedia: Ref<boolean>;
 	onScrollUp: () => void;
 	onScrollDown: ({ isCancel }: { isCancel: boolean }) => void;
@@ -13,6 +14,7 @@ type UseScrollOptions = {
 const ONCE = { once: true };
 
 export function useScroll({
+	userIds,
 	isWindow,
 	root,
 	matchMedia,
@@ -27,7 +29,7 @@ export function useScroll({
 	let prevY = isSSR ? 0 : getY();
 
 	function getY() {
-		return isWindow.value ? window.scrollY : root.value?.scrollTop ?? 0;
+		return isWindow.value ? window.scrollY : root.value.scrollTop ?? 0;
 	}
 
 	function setIdle(maxFrames = 20) {
@@ -63,10 +65,8 @@ export function useScroll({
 		const nextY = getY();
 
 		if (nextY < prevY) {
-			console.log('Up');
 			onScrollUp();
 		} else {
-			console.log('Down');
 			onScrollDown({ isCancel });
 		}
 
@@ -90,9 +90,8 @@ export function useScroll({
 		const isAnchor = (event.target as HTMLElement).tagName === 'A';
 
 		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
-			console.log('PointerDown');
 			reScroll();
-			// ...and force set if canceling scroll
+			// ...and force set if canceling scroll on Firefox
 			setActive({ prevY: clickY.value, isCancel: true });
 		}
 	}
@@ -113,10 +112,10 @@ export function useScroll({
 	});
 
 	watch(
-		[isIdle, matchMedia, root],
-		([_isIdle, _matchMedia, _root], _, onCleanup) => {
+		[isIdle, matchMedia, root, userIds],
+		([_isIdle, _matchMedia, _root, _userIds], _, onCleanup) => {
 			const rootEl = isWindow.value ? document : _root;
-			const isActive = rootEl && _isIdle && _matchMedia;
+			const isActive = rootEl && _isIdle && _matchMedia && unref(_userIds)?.length > 0;
 
 			if (isActive) {
 				rootEl.addEventListener('scroll', onScroll, {
@@ -130,26 +129,25 @@ export function useScroll({
 				}
 			});
 		},
-		{ flush: 'sync' }
+		{ deep: true }
 	);
 
 	watch(
 		isClick,
 		(_isClick, _, onCleanup) => {
 			const rootEl = isWindow.value ? document : root.value;
+			const hasTargets = unref(userIds)?.length > 0;
 
-			if (_isClick && rootEl) {
-				console.log('Adding additional listeners');
+			if (_isClick && hasTargets) {
 				rootEl.addEventListener('wheel', reScroll, ONCE);
 				rootEl.addEventListener('touchmove', reScroll, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel with Firefox
+				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel
 			}
 
 			onCleanup(() => {
-				if (_isClick && rootEl) {
-					console.log('Removing additional listeners');
+				if (_isClick && hasTargets) {
 					rootEl.removeEventListener('wheel', reScroll);
 					rootEl.removeEventListener('touchmove', reScroll);
 					rootEl.removeEventListener('scroll', setIdle as unknown as EventListener);
