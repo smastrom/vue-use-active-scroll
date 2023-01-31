@@ -18,8 +18,8 @@ export function useFakeData(length = 10) {
 		}))
 	);
 
-	const lastNum = computed(() => parseInt(sections[sections.length - 1].title));
-	const firstNum = computed(() => parseInt(sections[0].title));
+	const lastNum = computed(() => parseInt(sections[sections.length - 1]?.title ?? '-1'));
+	const firstNum = computed(() => parseInt(sections[0]?.title ?? '-1'));
 
 	const menuItems = computed(() =>
 		sections.map((item) => ({

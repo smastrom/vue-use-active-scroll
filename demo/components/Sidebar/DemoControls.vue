@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { inject, watch, Ref } from 'vue';
+import { inject, watch, type Ref } from 'vue';
 
 const { shiftSection, pushSection } = inject('DemoButtons') as {
 	shiftSection: () => void;
