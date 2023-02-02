@@ -1,21 +1,16 @@
 {
 	"name": "vue-use-active-scroll",
-	"version": "0.9.7",
+	"version": "0.9.8",
 	"private": false,
 	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue 3.",
 	"keywords": [
 		"vue",
 		"vue3",
 		"vue-scroll",
-		"vue scroll",
 		"vue-scroll-active",
-		"vue scroll active",
 		"vue-active-scroll",
-		"vue active scroll",
 		"vue-active-link",
-		"vue active link",
-		"vue-toc",
-		"vue toc"
+		"vue-toc"
 	],
 	"homepage": "https://vue-use-active-scroll.netlify.app/",
 	"bugs": {
@@ -51,11 +46,11 @@
 	"devDependencies": {
 		"@rollup/plugin-terser": "^0.4.0",
 		"@types/node": "^18.11.18",
-		"@typescript-eslint/eslint-plugin": "^5.49.0",
-		"@typescript-eslint/parser": "^5.49.0",
+		"@typescript-eslint/eslint-plugin": "^5.50.0",
+		"@typescript-eslint/parser": "^5.50.0",
 		"@vitejs/plugin-vue": "^4.0.0",
 		"animated-scroll-to": "^2.3.0",
-		"cypress": "^12.4.1",
+		"cypress": "^12.5.0",
 		"eslint": "^8.33.0",
 		"eslint-plugin-vue": "^9.9.0",
 		"husky": "^8.0.3",
@@ -63,13 +58,10 @@
 		"prettier": "^2.8.3",
 		"rimraf": "^4.1.2",
 		"typescript": "^4.9.5",
-		"vite": "^4.0.4",
-		"vite-plugin-dts": "^1.7.1",
-		"vue": "^3.2.45",
+		"vite": "^4.1.0",
+		"vite-plugin-dts": "^1.7.2",
+		"vue": "^3.2.47",
 		"vue-router": "^4.1.6",
 		"vue-tsc": "^1.0.24"
-	},
-	"peerDependencies": {
-		"vue": ">=3.0.0"
 	}
 }
