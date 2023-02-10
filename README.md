@@ -5,8 +5,6 @@
 
 **Examples:** Vite: [Demo App](https://vue-use-active-scroll.netlify.app) — Nuxt Content: [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
 
-:bulb: Requires Vue 3 or above.
-
 <br />
 
 ## Why?
@@ -14,25 +12,31 @@
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
 But it may not be the one-size-fits-all solution to highlight menu/sidebar links.
 
-When smooth-scrolling, you may want to immediately highlight targets when scroll is originated from click/navigation but not when it is originated from wheel/touch. You may also want to highlight any clicked link even if it will never intersect.
+_You may want to:_
 
-**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behaviors and interactions and always returns the "correct" active target.
+- Highlight any clicked link even if it will never intersect
+- Get consistent results regardless of scroll speed
+- Immediately highlight links on click/hash navigation if smooth scrolling is enabled
+- Prevent unnatural highlighting with custom easings or smooth scrolling
+
+**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behavior and interaction and always returns the "correct" active target.
 
 ### Features
 
 - Precise and stable at any speed
 - CSS scroll-behavior or JS scroll agnostic
 - Adaptive behavior on mount, back/forward hash navigation, scroll, click, cancel.
-- Customizable boundary offsets for each direction
-- Customizable offsets for first/last targets
+- Customizable offsets for each scroll direction
+- Customizable offsets for first and last target
 - Customizable behavior on top/bottom reached
 - Supports custom scrolling containers
 
 ### What it doesn't do?
 
-- Mutate elements and inject styles
-- Force specific scroll behavior / callbacks
 - Scroll to targets
+- Mutate elements and inject styles
+- Enforce specific scroll behavior / callbacks
+- Enforce the use of hash navigation
 
 <br />
 
@@ -59,7 +63,7 @@ Assuming your content looks like:
 <p>...</p>
 ```
 
-And your links look like:
+And your links will look like:
 
 ```html
 <a href="#introduction">Introduction</a>
@@ -70,20 +74,22 @@ And your links look like:
 In your menu/sidebar component, provide the IDs to observe to `useActive` (order is not
 important).
 
+> :bulb: For a TOC, you may want to target (and scroll) the headings of your sections (instead of the whole section) to ensure results better-aligned with users' reading flow.
+
 ```vue
 <!-- Sidebar.vue -->
 
 <script setup>
 import { useActive } from 'vue-use-active-scroll'
 
-// Data to render links
+// Data to render links, in real life you may pass them as prop, use inject() etc...
 const links = ref([
   { href: 'introduction', label: 'Introduction' },
   { href: 'quick-start', label: 'Quick Start' },
   { href: 'props', label: 'Props' }
 ])
 
-const targets = computed(() => links.map(({ href }) => href))
+const targets = computed(() => links.value.map(({ href }) => href))
 // console.log(targets.value) => ['introduction', 'quick-start', 'props']
 
 const { isActive } = useActive(targets)
@@ -92,7 +98,41 @@ const { isActive } = useActive(targets)
 
 You can provide either a reactive or a plain array of strings. If the array is reactive, the observer will reinitialize whenever it changes.
 
-> :bulb: For a TOC, you want to target (and scroll) the headings of your sections (instead of the whole section) to ensure results better-aligned with users' reading flow.
+If an empty array is provided, the observer won't be initialized until the array is populated.
+
+### What if my targets don't have IDs?
+
+There might be cases where you lack control over the rendered HTML and no IDs nor TOC are provided. Assuming your content is wrapped by container with an ID (e.g. `#ArticleContent`):
+
+```vue
+<!-- Sidebar.vue -->
+
+<script setup>
+const links = ref([])
+
+onMounted(() => {
+  // 1. Get all the targets
+  const targets = Array.from(
+    document.getElementById('ArticleContent').querySelectorAll('h2')
+  )
+
+  targets.forEach((target) => {
+    // 2. Generate an ID from their text content and add it
+    target.id = target.textContent.toLowerCase().replace(/\s+/g, '-')
+    // 3. Populate the array to render links
+    links.value.push({
+      href: target.id,
+      label: target.textContent
+    })
+  })
+})
+
+// 4. Provide the IDs to observe
+const targets = computed(() => links.value.map(({ href }) => href))
+
+const { isActive } = useActive(targets)
+</script>
+```
 
 <details><summary><strong>Nuxt Content 2</strong></summary>
 
@@ -180,6 +220,8 @@ const { isActive, setActive } = useActive(targets, {
 
 ### **1.** Call _setActive_ in your click handler by passing the anchor ID
 
+> :bulb: This doesn't scroll to targets. It just informs the composable that scroll from click is about to happen and `useActive` will adjust its behavior accordingly.
+
 ```vue
 <!-- Sidebar.vue -->
 
@@ -209,7 +251,7 @@ const { isActive, setActive } = useActive(targets)
 
 You're free to choose between CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
 
-#### A. Using native CSS scroll-behavior
+#### A. Using native CSS scroll-behavior (recommended)
 
 - If content is scrolled by the window, add the following CSS rule to your `html` element:
 
@@ -226,7 +268,7 @@ html {
   scroll-behavior: auto; /* Keep it 'auto' */
 }
 
-.container {
+.Container {
   scroll-behavior: smooth;
 }
 ```
@@ -292,7 +334,7 @@ const { isActive, setActive } = useActive(targets)
       :key="link.href"
       :href="`#${link.href}`"
       :class="{
-        active: isActive(link.href) /* 👈🏻 or link.href === activeId */
+        ActiveLink: isActive(link.href) /* 👈🏻 or link.href === activeId */
       }"
     >
       {{ link.label }}
@@ -306,7 +348,7 @@ html {
   scroll-behavior: smooth; /* or 'auto' */
 }
 
-.active {
+.ActiveLink {
   color: #f00;
 }
 </style>
@@ -355,7 +397,7 @@ html {
 
 ## Setting scroll-margin-top for fixed headers
 
-You might noticed that if you have a fixed header and defined an `overlayHeight`, once you click to scroll to a target it may be underneath the header. You must add `scroll-margin-top` to your targets:
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. You must add `scroll-margin-top` to your targets:
 
 ```js
 useActive(targets, { overlayHeight: 100 })
@@ -369,7 +411,7 @@ useActive(targets, { overlayHeight: 100 })
 
 <br />
 
-## Vue Router - Scroll to hash onMount / navigation
+## Vue Router - Scroll to hash on mount / navigation
 
 > :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
@@ -445,33 +487,6 @@ If you don't like that, choose to replace instead of pushing the hash:
   />
   <!-- ... -->
 </template>
-```
-
-<br />
-
-## Custom initialization / re-initialization
-
-If the targets array is empty, _useActive_ won't initialize the scroll observer.
-
-Whenever `root` or `targets` are updated (and not empty), _useActive_ will re-initialize the observer.
-
-```vue
-<script setup>
-// ...
-
-const targets = ref([])
-const root = ref(null)
-
-const { isActive, setActive } = useActive(targets) // Nothing is initialized
-
-watch(someReactiveValue, async (newValue) => {
-  await someAsyncFunction()
-
-  // Whenever ready, update targets or root and init
-  targets.value = ['id-1', 'id-2', 'id-3']
-  root.value = document.getElementById('MyContainer')
-})
-</script>
 ```
 
 <br />

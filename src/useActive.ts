@@ -53,7 +53,7 @@ const defaultOpts = {
 		first: 100,
 		last: -100,
 	},
-} as const;
+};
 
 export function useActive(
 	userIds: string[] | Ref<string[]>,
@@ -132,7 +132,7 @@ export function useActive(
 		});
 	}
 
-	// Returns true if target has been set as active
+	// Returns true if target is set as active
 	function onEdgeReached() {
 		if (!jumpToFirst && !jumpToLast) {
 			return false;
@@ -222,11 +222,11 @@ export function useActive(
 		}
 	}
 
-	function onResize() {
+	function onWindowResize() {
 		matchMedia.value = window.matchMedia(media).matches;
 	}
 
-	// Returns true if hash has been set as active
+	// Returns true if hash is set as active
 	function setFromHash() {
 		const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
 
@@ -247,7 +247,7 @@ export function useActive(
 		}
 	}
 
-	function setObserver() {
+	function setResizeObserver() {
 		resizeObserver = new ResizeObserver(() => {
 			if (!skipObserverCallback) {
 				setTargets();
@@ -264,10 +264,8 @@ export function useActive(
 		resizeObserver.observe(root.value);
 	}
 
-	function destroyObserver() {
-		if (resizeObserver) {
-			resizeObserver.disconnect();
-		}
+	function destroyResizeObserver() {
+		resizeObserver?.disconnect();
 	}
 
 	function addHashListener() {
@@ -281,14 +279,14 @@ export function useActive(
 	// Mount
 
 	onMounted(async () => {
-		window.addEventListener('resize', onResize, { passive: true });
+		window.addEventListener('resize', onWindowResize, { passive: true });
 
 		// https://github.com/nuxt/content/issues/1799
 		await new Promise((resolve) => setTimeout(resolve));
 
 		if (matchMedia.value) {
 			setTargets();
-			setObserver();
+			setResizeObserver();
 			addHashListener();
 
 			// Hash has priority only on mount...
@@ -303,7 +301,7 @@ export function useActive(
 	watch(matchMedia, (_matchMedia) => {
 		if (_matchMedia) {
 			setTargets();
-			setObserver();
+			setResizeObserver();
 			addHashListener();
 
 			// ...but not on resize
@@ -313,19 +311,11 @@ export function useActive(
 		} else {
 			activeId.value = '';
 			removeHashListener();
-			destroyObserver();
+			destroyResizeObserver();
 		}
 	});
 
-	watch(
-		root,
-		() => {
-			setTargets();
-		},
-		{
-			flush: 'post',
-		}
-	);
+	watch(root, setTargets, { flush: 'post' });
 
 	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
 		flush: 'post',
@@ -342,14 +332,14 @@ export function useActive(
 	// Destroy
 
 	onBeforeUnmount(() => {
-		window.removeEventListener('resize', onResize);
+		window.removeEventListener('resize', onWindowResize);
 		removeHashListener();
-		destroyObserver();
+		destroyResizeObserver();
 	});
 
 	// Composables
 
-	const setClick = useScroll({
+	const setScrollFromClick = useScroll({
 		userIds,
 		isWindow,
 		root,
@@ -363,7 +353,7 @@ export function useActive(
 		isActive: (id) => id === activeId.value,
 		setActive: (id) => {
 			activeId.value = id;
-			setClick();
+			setScrollFromClick();
 		},
 		activeId,
 		activeIndex,

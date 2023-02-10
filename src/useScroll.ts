@@ -1,5 +1,5 @@
 import { watch, onMounted, ref, unref, computed, type Ref, type ComputedRef } from 'vue';
-import { isSSR, useMediaRef } from './utils';
+import { getEdges, isSSR, useMediaRef } from './utils';
 
 type UseScrollOptions = {
 	userIds: string[] | Ref<string[]>;
@@ -8,7 +8,7 @@ type UseScrollOptions = {
 	matchMedia: Ref<boolean>;
 	onScrollUp: () => void;
 	onScrollDown: ({ isCancel }: { isCancel: boolean }) => void;
-	onEdgeReached: () => void;
+	onEdgeReached: () => void | boolean;
 };
 
 const ONCE = { once: true };
@@ -22,9 +22,9 @@ export function useScroll({
 	onScrollDown,
 	onEdgeReached,
 }: UseScrollOptions) {
-	const isClick = useMediaRef(matchMedia, false);
+	const isFromClick = useMediaRef(matchMedia, false);
 	const isIdle = ref(false);
-	const clickY = computed(() => (isClick.value ? getY() : 0));
+	const clickStartY = computed(() => (isFromClick.value ? getY() : 0));
 
 	let prevY = isSSR ? 0 : getY();
 
@@ -48,10 +48,10 @@ export function useScroll({
 				return requestAnimationFrame(scrollEnd);
 			}
 
-			// When equal, wait for n frames after scroll to make sure is idle
+			// Wait for n frames after scroll to make sure is idle
 			if (frameCount === maxFrames) {
 				isIdle.value = true;
-				isClick.value = false;
+				isFromClick.value = false;
 				cancelAnimationFrame(rafId as DOMHighResTimeStamp);
 			} else {
 				requestAnimationFrame(scrollEnd);
@@ -74,37 +74,41 @@ export function useScroll({
 	}
 
 	function onScroll() {
-		// Do not "update" results if scrolling from click
-		if (!isClick.value) {
+		// Do not "highlight" intermediate targets if scrolling from click
+		if (!isFromClick.value) {
 			prevY = setActive({ prevY });
 			onEdgeReached();
 		}
 	}
 
 	// Restore "highlighting" if scrolling again while already scrolling from click...
-	function reScroll() {
-		isClick.value = false;
-	}
-
-	function onPointerDown(event: PointerEvent) {
-		const isAnchor = (event.target as HTMLElement).tagName === 'A';
-
-		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
-			reScroll();
-			// ...and force set if canceling scroll on Firefox
-			setActive({ prevY: clickY.value, isCancel: true });
-		}
+	function restoreHighlight() {
+		isFromClick.value = false;
 	}
 
 	function onSpaceBar(event: KeyboardEvent) {
 		if (event.code === 'Space') {
-			reScroll();
+			restoreHighlight();
+		}
+	}
+
+	function onFirefoxCancel(event: PointerEvent) {
+		const isAnchor = (event.target as HTMLElement).tagName === 'A';
+
+		// ...and force set if canceling scroll on Firefox
+		if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
+			const { isBottom, isTop } = getEdges(root.value);
+
+			if (!isTop && !isBottom) {
+				restoreHighlight();
+				setActive({ prevY: clickStartY.value, isCancel: true });
+			}
 		}
 	}
 
 	onMounted(() => {
 		if (matchMedia.value && location.hash) {
-			// Wait for any eventual scroll to hash triggered by browser to end
+			// Wait for any eventual scroll to hash triggered by the router to end
 			setIdle(10);
 		} else {
 			isIdle.value = true;
@@ -133,31 +137,31 @@ export function useScroll({
 	);
 
 	watch(
-		isClick,
-		(_isClick, _, onCleanup) => {
+		isFromClick,
+		(_isFromClick, _, onCleanup) => {
 			const rootEl = isWindow.value ? document : root.value;
 			const hasTargets = unref(userIds)?.length > 0;
 
-			if (_isClick && hasTargets) {
-				rootEl.addEventListener('wheel', reScroll, ONCE);
-				rootEl.addEventListener('touchmove', reScroll, ONCE);
+			if (_isFromClick && hasTargets) {
+				rootEl.addEventListener('wheel', restoreHighlight, ONCE);
+				rootEl.addEventListener('touchmove', restoreHighlight, ONCE);
 				rootEl.addEventListener('scroll', setIdle as unknown as EventListener, ONCE);
 				rootEl.addEventListener('keydown', onSpaceBar as EventListener, ONCE);
-				rootEl.addEventListener('pointerdown', onPointerDown as EventListener); // Must persist for proper cancel
+				rootEl.addEventListener('pointerdown', onFirefoxCancel as EventListener); // Must persist until next scroll
 			}
 
 			onCleanup(() => {
-				if (_isClick && hasTargets) {
-					rootEl.removeEventListener('wheel', reScroll);
-					rootEl.removeEventListener('touchmove', reScroll);
+				if (_isFromClick && hasTargets) {
+					rootEl.removeEventListener('wheel', restoreHighlight);
+					rootEl.removeEventListener('touchmove', restoreHighlight);
 					rootEl.removeEventListener('scroll', setIdle as unknown as EventListener);
 					rootEl.removeEventListener('keydown', onSpaceBar as EventListener);
-					rootEl.removeEventListener('pointerdown', onPointerDown as EventListener);
+					rootEl.removeEventListener('pointerdown', onFirefoxCancel as EventListener);
 				}
 			});
 		},
 		{ flush: 'sync' }
 	);
 
-	return () => (isClick.value = true);
+	return () => (isFromClick.value = true);
 }
