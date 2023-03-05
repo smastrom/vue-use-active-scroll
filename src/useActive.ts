@@ -75,16 +75,12 @@ export function useActive(
 
    // Functions - Coords
 
-   function getInitialY() {
-      return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop)
-   }
-
    function getCurrentY() {
-      return isWindow.value ? window.scrollY : root.value.scrollTop ?? 0
+      return isWindow.value ? window.scrollY : root.value.scrollTop
    }
 
-   function getSentinelY() {
-      return isWindow.value ? getInitialY() : -root.value.scrollTop
+   function getSentinel() {
+      return isWindow.value ? root.value.getBoundingClientRect().top : -root.value.scrollTop
    }
 
    // Functions - Targets
@@ -102,7 +98,8 @@ export function useActive(
       _targets.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
       targets.elements = _targets
 
-      const rootTop = getInitialY()
+      const rootTop =
+         root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop)
 
       targets.top.clear()
       targets.bottom.clear()
@@ -135,13 +132,13 @@ export function useActive(
    function onScrollDown({ isCancel } = { isCancel: false }) {
       let firstOut = jumpToFirst ? ids.value[0] : ''
 
-      const sentinelY = getSentinelY()
+      const sentinel = getSentinel()
       const offset = FIXED_OFFSET + overlayHeight + toBottom
 
       Array.from(targets.top).some(([id, top], index) => {
          const _firstOffset = !jumpToFirst && index === 0 ? firstOffset : 0
 
-         if (sentinelY + top < offset + _firstOffset) {
+         if (sentinel + top < offset + _firstOffset) {
             return (firstOut = id), false
          }
          return true // Return last
@@ -151,7 +148,7 @@ export function useActive(
       if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
          const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1]
 
-         if (sentinelY + lastBottom < offset + lastOffset) {
+         if (sentinel + lastBottom < offset + lastOffset) {
             return (activeId.value = '')
          }
       }
@@ -174,20 +171,20 @@ export function useActive(
    function onScrollUp() {
       let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : ''
 
-      const sentinelY = getSentinelY()
+      const sentinel = getSentinel()
       const offset = FIXED_OFFSET + overlayHeight + toTop
 
       Array.from(targets.bottom).some(([id, bottom], index) => {
          const _lastOffset = !jumpToLast && index === ids.value.length - 1 ? lastOffset : 0
 
-         if (sentinelY + bottom > offset + _lastOffset) {
+         if (sentinel + bottom > offset + _lastOffset) {
             return (firstIn = id), true // Return first
          }
       })
 
       // Remove activeId once first target-top is in view
       if (!jumpToFirst && firstIn === ids.value[0]) {
-         if (sentinelY + targets.top.values().next().value > offset + firstOffset) {
+         if (sentinel + targets.top.values().next().value > offset + firstOffset) {
             return (activeId.value = '')
          }
       }
