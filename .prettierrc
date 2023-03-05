@@ -1,17 +1,16 @@
 {
-	"trailingComma": "es5",
-	"singleQuote": true,
-	"printWidth": 100,
-	"semi": false,
-	"tabWidth": 3,
-	"useTabs": false,
-	"overrides": [
-		{
-			"files": "README.md",
-			"options": {
-				"printWidth": 80,
-				"trailingComma": "none"
-			}
-		}
-	]
+   "trailingComma": "es5",
+   "singleQuote": true,
+   "printWidth": 100,
+   "semi": false,
+   "tabWidth": 3,
+   "useTabs": false,
+   "overrides": [
+      {
+         "files": "README.md",
+         "options": {
+            "printWidth": 80
+         }
+      }
+   ]
 }

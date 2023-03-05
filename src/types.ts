@@ -1,6 +1,6 @@
-import type { Ref } from 'vue'
+import { Ref } from 'vue'
 
-export type UseActiveOptions = {
+export declare type UseActiveOptions = {
    root?: Ref<HTMLElement | null> | HTMLElement | null
    jumpToFirst?: boolean
    jumpToLast?: boolean
@@ -17,9 +17,14 @@ export type UseActiveOptions = {
    }
 }
 
-export type UseActiveReturn = {
+export declare type UseActiveReturn = {
    isActive: (id: string) => boolean
    setActive: (id: string) => void
    activeId: Ref<string>
    activeIndex: Ref<number>
 }
+
+export declare function useActive(
+   userIds: string[] | Ref<string[]>,
+   options?: UseActiveOptions
+): UseActiveReturn
