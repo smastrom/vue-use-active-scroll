@@ -1,361 +1,475 @@
 import {
-	ref,
-	onMounted,
-	computed,
-	unref,
-	watch,
-	isRef,
-	isReactive,
-	onBeforeUnmount,
-	reactive,
-	type Ref,
-	type ComputedRef,
-} from 'vue';
-import { useScroll } from './useScroll';
-import { getEdges, useMediaRef, isSSR, FIXED_OFFSET } from './utils';
-
-type UseActiveOptions = {
-	root?: Ref<HTMLElement | null> | HTMLElement | null;
-	jumpToFirst?: boolean;
-	jumpToLast?: boolean;
-	overlayHeight?: number;
-	minWidth?: number;
-	replaceHash?: boolean;
-	edgeOffset?: {
-		first?: number;
-		last?: number;
-	};
-	boundaryOffset?: {
-		toTop?: number;
-		toBottom?: number;
-	};
-};
-
-type UseActiveReturn = {
-	isActive: (id: string) => boolean;
-	setActive: (id: string) => void;
-	activeId: Ref<string>;
-	activeIndex: Ref<number>;
-};
-
-const defaultOpts = {
-	jumpToFirst: true,
-	jumpToLast: true,
-	overlayHeight: 0,
-	minWidth: 0,
-	replaceHash: false,
-	root: null,
-	boundaryOffset: {
-		toTop: 0,
-		toBottom: 0,
-	},
-	edgeOffset: {
-		first: 100,
-		last: -100,
-	},
-};
+   ref,
+   onMounted,
+   computed,
+   unref,
+   watch,
+   isRef,
+   isReactive,
+   onBeforeUnmount,
+   reactive,
+   type Ref,
+   type ComputedRef,
+} from 'vue'
+import { getEdges, useMediaRef, isSSR, FIXED_OFFSET, defaultOptions as _def } from './utils'
+import type { UseActiveOptions, UseActiveReturn } from './types'
 
 export function useActive(
-	userIds: string[] | Ref<string[]>,
-	{
-		root: _root = defaultOpts.root,
-		jumpToFirst = defaultOpts.jumpToFirst,
-		jumpToLast = defaultOpts.jumpToLast,
-		overlayHeight = defaultOpts.overlayHeight,
-		minWidth = defaultOpts.minWidth,
-		replaceHash = defaultOpts.replaceHash,
-		boundaryOffset: {
-			toTop = defaultOpts.boundaryOffset.toTop,
-			toBottom = defaultOpts.boundaryOffset.toTop,
-		} = defaultOpts.boundaryOffset,
-		edgeOffset: {
-			first: firstOffset = defaultOpts.edgeOffset.first,
-			last: lastOffset = defaultOpts.edgeOffset.last,
-		} = defaultOpts.edgeOffset,
-	}: UseActiveOptions = defaultOpts
+   userIds: string[] | Ref<string[]>,
+   {
+      root: _root = _def.root,
+      jumpToFirst = _def.jumpToFirst,
+      jumpToLast = _def.jumpToLast,
+      overlayHeight = _def.overlayHeight,
+      minWidth = _def.minWidth,
+      replaceHash = _def.replaceHash,
+      boundaryOffset: {
+         toTop = _def.boundaryOffset.toTop,
+         toBottom = _def.boundaryOffset.toTop,
+      } = _def.boundaryOffset,
+      edgeOffset: {
+         first: firstOffset = _def.edgeOffset.first,
+         last: lastOffset = _def.edgeOffset.last,
+      } = _def.edgeOffset,
+   }: UseActiveOptions = _def
 ): UseActiveReturn {
-	let resizeObserver: ResizeObserver;
-	let skipObserverCallback = true;
+   // Reactivity - Internal - Root
 
-	const media = `(min-width: ${minWidth}px)`;
+   const root = computed(() =>
+      isSSR ? null : unref(_root) instanceof HTMLElement ? unref(_root) : document.documentElement
+   ) as ComputedRef<HTMLElement>
 
-	// Reactivity
+   const isWindow = computed(() => root.value === document.documentElement)
 
-	// Internal
-	const matchMedia = ref(isSSR || window.matchMedia(media).matches);
-	const targets = reactive({
-		elements: [] as HTMLElement[],
-		top: new Map<string, number>(),
-		bottom: new Map<string, number>(),
-	});
+   // Reactivity - Internal - Targets
 
-	const root = computed(() =>
-		isSSR ? null : unref(_root) instanceof HTMLElement ? unref(_root) : document.documentElement
-	) as ComputedRef<HTMLElement>;
+   const targets = reactive({
+      elements: [] as HTMLElement[],
+      top: new Map<string, number>(),
+      bottom: new Map<string, number>(),
+   })
 
-	const isWindow = computed(() => root.value === document.documentElement);
-	const ids = computed(() => targets.elements.map(({ id }) => id));
+   const ids = computed(() => targets.elements.map(({ id }) => id))
 
-	// Returned
-	const activeId = useMediaRef(matchMedia, '');
-	const activeIndex = computed(() => ids.value.indexOf(activeId.value));
+   // Reactivity - Internal - Controls
 
-	// Functions
+   const matchMedia = ref(isSSR || window.matchMedia(`(min-width: ${minWidth}px)`).matches)
+   const isScrollFromClick = useMediaRef(matchMedia, false)
+   const isScrollIdle = ref(false)
 
-	function getTop() {
-		return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop);
-	}
+   // Reactivity - Internal - Coords
 
-	// Runs onMount, on root resize and whenever the user array changes
-	function setTargets() {
-		const _targets = <HTMLElement[]>[];
+   const clickStartY = computed(() => (isScrollFromClick.value ? getCurrentY() : 0))
 
-		unref(userIds).forEach((id) => {
-			const target = document.getElementById(id);
-			if (target) {
-				_targets.push(target);
-			}
-		});
+   // Reactivity - Returned
 
-		_targets.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
-		targets.elements = _targets;
+   const activeId = useMediaRef(matchMedia, '')
+   const activeIndex = computed(() => ids.value.indexOf(activeId.value))
 
-		const rootTop = getTop();
+   // Non-reactive
 
-		targets.top.clear();
-		targets.bottom.clear();
+   let prevY = isSSR ? 0 : getCurrentY()
 
-		targets.elements.forEach((target) => {
-			const { top, bottom } = target.getBoundingClientRect();
-			targets.top.set(target.id, top - rootTop);
-			targets.bottom.set(target.id, bottom - rootTop);
-		});
-	}
+   let resizeObserver: ResizeObserver
+   let skipObserverCallback = true
 
-	// Returns true if target is set as active
-	function onEdgeReached() {
-		if (!jumpToFirst && !jumpToLast) {
-			return false;
-		}
+   // Functions - Coords
 
-		const { isBottom, isTop } = getEdges(root.value);
+   function getInitialY() {
+      return root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop)
+   }
 
-		if (jumpToFirst && isTop) {
-			return (activeId.value = ids.value[0]), true;
-		}
-		if (jumpToLast && isBottom) {
-			return (activeId.value = ids.value[ids.value.length - 1]), true;
-		}
-	}
+   function getCurrentY() {
+      return isWindow.value ? window.scrollY : root.value.scrollTop ?? 0
+   }
 
-	function getSentinel() {
-		return isWindow.value ? getTop() : -root.value.scrollTop;
-	}
+   function getSentinelY() {
+      return isWindow.value ? getInitialY() : -root.value.scrollTop
+   }
 
-	// Sets first target-top that LEFT the viewport
-	function onScrollDown({ isCancel } = { isCancel: false }) {
-		let firstOut = jumpToFirst ? ids.value[0] : '';
+   // Functions - Targets
 
-		const sentinel = getSentinel();
-		const offset = FIXED_OFFSET + overlayHeight + toBottom;
+   function setTargets() {
+      const _targets = <HTMLElement[]>[]
 
-		Array.from(targets.top).some(([id, top], index) => {
-			const _firstOffset = !jumpToFirst && index === 0 ? firstOffset : 0;
+      unref(userIds).forEach((id) => {
+         const target = document.getElementById(id)
+         if (target) {
+            _targets.push(target)
+         }
+      })
 
-			if (sentinel + top < offset + _firstOffset) {
-				return (firstOut = id), false;
-			}
-			return true; // Get last in ascending
-		});
+      _targets.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+      targets.elements = _targets
 
-		// If jumpToLast is false, remove activeId once last target-bottom is out of view
-		if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
-			const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1];
+      const rootTop = getInitialY()
 
-			if (sentinel + lastBottom < offset + lastOffset) {
-				return (activeId.value = '');
-			}
-		}
+      targets.top.clear()
+      targets.bottom.clear()
 
-		// Prevent innatural highlighting with smoothscroll/custom easings...
-		if (
-			ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value) ||
-			(firstOut && !activeId.value)
-		) {
-			return (activeId.value = firstOut);
-		}
+      targets.elements.forEach((target) => {
+         const { top, bottom } = target.getBoundingClientRect()
+         targets.top.set(target.id, top - rootTop)
+         targets.bottom.set(target.id, bottom - rootTop)
+      })
+   }
 
-		// ...but not on scroll cancel
-		if (isCancel) {
-			activeId.value = firstOut;
-		}
-	}
+   // Functions - Scroll
 
-	// Sets first target-bottom that ENTERED the viewport
-	function onScrollUp() {
-		let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : '';
+   function onEdgeReached() {
+      if (!jumpToFirst && !jumpToLast) {
+         return false
+      }
 
-		const sentinel = getSentinel();
-		const offset = FIXED_OFFSET + overlayHeight + toTop;
+      const { isBottom, isTop } = getEdges(root.value)
 
-		Array.from(targets.bottom).some(([id, bottom], index) => {
-			const _lastOffset = !jumpToLast && index === ids.value.length - 1 ? lastOffset : 0;
+      if (jumpToFirst && isTop) {
+         return (activeId.value = ids.value[0]), true
+      }
+      if (jumpToLast && isBottom) {
+         return (activeId.value = ids.value[ids.value.length - 1]), true
+      }
+   }
 
-			if (sentinel + bottom > offset + _lastOffset) {
-				return (firstIn = id), true; // Get first in ascending
-			}
-		});
+   // Sets first target-top that LEFT the viewport
+   function onScrollDown({ isCancel } = { isCancel: false }) {
+      let firstOut = jumpToFirst ? ids.value[0] : ''
 
-		// If jumpToFirst is false, remove activeId once first target-top is in view
-		if (!jumpToFirst && firstIn === ids.value[0]) {
-			if (sentinel + targets.top.values().next().value > offset + firstOffset) {
-				return (activeId.value = '');
-			}
-		}
+      const sentinelY = getSentinelY()
+      const offset = FIXED_OFFSET + overlayHeight + toBottom
 
-		if (
-			// Prevent innatural highlighting with smoothscroll/custom easings
-			ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
-			(firstIn && !activeId.value)
-		) {
-			return (activeId.value = firstIn);
-		}
-	}
+      Array.from(targets.top).some(([id, top], index) => {
+         const _firstOffset = !jumpToFirst && index === 0 ? firstOffset : 0
 
-	function onWindowResize() {
-		matchMedia.value = window.matchMedia(media).matches;
-	}
+         if (sentinelY + top < offset + _firstOffset) {
+            return (firstOut = id), false
+         }
+         return true // Return last
+      })
 
-	// Returns true if hash is set as active
-	function setFromHash() {
-		const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id;
+      // Remove activeId once last target-bottom is out of view
+      if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
+         const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1]
 
-		if (hashId) {
-			return (activeId.value = hashId), true;
-		}
-	}
+         if (sentinelY + lastBottom < offset + lastOffset) {
+            return (activeId.value = '')
+         }
+      }
 
-	function onHashChange(event: HashChangeEvent) {
-		if (matchMedia.value) {
-			// If scrolled to top
-			if (!event.newURL.includes('#') && activeId.value) {
-				return (activeId.value = jumpToFirst ? ids.value[0] : '');
-			}
+      // Highlight only next on smoothscroll/custom easings...
+      if (
+         ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value) ||
+         (firstOut && !activeId.value)
+      ) {
+         return (activeId.value = firstOut)
+      }
 
-			// Else set hash as active
-			setFromHash();
-		}
-	}
+      // ...but not on scroll cancel
+      if (isCancel) {
+         activeId.value = firstOut
+      }
+   }
 
-	function setResizeObserver() {
-		resizeObserver = new ResizeObserver(() => {
-			if (!skipObserverCallback) {
-				setTargets();
-				requestAnimationFrame(() => {
-					if (!onEdgeReached()) {
-						onScrollDown();
-					}
-				});
-			} else {
-				skipObserverCallback = false;
-			}
-		});
+   // Sets first target-bottom that ENTERED the viewport
+   function onScrollUp() {
+      let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : ''
 
-		resizeObserver.observe(root.value);
-	}
+      const sentinelY = getSentinelY()
+      const offset = FIXED_OFFSET + overlayHeight + toTop
 
-	function destroyResizeObserver() {
-		resizeObserver?.disconnect();
-	}
+      Array.from(targets.bottom).some(([id, bottom], index) => {
+         const _lastOffset = !jumpToLast && index === ids.value.length - 1 ? lastOffset : 0
 
-	function addHashListener() {
-		window.addEventListener('hashchange', onHashChange);
-	}
+         if (sentinelY + bottom > offset + _lastOffset) {
+            return (firstIn = id), true // Return first
+         }
+      })
 
-	function removeHashListener() {
-		window.removeEventListener('hashchange', onHashChange);
-	}
+      // Remove activeId once first target-top is in view
+      if (!jumpToFirst && firstIn === ids.value[0]) {
+         if (sentinelY + targets.top.values().next().value > offset + firstOffset) {
+            return (activeId.value = '')
+         }
+      }
 
-	// Mount
+      if (
+         // Highlight only prev on smoothscroll/custom easings...
+         ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
+         (firstIn && !activeId.value)
+      ) {
+         return (activeId.value = firstIn)
+      }
+   }
 
-	onMounted(async () => {
-		window.addEventListener('resize', onWindowResize, { passive: true });
+   function setActive({ prevY, isCancel = false }: { prevY: number; isCancel?: boolean }) {
+      const nextY = getCurrentY()
 
-		// https://github.com/nuxt/content/issues/1799
-		await new Promise((resolve) => setTimeout(resolve));
+      if (nextY < prevY) {
+         onScrollUp()
+      } else {
+         onScrollDown({ isCancel })
+      }
 
-		if (matchMedia.value) {
-			setTargets();
-			setResizeObserver();
-			addHashListener();
+      return nextY
+   }
 
-			// Hash has priority only on mount...
-			if (!setFromHash() && !onEdgeReached()) {
-				onScrollDown();
-			}
-		}
-	});
+   function onScroll() {
+      if (!isScrollFromClick.value) {
+         prevY = setActive({ prevY })
+         onEdgeReached()
+      }
+   }
 
-	// Update
+   function setIdleScroll(maxFrames = 20) {
+      let rafId: DOMHighResTimeStamp | undefined = undefined
+      let rafPrevY = getCurrentY()
+      let frameCount = 0
 
-	watch(matchMedia, (_matchMedia) => {
-		if (_matchMedia) {
-			setTargets();
-			setResizeObserver();
-			addHashListener();
+      function scrollEnd() {
+         frameCount++
 
-			// ...but not on resize
-			if (!onEdgeReached()) {
-				onScrollDown();
-			}
-		} else {
-			activeId.value = '';
-			removeHashListener();
-			destroyResizeObserver();
-		}
-	});
+         const rafNextY = getCurrentY()
 
-	watch(root, setTargets, { flush: 'post' });
+         if (rafPrevY !== rafNextY) {
+            frameCount = 0
+            rafPrevY = rafNextY
+            return requestAnimationFrame(scrollEnd)
+         }
 
-	watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
-		flush: 'post',
-	});
+         // Wait for n frames after scroll to make sure is idle
+         if (frameCount === maxFrames) {
+            isScrollIdle.value = true
+            isScrollFromClick.value = false
+            cancelAnimationFrame(rafId as DOMHighResTimeStamp)
+         } else {
+            requestAnimationFrame(scrollEnd)
+         }
+      }
 
-	watch(activeId, (newId) => {
-		if (replaceHash) {
-			const start = jumpToFirst ? 0 : -1;
-			const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`;
-			history.replaceState(history.state, '', newHash);
-		}
-	});
+      rafId = requestAnimationFrame(scrollEnd)
+   }
 
-	// Destroy
+   function setMountIdle() {
+      if (location.hash) {
+         setIdleScroll(10)
+      } else {
+         isScrollIdle.value = true
+      }
+   }
 
-	onBeforeUnmount(() => {
-		window.removeEventListener('resize', onWindowResize);
-		removeHashListener();
-		destroyResizeObserver();
-	});
+   // Functions - Hash
 
-	// Composables
+   function setFromHash() {
+      const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id
 
-	const setScrollFromClick = useScroll({
-		userIds,
-		isWindow,
-		root,
-		matchMedia,
-		onScrollUp,
-		onScrollDown,
-		onEdgeReached,
-	});
+      if (hashId) {
+         return (activeId.value = hashId), true
+      }
+   }
 
-	return {
-		isActive: (id) => id === activeId.value,
-		setActive: (id) => {
-			activeId.value = id;
-			setScrollFromClick();
-		},
-		activeId,
-		activeIndex,
-	};
+   function onHashChange(event: HashChangeEvent) {
+      // If scrolled back to top
+      if (!event.newURL.includes('#') && activeId.value) {
+         return (activeId.value = jumpToFirst ? ids.value[0] : '')
+      }
+
+      setFromHash()
+   }
+
+   function addHashChangeListener() {
+      window.addEventListener('hashchange', onHashChange)
+   }
+
+   function removeHashChangeListener() {
+      window.removeEventListener('hashchange', onHashChange)
+   }
+
+   // Functions - Resize
+
+   function onWindowResize() {
+      matchMedia.value = window.matchMedia(`(min-width: ${minWidth}px)`).matches
+   }
+
+   function setResizeObserver() {
+      resizeObserver = new ResizeObserver(() => {
+         if (!skipObserverCallback) {
+            setTargets()
+            requestAnimationFrame(() => {
+               if (!onEdgeReached()) {
+                  onScrollDown()
+               }
+            })
+         } else {
+            skipObserverCallback = false
+         }
+      })
+
+      resizeObserver.observe(root.value)
+   }
+
+   function destroyResizeObserver() {
+      resizeObserver?.disconnect()
+   }
+
+   // Functions - Scroll cancel
+
+   function restoreHighlight() {
+      isScrollFromClick.value = false
+   }
+
+   function onSpaceBar(event: KeyboardEvent) {
+      if (event.code === 'Space') {
+         restoreHighlight()
+      }
+   }
+
+   function onFirefoxCancel(event: PointerEvent) {
+      const isAnchor = (event.target as HTMLElement).tagName === 'A'
+
+      if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
+         const { isBottom, isTop } = getEdges(root.value)
+
+         if (!isTop && !isBottom) {
+            restoreHighlight()
+            setActive({ prevY: clickStartY.value, isCancel: true })
+         }
+      }
+   }
+
+   // Functions - Returned
+
+   function isActive(id: string) {
+      return id === activeId.value
+   }
+
+   function _setActive(id: string) {
+      activeId.value = id
+      isScrollFromClick.value = true
+   }
+
+   // Mount - Non-scroll listeners, targets and first highlight
+
+   onMounted(async () => {
+      window.addEventListener('resize', onWindowResize, { passive: true })
+
+      // https://github.com/nuxt/content/issues/1799
+      await new Promise((resolve) => setTimeout(resolve))
+
+      if (matchMedia.value) {
+         setTargets()
+         setResizeObserver()
+         setMountIdle()
+         addHashChangeListener()
+
+         // Hash has priority only on mount...
+         if (!setFromHash() && !onEdgeReached()) {
+            onScrollDown()
+         }
+      }
+   })
+
+   // Updates - Targets
+
+   watch(root, setTargets, { flush: 'post' })
+
+   watch(isRef(userIds) || isReactive(userIds) ? userIds : () => null, setTargets, {
+      flush: 'post',
+   })
+
+   // Updates - MatchMedia
+
+   watch(matchMedia, (_matchMedia) => {
+      if (_matchMedia) {
+         setTargets()
+         setResizeObserver()
+         addHashChangeListener()
+
+         // ...but not on resize
+         if (!onEdgeReached()) {
+            onScrollDown()
+         }
+      } else {
+         activeId.value = ''
+         removeHashChangeListener()
+         destroyResizeObserver()
+      }
+   })
+
+   // Updates - Default behavior
+
+   watch(
+      [isScrollIdle, matchMedia, root, userIds],
+      ([_isScrollIdle, _matchMedia, _root, _userIds], _, onCleanup) => {
+         const rootEl = isWindow.value ? document : _root
+         const isActive = rootEl && _isScrollIdle && _matchMedia && unref(_userIds)?.length > 0
+
+         if (isActive) {
+            rootEl.addEventListener('scroll', onScroll, {
+               passive: true,
+            })
+         }
+
+         onCleanup(() => {
+            if (isActive) {
+               rootEl.removeEventListener('scroll', onScroll)
+            }
+         })
+      }
+   )
+
+   // Updates - Dynamic behavior
+
+   watch(
+      isScrollFromClick,
+      (_isScrollFromClick, _, onCleanup) => {
+         const rootEl = isWindow.value ? document : root.value
+         const hasTargets = unref(userIds)?.length > 0
+
+         if (_isScrollFromClick && hasTargets) {
+            rootEl.addEventListener('wheel', restoreHighlight, { once: true })
+            rootEl.addEventListener('touchmove', restoreHighlight, { once: true })
+            rootEl.addEventListener('scroll', setIdleScroll as unknown as EventListener, {
+               once: true,
+            })
+            rootEl.addEventListener('keydown', onSpaceBar as EventListener, { once: true })
+            rootEl.addEventListener('pointerdown', onFirefoxCancel as EventListener) // Must persist until next scroll
+         }
+
+         onCleanup(() => {
+            if (_isScrollFromClick && hasTargets) {
+               rootEl.removeEventListener('wheel', restoreHighlight)
+               rootEl.removeEventListener('touchmove', restoreHighlight)
+               rootEl.removeEventListener('scroll', setIdleScroll as unknown as EventListener)
+               rootEl.removeEventListener('keydown', onSpaceBar as EventListener)
+               rootEl.removeEventListener('pointerdown', onFirefoxCancel as EventListener)
+            }
+         })
+      },
+      { flush: 'sync' }
+   )
+
+   // Updates - Hash
+
+   watch(activeId, (newId) => {
+      if (replaceHash) {
+         const start = jumpToFirst ? 0 : -1
+         const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`
+         history.replaceState(history.state, '', newHash)
+      }
+   })
+
+   // Destroy
+
+   onBeforeUnmount(() => {
+      window.removeEventListener('resize', onWindowResize)
+      removeHashChangeListener()
+      destroyResizeObserver()
+   })
+
+   return {
+      isActive,
+      setActive: _setActive,
+      activeId,
+      activeIndex,
+   }
 }
