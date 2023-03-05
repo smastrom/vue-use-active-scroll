@@ -14,29 +14,29 @@ But it may not be the one-size-fits-all solution to highlight menu/sidebar links
 
 _You may want to:_
 
-- Highlight any clicked link even if it will never intersect
-- Get consistent results regardless of scroll speed
-- Immediately highlight links on click/hash navigation if smooth scrolling is enabled
-- Prevent unnatural highlighting with custom easings or smooth scrolling
+-  Highlight any clicked link even if it will never intersect
+-  Get consistent results regardless of scroll speed
+-  Immediately highlight links on click/hash navigation if smooth scrolling is enabled
+-  Prevent unnatural highlighting with custom easings or smooth scrolling
 
 **Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behavior and interaction and always returns the "correct" active target.
 
 ### Features
 
-- Precise and stable at any speed
-- CSS scroll-behavior or JS scroll agnostic
-- Adaptive behavior on mount, back/forward hash navigation, scroll, click, cancel.
-- Customizable offsets for each scroll direction
-- Customizable offsets for first and last target
-- Customizable behavior on top/bottom reached
-- Supports custom scrolling containers
+-  Precise and stable at any speed
+-  CSS scroll-behavior or JS scroll agnostic
+-  Adaptive behavior on mount, hash navigation, scroll, click, cancel.
+-  Customizable offsets for each scroll direction
+-  Customizable offsets for first and last target
+-  Customizable behavior on top/bottom reached
+-  Supports custom scrolling containers
 
 ### What it doesn't do?
 
-- Scroll to targets
-- Mutate elements and inject styles
-- Enforce specific scroll behavior / callbacks
-- Enforce the use of hash navigation
+-  Scroll to targets
+-  Mutate elements and inject styles
+-  Enforce specific scroll behavior / callbacks
+-  Enforce/configure/alter hash navigation
 
 <br />
 
@@ -84,9 +84,9 @@ import { useActive } from 'vue-use-active-scroll'
 
 // Data to render links, in real life you may pass them as prop, use inject() etc...
 const links = ref([
-  { href: 'introduction', label: 'Introduction' },
-  { href: 'quick-start', label: 'Quick Start' },
-  { href: 'props', label: 'Props' }
+   { href: 'introduction', label: 'Introduction' },
+   { href: 'quick-start', label: 'Quick Start' },
+   { href: 'props', label: 'Props' }
 ])
 
 const targets = computed(() => links.value.map(({ href }) => href))
@@ -102,7 +102,7 @@ If an empty array is provided, the observer won't be initialized until the array
 
 ### What if my targets don't have IDs?
 
-There might be cases where you lack control over the rendered HTML and no IDs nor TOC are provided. Assuming your content is wrapped by container with an ID (e.g. `#ArticleContent`):
+There might be cases where you lack control over the rendered HTML and no IDs nor TOC are provided. Assuming your content is wrapped by container that you can access (e.g. `#ArticleContent`):
 
 ```vue
 <!-- Sidebar.vue -->
@@ -110,26 +110,39 @@ There might be cases where you lack control over the rendered HTML and no IDs no
 <script setup>
 const links = ref([])
 
-onMounted(() => {
-  // 1. Get all the targets
-  const targets = Array.from(
-    document.getElementById('ArticleContent').querySelectorAll('h2')
-  )
+function setLinks() {
+   // 1. Get targets
+   const targets = Array.from(
+      document.getElementById('ArticleContent').querySelectorAll('h2')
+   )
 
-  targets.forEach((target) => {
-    // 2. Generate an ID from their text content and add it
-    target.id = target.textContent.toLowerCase().replace(/\s+/g, '-')
-    // 3. Populate the array to render links
-    links.value.push({
-      href: target.id,
-      label: target.textContent
-    })
-  })
-})
+   targets.forEach((target) => {
+      // 2. Generate an ID from their text content and add it
+      target.id = target.textContent.toLowerCase().replace(/\s+/g, '-')
+      // 3. Populate the array
+      links.value.push({
+         href: target.id,
+         label: target.textContent
+      })
+   })
+}
 
-// 4. Provide the IDs to observe
+function clearLinks() {
+   links.value = []
+}
+
+onMounted(setLinks) // Or onMounted(() => { setLinks() })
+
+onBeforeUpdate(clearLinks)
+
+onUpdated(setLinks)
+
+onBeforeUnmount(clearLinks)
+
+// 4. Compute the array of IDs to observe
 const targets = computed(() => links.value.map(({ href }) => href))
 
+// 5. Provide them to useActive
 const { isActive } = useActive(targets)
 </script>
 ```
@@ -148,10 +161,10 @@ Then just compute the array of the IDs to observe (assuming max depth is 3):
 
 ```js
 const targets = computed(() =>
-  toc.value.links.flatMap(({ id, children = [] }) => [
-    id,
-    ...children.map(({ id }) => id)
-  ])
+   toc.value.links.flatMap(({ id, children = [] }) => [
+      id,
+      ...children.map(({ id }) => id)
+   ])
 )
 
 const { setActive, isActive } = useActive(targets)
@@ -163,16 +176,16 @@ const { setActive, isActive } = useActive(targets)
 
 ```js
 const { data } = await useAsyncData('about', () =>
-  queryContent('/about').findOne()
+   queryContent('/about').findOne()
 )
 
 const targets = computed(() =>
-  data.value
-    ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
-        id,
-        ...children.map(({ id }) => id)
-      ])
-    : []
+   data.value
+      ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
+           id,
+           ...children.map(({ id }) => id)
+        ])
+      : []
 )
 
 const { isActive } = useActive(targets)
@@ -190,7 +203,7 @@ const { isActive } = useActive(targets)
 
 ```js
 const { isActive, setActive } = useActive(targets, {
-  // ...
+   // ...
 })
 ```
 
@@ -220,8 +233,6 @@ const { isActive, setActive } = useActive(targets, {
 
 ### **1.** Call _setActive_ in your click handler by passing the anchor ID
 
-> :bulb: This doesn't scroll to targets. It just informs the composable that scroll from click is about to happen and `useActive` will adjust its behavior accordingly.
-
 ```vue
 <!-- Sidebar.vue -->
 
@@ -232,18 +243,20 @@ const { isActive, setActive } = useActive(targets)
 </script>
 
 <template>
-  <nav>
-    <a
-      @click="setActive(link.href) /* 👈🏻 */"
-      v-for="(link, index) in links"
-      :key="link.href"
-      :href="`#${link.href}`"
-    >
-      {{ link.label }}
-    </a>
-  </nav>
+   <nav>
+      <a
+         @click="setActive(link.href) /* 👈🏻 */"
+         v-for="(link, index) in links"
+         :key="link.href"
+         :href="`#${link.href}`"
+      >
+         {{ link.label }}
+      </a>
+   </nav>
 </template>
 ```
+
+:bulb: _setActive_ doesn't scroll to targets. It just informs the observer that scroll from click is about to happen so that it can adapt its behavior.
 
 <br />
 
@@ -253,23 +266,23 @@ You're free to choose between CSS (smooth or auto), [scrollIntoView](https://dev
 
 #### A. Using native CSS scroll-behavior (recommended)
 
-- If content is scrolled by the window, add the following CSS rule to your `html` element:
+-  If content is scrolled by the window, add the following CSS rule to your `html` element:
 
 ```css
 html {
-  scroll-behavior: smooth; /* or 'auto' */
+   scroll-behavior: smooth; /* or 'auto' */
 }
 ```
 
-- If content is scrolled by a container:
+-  If content is scrolled by a container:
 
 ```css
 html {
-  scroll-behavior: auto; /* Keep it 'auto' */
+   scroll-behavior: auto; /* Keep it 'auto' */
 }
 
 .Container {
-  scroll-behavior: smooth;
+   scroll-behavior: smooth;
 }
 ```
 
@@ -287,27 +300,27 @@ import animateScrollTo from 'animated-scroll-to'
 const { isActive, setActive } = useActive(targets)
 
 function scrollTo(event, id) {
-  // ...
-  setActive(id) // 👈🏻 Include setActive
-  animateScrollTo(document.getElementById(id), {
-    easing: easeOutBack,
-    minDuration: 300,
-    maxDuration: 600
-  })
+   // ...
+   setActive(id) // 👈🏻 Include setActive
+   animateScrollTo(document.getElementById(id), {
+      easing: easeOutBack,
+      minDuration: 300,
+      maxDuration: 600
+   })
 }
 </script>
 
 <template>
-  <!-- ... -->
-  <a
-    v-for="(link, index) in links"
-    @click="scrollTo($event, link.href)"
-    :key="link.href"
-    :href="`#${link.href}`"
-  >
-    {{ link.label }}
-  </a>
-  <!-- ... -->
+   <!-- ... -->
+   <a
+      v-for="(link, index) in links"
+      @click="scrollTo($event, link.href)"
+      :key="link.href"
+      :href="`#${link.href}`"
+   >
+      {{ link.label }}
+   </a>
+   <!-- ... -->
 </template>
 ```
 
@@ -327,29 +340,29 @@ const { isActive, setActive } = useActive(targets)
 </script>
 
 <template>
-  <nav>
-    <a
-      @click="setActive(link.href)"
-      v-for="(link, index) in links"
-      :key="link.href"
-      :href="`#${link.href}`"
-      :class="{
-        ActiveLink: isActive(link.href) /* 👈🏻 or link.href === activeId */
-      }"
-    >
-      {{ link.label }}
-    </a>
-  </nav>
+   <nav>
+      <a
+         @click="setActive(link.href)"
+         v-for="(link, index) in links"
+         :key="link.href"
+         :href="`#${link.href}`"
+         :class="{
+            ActiveLink: isActive(link.href) /* 👈🏻 or link.href === activeId */
+         }"
+      >
+         {{ link.label }}
+      </a>
+   </nav>
 </template>
 
 <style>
 html {
-  /* or .container { */
-  scroll-behavior: smooth; /* or 'auto' */
+   /* or .container { */
+   scroll-behavior: smooth; /* or 'auto' */
 }
 
 .ActiveLink {
-  color: #f00;
+   color: #f00;
 }
 </style>
 ```
@@ -360,14 +373,14 @@ html {
 
 ```vue
 <RouterLink
-  @click.native="setActive(link.href)"
-  :to="{ hash: `#${link.href}` }"
-  :class="{
-    active: isActive(link.href)
-  }"
-  :ariaCurrentValue="`${isActive(link.href)}`"
-  activeClass=""
-  exactActiveClass=""
+   @click.native="setActive(link.href)"
+   :to="{ hash: `#${link.href}` }"
+   :class="{
+      active: isActive(link.href)
+   }"
+   :ariaCurrentValue="`${isActive(link.href)}`"
+   activeClass=""
+   exactActiveClass=""
 >
   {{ link.label }}
 </RouterLink>
@@ -381,11 +394,11 @@ html {
 
 ```vue
 <NuxtLink
-  @click="setActive(link.href)"
-  :href="`#${link.href}`"
-  :class="{
-    active: isActive(link.href)
-  }"
+   @click="setActive(link.href)"
+   :href="`#${link.href}`"
+   :class="{
+      active: isActive(link.href)
+   }"
 >
   {{ link.label }}
 </NuxtLink>
@@ -405,7 +418,7 @@ useActive(targets, { overlayHeight: 100 })
 
 ```css
 .target {
-  scroll-margin-top: 100px; /* Add overlayHeight to scroll-margin-top */
+   scroll-margin-top: 100px; /* Add overlayHeight to scroll-margin-top */
 }
 ```
 
@@ -421,21 +434,21 @@ For content scrolled by the window, simply return the target element. To scroll 
 
 ```js
 const router = createRouter({
-  // ...
-  scrollBehavior(to) {
-    if (to.hash) {
-      // Content scrolled by a container
-      if (to.name === 'PageNameUsingContainer') {
-        return document.querySelector(to.hash).scrollIntoView()
-      }
+   // ...
+   scrollBehavior(to) {
+      if (to.hash) {
+         // Content scrolled by a container
+         if (to.name === 'PageNameUsingContainer') {
+            return document.querySelector(to.hash).scrollIntoView()
+         }
 
-      // Content scrolled by the window
-      return {
-        el: to.hash
-        // top: 100 // Eventual fixed header (overlayHeight)
+         // Content scrolled by the window
+         return {
+            el: to.hash
+            // top: 100 // Eventual fixed header (overlayHeight)
+         }
       }
-    }
-  }
+   }
 })
 ```
 
@@ -449,21 +462,21 @@ To navigate back to the top of the same page (e.g. clicking on browser back butt
 
 ```js
 const router = createRouter({
-  // ...
-  scrollBehavior(to, from) {
-    if (from.hash && !to.hash) {
-      // Content scrolled by a container
-      if (
-        to.name === 'PageNameUsingContainer' &&
-        from.name === 'PageNameUsingContainer'
-      ) {
-        return document.getElementById('ScrollingContainer').scroll(0, 0)
-      }
+   // ...
+   scrollBehavior(to, from) {
+      if (from.hash && !to.hash) {
+         // Content scrolled by a container
+         if (
+            to.name === 'PageNameUsingContainer' &&
+            from.name === 'PageNameUsingContainer'
+         ) {
+            return document.getElementById('ScrollingContainer').scroll(0, 0)
+         }
 
-      // Content scrolled by the window
-      return { top: 0 }
-    }
-  }
+         // Content scrolled by the window
+         return { top: 0 }
+      }
+   }
 })
 ```
 
@@ -477,15 +490,15 @@ If you don't like that, choose to replace instead of pushing the hash:
 
 ```vue
 <template>
-  <!-- ... -->
-  <RouterLink
-    @click.native="setActive(link.href)"
-    :to="{ hash: `#${item.href}`, replace: true /* 👈🏻 */ }"
-    :class="{
-      active: isActive(link.href)
-    }"
-  />
-  <!-- ... -->
+   <!-- ... -->
+   <RouterLink
+      @click.native="setActive(link.href)"
+      :to="{ hash: `#${item.href}`, replace: true /* 👈🏻 */ }"
+      :class="{
+         active: isActive(link.href)
+      }"
+   />
+   <!-- ... -->
 </template>
 ```
 
