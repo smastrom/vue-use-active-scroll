@@ -1,4 +1,3 @@
-// @ts-ignore
 import App from './App.vue'
 import { getRandomSequence } from '../cypress/support/component'
 
