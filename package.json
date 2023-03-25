@@ -1,67 +1,68 @@
 {
-	"name": "vue-use-active-scroll",
-	"version": "0.9.9",
-	"private": false,
-	"description": "Reactive and accurate TOC/sidebar links without compromises for Vue 3.",
-	"keywords": [
-		"vue",
-		"vue3",
-		"vue-scroll",
-		"vue-scroll-active",
-		"vue-active-scroll",
-		"vue-active-link",
-		"vue-toc"
-	],
-	"homepage": "https://vue-use-active-scroll.netlify.app/",
-	"bugs": {
-		"url": "https://github.com/smastrom/vue-use-active-scroll/issues"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/smastrom/vue-use-active-scroll.git"
-	},
-	"license": "MIT",
-	"author": {
-		"name": "Simone Mastromattei",
-		"email": "smastrom@proton.me"
-	},
-	"main": "dist/index.js",
-	"module": "dist/index.mjs",
-	"types": "dist/index.d.ts",
-	"files": [
-		"dist/*"
-	],
-	"scripts": {
-		"build": "vue-tsc && vite build && rimraf dist/_redirects dist/favicon.ico",
-		"build:app": "vue-tsc && vite build --mode app",
-		"dev": "vite",
-		"prepare": "husky install",
-		"test": "cypress run --component",
-		"test:gui": "cypress open --component"
-	},
-	"lint-staged": {
-		"*.{ts,vue}": "eslint --cache --fix",
-		"*.{ts,vue,md}": "prettier --write"
-	},
-	"devDependencies": {
-		"@rollup/plugin-terser": "^0.4.0",
-		"@types/node": "^18.13.0",
-		"@typescript-eslint/eslint-plugin": "^5.51.0",
-		"@typescript-eslint/parser": "^5.51.0",
-		"@vitejs/plugin-vue": "^4.0.0",
-		"animated-scroll-to": "^2.3.0",
-		"cypress": "^12.5.1",
-		"eslint": "^8.33.0",
-		"eslint-plugin-vue": "^9.9.0",
-		"husky": "^8.0.3",
-		"playwright-webkit": "^1.30.0",
-		"prettier": "^2.8.4",
-		"rimraf": "^4.1.2",
-		"typescript": "^4.9.5",
-		"vite": "^4.1.1",
-		"vite-plugin-dts": "^1.7.2",
-		"vue": "^3.2.47",
-		"vue-router": "^4.1.6",
-		"vue-tsc": "^1.0.24"
-	}
+   "name": "vue-use-active-scroll",
+   "version": "1.0.0",
+   "private": false,
+   "description": "Accurate TOC/sidebar links without compromises for Vue 3.",
+   "keywords": [
+      "vue",
+      "vue3",
+      "vue-scroll",
+      "vue-scroll-active",
+      "vue-active-scroll",
+      "vue-active-link",
+      "vue-toc"
+   ],
+   "homepage": "https://vue-use-active-scroll.netlify.app/",
+   "bugs": {
+      "url": "https://github.com/smastrom/vue-use-active-scroll/issues"
+   },
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/smastrom/vue-use-active-scroll.git"
+   },
+   "license": "MIT",
+   "author": {
+      "name": "Simone Mastromattei",
+      "email": "smastrom@proton.me"
+   },
+   "main": "dist/index.js",
+   "module": "dist/index.mjs",
+   "types": "dist/index.d.ts",
+   "files": [
+      "dist/*"
+   ],
+   "scripts": {
+      "build": "vue-tsc && vite build && rimraf dist/_redirects dist/favicon.ico",
+      "build:app": "vue-tsc && vite build --mode app",
+      "postbuild": "cpy src/types.ts dist --flat --rename=index.d.ts",
+      "dev": "vite",
+      "prepare": "husky install",
+      "test": "cypress run --component",
+      "test:gui": "cypress open --component"
+   },
+   "lint-staged": {
+      "*.{ts,vue}": "eslint --cache --fix",
+      "*.{ts,vue,md}": "prettier --write"
+   },
+   "devDependencies": {
+      "@rollup/plugin-terser": "^0.4.0",
+      "@types/node": "^18.15.9",
+      "@typescript-eslint/eslint-plugin": "^5.56.0",
+      "@typescript-eslint/parser": "^5.56.0",
+      "@vitejs/plugin-vue": "^4.1.0",
+      "animated-scroll-to": "^2.3.0",
+      "cpy-cli": "^4.2.0",
+      "cypress": "^12.8.1",
+      "eslint": "^8.36.0",
+      "eslint-plugin-vue": "^9.10.0",
+      "husky": "^8.0.3",
+      "playwright-webkit": "^1.32.1",
+      "prettier": "^2.8.7",
+      "rimraf": "^4.4.1",
+      "typescript": "^4.9.5",
+      "vue": "^3.2.47",
+      "vue-router": "^4.1.6",
+      "vue-tsc": "^1.2.0",
+      "vite": "4.1.4"
+   }
 }

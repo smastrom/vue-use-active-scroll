@@ -8,10 +8,12 @@ pnpm-debug.log*
 
 .vscode/*
 .DS_Store
-node_modules
-dist
-
-content
-demo/dist
 *.tgz
 .eslintcache
+
+cypress/screenshots
+
+node_modules
+dist
+content
+demo/dist

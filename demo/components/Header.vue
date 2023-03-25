@@ -1,61 +1,61 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
+const router = useRouter()
 const isFixedHeader = computed(
-	() =>
-		router.currentRoute.value.name === 'FixedHeader' ||
-		router.currentRoute.value.name === 'Sections'
-);
+   () =>
+      router.currentRoute.value.name === 'FixedHeader' ||
+      router.currentRoute.value.name === 'Sections'
+)
 </script>
 
 <template>
-	<nav :class="{ FixedHeader: isFixedHeader }">
-		<div>
-			<RouterLink to="/">Window</RouterLink>
-			<RouterLink to="/container">Container</RouterLink>
-			<RouterLink to="/fixedheader">Fixed Header</RouterLink>
-			<RouterLink to="/sections">Sections</RouterLink>
-		</div>
-	</nav>
+   <nav :class="{ FixedHeader: isFixedHeader }">
+      <div>
+         <RouterLink to="/">Window</RouterLink>
+         <RouterLink to="/container">Container</RouterLink>
+         <RouterLink to="/fixedheader">Fixed Header</RouterLink>
+         <RouterLink to="/sections">Sections</RouterLink>
+      </div>
+   </nav>
 </template>
 
 <style scoped>
 .FixedHeader {
-	position: fixed;
-	max-width: 100%;
-	width: 1280px;
+   position: fixed;
+   max-width: 100%;
+   width: 1280px;
 }
 
 nav {
-	border-bottom: 1px solid var(--BorderColor);
-	height: 60px;
-	padding: 0 20px;
-	display: flex;
-	align-items: center;
-	background-color: var(--BackgroundColor);
+   border-bottom: 1px solid var(--BorderColor);
+   height: 60px;
+   padding: 0 20px;
+   display: flex;
+   align-items: center;
+   background-color: var(--BackgroundColor);
 }
 
 div {
-	width: max-content;
-	display: grid;
-	gap: 30px;
-	grid-auto-flow: column;
-	overflow: auto;
+   width: max-content;
+   display: grid;
+   gap: 30px;
+   grid-auto-flow: column;
+   overflow: auto;
 }
 
 a {
-	font-weight: 600;
-	font-size: 90%;
-	text-decoration: none;
-	cursor: pointer;
-	color: white;
-	white-space: nowrap;
+   font-weight: 600;
+   font-size: 90%;
+   text-decoration: none;
+   cursor: pointer;
+   color: white;
+   white-space: nowrap;
 }
 
 a:hover,
 a.router-link-exact-active {
-	border-bottom: 2px solid white;
+   border-bottom: 2px solid white;
 }
 </style>
