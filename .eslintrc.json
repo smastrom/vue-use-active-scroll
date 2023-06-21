@@ -16,7 +16,7 @@
    },
    "plugins": ["vue", "@typescript-eslint"],
    "rules": {
-      "curly": ["error", "all"],
+      "curly": ["error", "multi-line"],
       "no-useless-return": "error",
       "no-else-return": "error",
       "nonblock-statement-body-position": ["error", "below"],
