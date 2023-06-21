@@ -163,9 +163,7 @@ export function useActive(
       }
 
       // ...but not on scroll cancel
-      if (isCancel) {
-         activeId.v = firstOut
-      }
+      if (isCancel) activeId.v = firstOut
    }
 
    // Sets first target-bottom that ENTERED the viewport
@@ -260,9 +258,7 @@ export function useActive(
    function setFromHash() {
       const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id
 
-      if (hashId) {
-         return (activeId.v = hashId), true
-      }
+      if (hashId) return (activeId.v = hashId), true
    }
 
    function onHashChange(event: HashChangeEvent) {
@@ -293,9 +289,7 @@ export function useActive(
          if (!skipObserverCallback) {
             setTargets()
             requestAnimationFrame(() => {
-               if (!onEdgeReached()) {
-                  onScrollDown()
-               }
+               if (!onEdgeReached()) onScrollDown()
             })
          } else {
             skipObserverCallback = false
@@ -316,9 +310,7 @@ export function useActive(
    }
 
    function onSpaceBar(event: KeyboardEvent) {
-      if (event.code === 'Space') {
-         restoreHighlight()
-      }
+      if (event.code === 'Space') restoreHighlight()
    }
 
    function onFirefoxCancel(event: PointerEvent) {
@@ -360,9 +352,7 @@ export function useActive(
          addHashChangeListener()
 
          // Hash has priority only on mount...
-         if (!setFromHash() && !onEdgeReached()) {
-            onScrollDown()
-         }
+         if (!setFromHash() && !onEdgeReached()) onScrollDown()
       }
    })
 
@@ -383,9 +373,7 @@ export function useActive(
          addHashChangeListener()
 
          // ...but not on resize
-         if (!onEdgeReached()) {
-            onScrollDown()
-         }
+         if (!onEdgeReached()) onScrollDown()
       } else {
          activeId.v = ''
          removeHashChangeListener()
@@ -402,15 +390,11 @@ export function useActive(
          const isActive = rootEl && _isScrollIdle && _matchMedia && unref(_userIds)?.length > 0
 
          if (isActive) {
-            rootEl.addEventListener('scroll', onScroll, {
-               passive: true,
-            })
+            rootEl.addEventListener('scroll', onScroll, { passive: true })
          }
 
          onCleanup(() => {
-            if (isActive) {
-               rootEl.removeEventListener('scroll', onScroll)
-            }
+            if (isActive) rootEl.removeEventListener('scroll', onScroll)
          })
       }
    )
@@ -427,6 +411,7 @@ export function useActive(
             rootEl.addEventListener('wheel', restoreHighlight, { once: true })
             rootEl.addEventListener('touchmove', restoreHighlight, { once: true })
             rootEl.addEventListener('scroll', setIdleScroll as unknown as EventListener, {
+               passive: true,
                once: true,
             })
             rootEl.addEventListener('keydown', onSpaceBar as EventListener, { once: true })

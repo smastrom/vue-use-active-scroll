@@ -16,10 +16,8 @@
    },
    "plugins": ["vue", "@typescript-eslint"],
    "rules": {
-      "curly": ["error", "multi-line"],
       "no-useless-return": "error",
       "no-else-return": "error",
-      "nonblock-statement-body-position": ["error", "below"],
       "@typescript-eslint/ban-ts-comment": [
          "error",
          {
