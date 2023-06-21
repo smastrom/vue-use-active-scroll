@@ -28,3 +28,7 @@ export declare function useActive(
    userIds: string[] | Ref<string[]>,
    options?: UseActiveOptions
 ): UseActiveReturn
+
+export interface ShortRef<T> extends Ref<T> {
+   v: T
+}

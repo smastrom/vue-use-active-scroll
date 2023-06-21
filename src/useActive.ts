@@ -1,7 +1,5 @@
 import {
-   ref,
    onMounted,
-   computed,
    unref,
    watch,
    isRef,
@@ -9,37 +7,44 @@ import {
    onBeforeUnmount,
    reactive,
    type Ref,
-   type ComputedRef,
 } from 'vue'
-import { getEdges, useMediaRef, isSSR, FIXED_OFFSET, defaultOptions as _def } from './utils'
-import type { UseActiveOptions, UseActiveReturn } from './types'
+import {
+   computed,
+   ref,
+   getEdges,
+   useMediaRef,
+   isSSR,
+   FIXED_OFFSET,
+   defaultOptions as def,
+} from './utils'
+import type { UseActiveOptions, UseActiveReturn, ShortRef } from './types'
 
 export function useActive(
    userIds: string[] | Ref<string[]>,
    {
-      root: _root = _def.root,
-      jumpToFirst = _def.jumpToFirst,
-      jumpToLast = _def.jumpToLast,
-      overlayHeight = _def.overlayHeight,
-      minWidth = _def.minWidth,
-      replaceHash = _def.replaceHash,
+      root: _root = def.root,
+      jumpToFirst = def.jumpToFirst,
+      jumpToLast = def.jumpToLast,
+      overlayHeight = def.overlayHeight,
+      minWidth = def.minWidth,
+      replaceHash = def.replaceHash,
       boundaryOffset: {
-         toTop = _def.boundaryOffset.toTop,
-         toBottom = _def.boundaryOffset.toTop,
-      } = _def.boundaryOffset,
+         toTop = def.boundaryOffset.toTop,
+         toBottom = def.boundaryOffset.toTop,
+      } = def.boundaryOffset,
       edgeOffset: {
-         first: firstOffset = _def.edgeOffset.first,
-         last: lastOffset = _def.edgeOffset.last,
-      } = _def.edgeOffset,
-   }: UseActiveOptions = _def
+         first: firstOffset = def.edgeOffset.first,
+         last: lastOffset = def.edgeOffset.last,
+      } = def.edgeOffset,
+   }: UseActiveOptions = def
 ): UseActiveReturn {
    // Reactivity - Internal - Root
 
    const root = computed(() =>
       isSSR ? null : unref(_root) instanceof HTMLElement ? unref(_root) : document.documentElement
-   ) as ComputedRef<HTMLElement>
+   ) as ShortRef<HTMLElement>
 
-   const isWindow = computed(() => root.value === document.documentElement)
+   const isWindow = computed(() => root.v === document.documentElement)
 
    // Reactivity - Internal - Targets
 
@@ -59,12 +64,12 @@ export function useActive(
 
    // Reactivity - Internal - Coords
 
-   const clickStartY = computed(() => (isScrollFromClick.value ? getCurrentY() : 0))
+   const clickStartY = computed(() => (isScrollFromClick.v ? getCurrentY() : 0))
 
    // Reactivity - Returned
 
    const activeId = useMediaRef(matchMedia, '')
-   const activeIndex = computed(() => ids.value.indexOf(activeId.value))
+   const activeIndex = computed(() => ids.v.indexOf(activeId.v))
 
    // Non-reactive
 
@@ -76,11 +81,11 @@ export function useActive(
    // Functions - Coords
 
    function getCurrentY() {
-      return isWindow.value ? window.scrollY : root.value.scrollTop
+      return isWindow.v ? window.scrollY : root.v.scrollTop
    }
 
    function getSentinel() {
-      return isWindow.value ? root.value.getBoundingClientRect().top : -root.value.scrollTop
+      return isWindow.v ? root.v.getBoundingClientRect().top : -root.v.scrollTop
    }
 
    // Functions - Targets
@@ -98,8 +103,7 @@ export function useActive(
       _targets.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
       targets.elements = _targets
 
-      const rootTop =
-         root.value.getBoundingClientRect().top - (isWindow.value ? 0 : root.value.scrollTop)
+      const rootTop = root.v.getBoundingClientRect().top - (isWindow.v ? 0 : root.v.scrollTop)
 
       targets.top.clear()
       targets.bottom.clear()
@@ -118,19 +122,19 @@ export function useActive(
          return false
       }
 
-      const { isBottom, isTop } = getEdges(root.value)
+      const { isBottom, isTop } = getEdges(root.v)
 
       if (jumpToFirst && isTop) {
-         return (activeId.value = ids.value[0]), true
+         return (activeId.v = ids.v[0]), true
       }
       if (jumpToLast && isBottom) {
-         return (activeId.value = ids.value[ids.value.length - 1]), true
+         return (activeId.v = ids.v[ids.v.length - 1]), true
       }
    }
 
    // Sets first target-top that LEFT the viewport
    function onScrollDown({ isCancel } = { isCancel: false }) {
-      let firstOut = jumpToFirst ? ids.value[0] : ''
+      let firstOut = jumpToFirst ? ids.v[0] : ''
 
       const sentinel = getSentinel()
       const offset = FIXED_OFFSET + overlayHeight + toBottom
@@ -145,37 +149,34 @@ export function useActive(
       })
 
       // Remove activeId once last target-bottom is out of view
-      if (!jumpToLast && firstOut === ids.value[ids.value.length - 1]) {
-         const lastBottom = Array.from(targets.bottom.values())[ids.value.length - 1]
+      if (!jumpToLast && firstOut === ids.v[ids.v.length - 1]) {
+         const lastBottom = Array.from(targets.bottom.values())[ids.v.length - 1]
 
          if (sentinel + lastBottom < offset + lastOffset) {
-            return (activeId.value = '')
+            return (activeId.v = '')
          }
       }
 
       // Highlight only next on smoothscroll/custom easings...
-      if (
-         ids.value.indexOf(firstOut) > ids.value.indexOf(activeId.value) ||
-         (firstOut && !activeId.value)
-      ) {
-         return (activeId.value = firstOut)
+      if (ids.v.indexOf(firstOut) > ids.v.indexOf(activeId.v) || (firstOut && !activeId.v)) {
+         return (activeId.v = firstOut)
       }
 
       // ...but not on scroll cancel
       if (isCancel) {
-         activeId.value = firstOut
+         activeId.v = firstOut
       }
    }
 
    // Sets first target-bottom that ENTERED the viewport
    function onScrollUp() {
-      let firstIn = jumpToLast ? ids.value[ids.value.length - 1] : ''
+      let firstIn = jumpToLast ? ids.v[ids.v.length - 1] : ''
 
       const sentinel = getSentinel()
       const offset = FIXED_OFFSET + overlayHeight + toTop
 
       Array.from(targets.bottom).some(([id, bottom], index) => {
-         const _lastOffset = !jumpToLast && index === ids.value.length - 1 ? lastOffset : 0
+         const _lastOffset = !jumpToLast && index === ids.v.length - 1 ? lastOffset : 0
 
          if (sentinel + bottom > offset + _lastOffset) {
             return (firstIn = id), true // Return first
@@ -183,18 +184,18 @@ export function useActive(
       })
 
       // Remove activeId once first target-top is in view
-      if (!jumpToFirst && firstIn === ids.value[0]) {
+      if (!jumpToFirst && firstIn === ids.v[0]) {
          if (sentinel + targets.top.values().next().value > offset + firstOffset) {
-            return (activeId.value = '')
+            return (activeId.v = '')
          }
       }
 
       if (
          // Highlight only prev on smoothscroll/custom easings...
-         ids.value.indexOf(firstIn) < ids.value.indexOf(activeId.value) ||
-         (firstIn && !activeId.value)
+         ids.v.indexOf(firstIn) < ids.v.indexOf(activeId.v) ||
+         (firstIn && !activeId.v)
       ) {
-         return (activeId.value = firstIn)
+         return (activeId.v = firstIn)
       }
    }
 
@@ -211,7 +212,7 @@ export function useActive(
    }
 
    function onScroll() {
-      if (!isScrollFromClick.value) {
+      if (!isScrollFromClick.v) {
          prevY = setActive({ prevY })
          onEdgeReached()
       }
@@ -235,8 +236,8 @@ export function useActive(
 
          // Wait for n frames after scroll to make sure is idle
          if (frameCount === maxFrames) {
-            isScrollIdle.value = true
-            isScrollFromClick.value = false
+            isScrollIdle.v = true
+            isScrollFromClick.v = false
             cancelAnimationFrame(rafId as DOMHighResTimeStamp)
          } else {
             requestAnimationFrame(scrollEnd)
@@ -250,7 +251,7 @@ export function useActive(
       if (location.hash) {
          setIdleScroll(10)
       } else {
-         isScrollIdle.value = true
+         isScrollIdle.v = true
       }
    }
 
@@ -260,14 +261,14 @@ export function useActive(
       const hashId = targets.elements.find(({ id }) => id === location.hash.slice(1))?.id
 
       if (hashId) {
-         return (activeId.value = hashId), true
+         return (activeId.v = hashId), true
       }
    }
 
    function onHashChange(event: HashChangeEvent) {
       // If scrolled back to top
-      if (!event.newURL.includes('#') && activeId.value) {
-         return (activeId.value = jumpToFirst ? ids.value[0] : '')
+      if (!event.newURL.includes('#') && activeId.v) {
+         return (activeId.v = jumpToFirst ? ids.v[0] : '')
       }
 
       setFromHash()
@@ -284,7 +285,7 @@ export function useActive(
    // Functions - Resize
 
    function onWindowResize() {
-      matchMedia.value = window.matchMedia(`(min-width: ${minWidth}px)`).matches
+      matchMedia.v = window.matchMedia(`(min-width: ${minWidth}px)`).matches
    }
 
    function setResizeObserver() {
@@ -301,7 +302,7 @@ export function useActive(
          }
       })
 
-      resizeObserver.observe(root.value)
+      resizeObserver.observe(root.v)
    }
 
    function destroyResizeObserver() {
@@ -311,7 +312,7 @@ export function useActive(
    // Functions - Scroll cancel
 
    function restoreHighlight() {
-      isScrollFromClick.value = false
+      isScrollFromClick.v = false
    }
 
    function onSpaceBar(event: KeyboardEvent) {
@@ -324,11 +325,11 @@ export function useActive(
       const isAnchor = (event.target as HTMLElement).tagName === 'A'
 
       if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
-         const { isBottom, isTop } = getEdges(root.value)
+         const { isBottom, isTop } = getEdges(root.v)
 
          if (!isTop && !isBottom) {
             restoreHighlight()
-            setActive({ prevY: clickStartY.value, isCancel: true })
+            setActive({ prevY: clickStartY.v, isCancel: true })
          }
       }
    }
@@ -336,12 +337,12 @@ export function useActive(
    // Functions - Returned
 
    function isActive(id: string) {
-      return id === activeId.value
+      return id === activeId.v
    }
 
    function _setActive(id: string) {
-      activeId.value = id
-      isScrollFromClick.value = true
+      activeId.v = id
+      isScrollFromClick.v = true
    }
 
    // Mount - Non-scroll listeners, targets and first highlight
@@ -352,7 +353,7 @@ export function useActive(
       // https://github.com/nuxt/content/issues/1799
       await new Promise((resolve) => setTimeout(resolve))
 
-      if (matchMedia.value) {
+      if (matchMedia.v) {
          setTargets()
          setResizeObserver()
          setMountIdle()
@@ -386,7 +387,7 @@ export function useActive(
             onScrollDown()
          }
       } else {
-         activeId.value = ''
+         activeId.v = ''
          removeHashChangeListener()
          destroyResizeObserver()
       }
@@ -397,7 +398,7 @@ export function useActive(
    watch(
       [isScrollIdle, matchMedia, root, userIds],
       ([_isScrollIdle, _matchMedia, _root, _userIds], _, onCleanup) => {
-         const rootEl = isWindow.value ? document : _root
+         const rootEl = isWindow.v ? document : _root
          const isActive = rootEl && _isScrollIdle && _matchMedia && unref(_userIds)?.length > 0
 
          if (isActive) {
@@ -419,7 +420,7 @@ export function useActive(
    watch(
       isScrollFromClick,
       (_isScrollFromClick, _, onCleanup) => {
-         const rootEl = isWindow.value ? document : root.value
+         const rootEl = isWindow.v ? document : root.v
          const hasTargets = unref(userIds)?.length > 0
 
          if (_isScrollFromClick && hasTargets) {
@@ -450,7 +451,7 @@ export function useActive(
    watch(activeId, (newId) => {
       if (replaceHash) {
          const start = jumpToFirst ? 0 : -1
-         const newHash = `${location.pathname}${activeIndex.value > start ? `#${newId}` : ''}`
+         const newHash = `${location.pathname}${activeIndex.v > start ? `#${newId}` : ''}`
          history.replaceState(history.state, '', newHash)
       }
    })
