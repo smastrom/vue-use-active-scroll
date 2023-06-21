@@ -1,5 +1,5 @@
 import App from './App.vue'
-import { getRandomSequence } from '../cypress/support/component'
+import { getRandomSequence } from '../cypress/support/utils'
 
 it('Should jump to last target', () => {
    const targetsLength = 20
@@ -7,7 +7,6 @@ it('Should jump to last target', () => {
    cy.mount(App, {
       props: {
          jumpToLast: true,
-         targetsLength,
       },
    })
 
@@ -24,7 +23,6 @@ it('Should not jump to last target', () => {
    cy.mount(App, {
       props: {
          jumpToLast: false,
-         targetsLength,
       },
    })
 
@@ -64,3 +62,5 @@ it('Should set active links on click without scroll interferences', () => {
       cy.get('a').eq(randomIndex).click().should('have.class', 'active')
    })
 })
+
+// TODO: Add more tests

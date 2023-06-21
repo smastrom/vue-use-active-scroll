@@ -1,43 +1,51 @@
 /// <reference types="cypress" />
 
 import { mount } from 'cypress/vue'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+
+type MountParams = Parameters<typeof mount>
+type OptionsParam = MountParams[1] & { router?: Router }
+
+export interface Props {
+   jumpToLast?: boolean
+   jumpToFirst?: boolean
+   marginTop?: number
+}
+
+export type MountOptions = Omit<OptionsParam, 'props'> & {
+   props?: Props
+}
 
 declare global {
-   // eslint-disable-next-line @typescript-eslint/no-namespace
    namespace Cypress {
       interface Chainable {
-         mount: typeof mount
+         mount(component: any, options?: MountOptions): Chainable<any>
       }
    }
 }
 
-Cypress.Commands.add('mount', mount)
+Cypress.Commands.add('mount', (component, options = {} as MountOptions) => {
+   options.global = options.global || {}
+   options.global.plugins = options.global.plugins || []
 
-export function getInt(max: number) {
-   return Math.floor(Math.random() * max)
-}
-
-export function getRandomSequence(maxLength: number) {
-   const sequence: number[] = []
-
-   let newLength = maxLength
-   let prev: number | undefined = undefined
-
-   for (let i = 0; i < newLength; i++) {
-      const next = getInt(maxLength)
-
-      if (typeof prev === 'undefined') {
-         prev = next
-         continue
-      }
-      if (prev === next) {
-         newLength++
-         continue
-      }
-
-      prev = next
-      sequence.push(next)
+   if (!options.router) {
+      options.router = createRouter({
+         history: createMemoryHistory(),
+         routes: [
+            {
+               path: '/',
+               name: 'Index',
+               component: () => import('../../tests/Page.vue'),
+            },
+         ],
+      })
    }
 
-   return sequence
-}
+   options.global.plugins.push({
+      install(app) {
+         app.use(options.router as Router)
+      },
+   })
+
+   return mount(component, options)
+})

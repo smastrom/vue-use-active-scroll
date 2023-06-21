@@ -50,7 +50,7 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 
          <li v-for="item in menuItems" :key="item.href">
             <RouterLink
-               @click.native="onClick(item.href)"
+               @click="onClick(item.href)"
                :ariaCurrentValue="`${isActive(item.href)}`"
                :to="{ hash: `#${item.href}` /* , replace: true */ }"
                :class="{

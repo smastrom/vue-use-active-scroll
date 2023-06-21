@@ -1,4 +1,5 @@
-import { customRef, ref as vRef, computed as vComputed, type Ref, ComputedRef } from 'vue'
+import { customRef, ref as vRef, computed as vComputed, type ComputedRef, type Ref } from 'vue'
+
 import type { ShortRef } from './types'
 
 export const isSSR = typeof window === 'undefined'
@@ -56,7 +57,7 @@ export function useMediaRef<T>(matchMedia: Ref<boolean>, defaultValue: T): Short
 }
 
 export function getEdges(root: HTMLElement) {
-   // Mobile devices needs window.innerHeight
+   // Mobile devices require window.innerHeight
    const clientHeight = root === document.documentElement ? window.innerHeight : root.clientHeight
 
    const isTop = root.scrollTop <= FIXED_OFFSET * 2

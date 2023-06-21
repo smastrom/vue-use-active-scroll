@@ -19,9 +19,7 @@ watch(
          isCustom ? 'auto' : newBehavior
       )
    },
-   {
-      immediate: true,
-   }
+   { immediate: true }
 )
 </script>
 
@@ -134,7 +132,9 @@ button {
    font-weight: 600;
    cursor: pointer;
    color: white;
-   transition: border 100ms ease-in-out, background-color 100ms ease-in-out;
+   transition:
+      border 100ms ease-in-out,
+      background-color 100ms ease-in-out;
 }
 
 input {
