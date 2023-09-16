@@ -1,9 +1,9 @@
 import { watch, computed, reactive } from 'vue'
 
 export function useFakeData(length = 10) {
-   const parsedStart = parseInt(sessionStorage.getItem('firstNumber') || '0')
-   const parsedEnd = parseInt(sessionStorage.getItem('lastNumber') || '0')
-   const parsedLength = parsedEnd - parsedStart + 1
+   const start = parseInt(sessionStorage.getItem('firstNumber') || '0')
+   const end = parseInt(sessionStorage.getItem('lastNumber') || '0')
+   const parsedLength = end - start + 1
 
    const isMobile = window.matchMedia('(max-width: 610px)').matches
 
@@ -12,8 +12,8 @@ export function useFakeData(length = 10) {
 
    const sections = reactive(
       Array.from({ length: parsedLength <= 1 ? length : parsedLength }, (_, index) => ({
-         id: `title_${parsedStart + index}`,
-         title: `${parsedStart + index} `.repeat(6).toUpperCase(),
+         id: `title_${start + index}`,
+         title: `${start + index} `.repeat(6).toUpperCase(),
          text: 'Text '.repeat(getInt(minText, maxText)),
       }))
    )

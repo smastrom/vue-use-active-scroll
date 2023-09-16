@@ -51,12 +51,11 @@
    },
    "devDependencies": {
       "@rollup/plugin-terser": "^0.4.3",
-      "@types/node": "^20.6.0",
+      "@types/node": "^20.6.2",
       "@vitejs/plugin-vue": "^4.3.4",
       "animated-scroll-to": "^2.3.0",
       "cypress": "^13.2.0",
       "husky": "^8.0.3",
-      "playwright-webkit": "^1.38.0",
       "prettier": "^3.0.3",
       "typescript": "^5.2.2",
       "vite": "4.4.9",

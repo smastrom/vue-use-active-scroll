@@ -26,7 +26,7 @@ watch(
 <template>
    <div class="Controls">
       <fieldset>
-         <legend>Click</legend>
+         <legend>Scroll</legend>
          <div>
             <label for="Native">
                <input
@@ -46,13 +46,13 @@ watch(
                   value="custom"
                   v-model="clickType"
                />
-               Custom JS Scroll
+               Custom JS
             </label>
          </div>
       </fieldset>
 
       <fieldset :disabled="clickType === 'custom'">
-         <legend>CSS scroll-behavior</legend>
+         <legend>scroll-behavior</legend>
          <div>
             <label for="Auto">
                <input
