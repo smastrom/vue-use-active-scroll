@@ -9,7 +9,7 @@
 
 **Examples**
 
-[With Template Refs]() - [Nuxt Content Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue) - [Markup from a CMS]()
+[With Template Refs](https://stackblitz.com/edit/vitejs-vite-sywzg8?file=src%252Fpages%252FIndex.vue) - [Nuxt Content Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue) - [Markup from a CMS](https://stackblitz.com/edit/vitejs-vite-9feebm?file=src%252Fpages%252FIndex.vue)
 
 <br />
 
