@@ -3,40 +3,56 @@
 
 # Vue Use Active Scroll
 
-**Examples:** Vite: [Demo App](https://vue-use-active-scroll.netlify.app) — Nuxt Content: [Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
+[Live Demo](https://vue-use-active-scroll.netlify.app/)
+
+<br />
+
+**Examples**
+
+[With Template Refs](https://stackblitz.com/edit/vitejs-vite-sywzg8?file=src%252Fpages%252FIndex.vue) - [Nuxt Content Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue) - [Markup from a CMS](https://stackblitz.com/edit/vitejs-vite-9feebm?file=src%252Fpages%252FIndex.vue)
 
 <br />
 
 ## Why?
 
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
-But it may not be the one-size-fits-all solution to highlight nav/sidebar links.
-
-_You may want to:_
+But it may not be the one-size-fits-all solution to highlight nav/sidebar links. Most likely because you want to:
 
 -  Highlight any clicked link even if it will never intersect
+-  Always highlight first/last link once reached the top/bottom of the page
 -  Get consistent results regardless of scroll speed
 -  Immediately highlight links on click/hash navigation if smooth scrolling is enabled
--  Prevent unnatural highlighting with custom easings or smooth scrolling
+-  Avoid unnatural highlighting with custom easings or smooth scrolling
 
-**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behavior and interaction and always returns the "correct" active target.
+**Vue Use Active Scroll** implements a custom scroll observer which automatically adapts to any type of scroll behavior and trigger and always returns the "correct" active target.
 
-### Features
+### Do you really need it?
+
+If you don't care about the above gotchas, then no, please **don't use this package** because it adds a couple of KBs to your JS bundle that you don't need.
+
+You can achieve a good result with the Intersection Observer API as well. The [Astro docs TOC](https://github.com/withastro/docs/blob/main/src/components/RightSidebar/TableOfContents.tsx) is a great example in just 30 lines of code.
+
+Moreover, this package is meant for highlighting links in vertical sidebars and may be overkill for other use cases lik menu header links.
+
+<br />
+
+## Features
 
 -  Precise and stable at any speed
 -  CSS scroll-behavior or JS scroll agnostic
--  Adaptive behavior on mount, hash navigation, scroll, click, cancel.
+-  Adaptive behavior on mount, hash and prev/next navigation, scroll, click, cancel.
 -  Customizable offsets for each scroll direction
 -  Customizable offsets for first and last target
 -  Customizable behavior on top/bottom reached
 -  Supports custom scrolling containers
+-  Supports both plain ids and template refs
 
 ### What it doesn't do?
 
 -  **Scroll to targets**
--  Mutate elements and inject styles
--  Enforce specific scroll behaviors
--  Enforce/configure/alter hash navigation
+-  Mutate the DOM and inject styles
+-  Require specific scroll behavior
+-  Require or configure hash navigation
 
 <br />
 
@@ -44,157 +60,198 @@ _You may want to:_
 
 ```bash
 pnpm add vue-use-active-scroll
+
+# yarn add vue-use-active-scroll
+# npm i vue-use-active-scroll
+# bun add vue-use-active-scroll
 ```
 
 <br />
 
-# Usage
+## Usage
 
-## 1. Provide target IDs
+This package exports a single composable named `useActiveScroll` which accepts an array of targets to observe with the following signature:
 
-Assuming your content looks like:
-
-```html
-<h2 id="introduction">Introduction</h2>
-<p>...</p>
-<h2 id="quick-start">Quick Start</h2>
-<p>...</p>
-<h2 id="props">Props</h2>
-<p>...</p>
+```ts
+type Targets = Ref<HTMLElement[]> | Ref<string[]>
 ```
 
-And your nav links will look like:
+You can provide targets using template refs, HTML elements or DOM IDs.
 
-```html
-<a href="#introduction">Introduction</a>
-<a href="#quick-start">Quick Start</a>
-<a href="#props">Props</a>
+The composable returns an object with properties to react to the active link and a **method to include in your click handler**: it doesn't scroll to targets and it's required if scroll is also originated by clicks.
+
+```ts
+const { setActive, activeId, activeIndex /*, ... */ } = useActiveScroll(targets)
 ```
 
-In your nav/sidebar component, provide the IDs to observe to `useActive` (order is not
-important).
+> :warning: In case you setup `vue-router` from scratch (e.g. Vite SPA), please make sure that you have configured [scroll behavior](#vue-router---scroll-to-and-from-hash) in your router instance. This is not required if using Nuxt.
 
-> :bulb: For a TOC, you may want to target (and scroll) the headings of your sections (instead of the whole section) to ensure results better-aligned with users' reading flow.
+---
+
+### Scenario 1 - Template refs (preferred)
+
+If you are in charge of rendering the content nodes (e.g. using `v-for`), simply pass the template refs to `useActiveScroll`:
 
 ```vue
-<!-- Sidebar.vue -->
-
 <script setup>
-import { useActive } from 'vue-use-active-scroll'
+import { ref, reactive, computed } from 'vue'
+import { useActiveScroll } from 'vue-use-active-scroll'
 
-// Data to render links, in real life you may pass them as prop, use inject() etc...
-const links = ref([
-   { href: 'introduction', label: 'Introduction' },
-   { href: 'quick-start', label: 'Quick Start' },
-   { href: 'props', label: 'Props' },
+// This may come from a CMS, markdown file, etc.
+const content = reactive([
+   { id: 'introduction', title: 'Introduction', content: '...' },
+   { id: 'quick-start', title: 'Quick Start', content: '...' }, // ...
 ])
 
-const targets = computed(() => links.value.map(({ href }) => href))
-// console.log(targets.value) => ['introduction', 'quick-start', 'props']
+const links = computed(() =>
+   content.map(({ id, title }) => ({ href: id, label: title }))
+)
 
-const { isActive } = useActive(targets)
+const targets = ref([])
+
+const { setActive, activeId } = useActiveScroll(targets)
 </script>
+
+<template>
+   <!-- Content -->
+   <section v-for="section in content">
+      <h2 :id="section.id" ref="targets">{{ section.title }}</h2>
+      <p>{{ section.content }}</p>
+   </section>
+
+   <!-- Sidebar -->
+   <nav>
+      <RouterLink
+         v-for="link in links"
+         @click="setActive(link.href)"
+         :key="link.href"
+         :to="{ hash: `#${link.href}` }"
+         :ariaCurrentValue="link.href === activeId"
+         :class="{ 'sidebar-link--active': link.href === activeId }"
+      >
+         {{ link.label }}
+      </RouterLink>
+   </nav>
+</template>
 ```
 
-You can provide either a reactive or a plain array of strings. If the array is reactive, the observer will reinitialize whenever it changes.
+### Scenario 2 - Nuxt Content `<ContentDoc />`
 
-If an empty array is provided, the observer won't be initialized until the array is populated.
+Nuxt Content is great because not only automatically applies IDs to your headings, but also provides a `useContent` composable to query a reactive TOC in any component.
 
-### What if my targets don't have IDs?
-
-There might be cases where you lack control over the rendered HTML and no IDs nor TOC are provided. Assuming your content is wrapped by container that you can access via a ref or a selector:
+Since the object is reactive and kept in sync with the content, you can directly pass the IDs to `useActiveScroll`:
 
 ```vue
-<!-- Sidebar.vue -->
+<script setup lang="ts">
+import { useActive } from 'vue-use-active-scroll'
 
-<script setup>
-const links = ref([])
-
-function setLinks() {
-   // 1. Collect targets
-   const targets = Array.from(
-      document.getElementById('ArticleContent').querySelectorAll('h2')
-   )
-
-   targets.forEach((target) => {
-      // 2. Generate an ID from their text content and add it
-      target.id = target.textContent.toLowerCase().replace(/\s+/g, '-')
-      // 3. Populate the array
-      links.value.push({
-         href: target.id,
-         label: target.textContent,
-      })
-   })
-}
-
-onMounted(() => {
-   setLinks()
-})
-
-// 4. Compute the array of IDs to observe
-const targets = computed(() => links.value.map(({ href }) => href))
-
-// 5. Provide it to useActive
-const { isActive } = useActive(targets)
-</script>
-```
-
-<details><summary><strong>Nuxt Content 2</strong></summary>
-
-<br />
-
-Nuxt Content automatically applies IDs to your headings. If enabled the [document-driven mode](https://content.nuxtjs.org/guide/writing/document-driven/) you can directly query the TOC in your sidebar component:
-
-```js
 const { toc } = useContent()
-```
 
-Then just compute the array of the IDs to observe (assuming max depth is 3):
-
-```js
-const targets = computed(() =>
+// ['introduction', 'introduction-sub-1', 'quick-start']
+const ids = computed(() =>
    toc.value.links.flatMap(({ id, children = [] }) => [
       id,
-      ...children.map(({ id }) => id),
+      ...children.map(({ id }) => id), // Flatten any nested link
    ])
 )
 
-const { setActive, isActive } = useActive(targets)
+const { setActive, activeId } = useActive(ids)
+</script>
+
+<template>
+   <ContentDoc />
+
+   <nav>
+      <NuxtLink
+         v-for="link in toc.links"
+         @click="setActive(link.id)"
+         :key="link.id"
+         :to="`#${link.id}`"
+         :ariaCurrentValue="link.href === activeId"
+         :class="{ 'sidebar-link--active': activeId === link.id }"
+      >
+         {{ link.text }}
+      </NuxtLink>
+   </nav>
+</template>
 ```
 
-<details><summary><strong>Without Document-driven</strong></summary>
+### Scenario 3 - Incoming HTML
+
+In this case, you must query the DOM in an `onMounted` hook or a watcher in order to get the targets.
+
+Many CMSs already append IDs to the markup headings. In case yours doesn't, you can add them manually.
+
+The below example shows also how to collect the links to render in the sidebar.
+
+```vue
+<script setup>
+import { ref, watch } from 'vue'
+import { useActiveScroll } from 'vue-use-active-scroll'
+
+const container = ref(null)
+const targets = ref([])
+const links = ref([])
+
+function resetTargets() {
+   targets.value = []
+   links.value = []
+}
+
+function setTargets(container) {
+   const _targets = []
+   const _links = []
+
+   container.querySelectorAll('h2').forEach((h2) => {
+      /**
+       * Add IDs to headings if your CMS doesn't
+       */
+      h2.id = h2.textContent.toLowerCase().replace(/\s+/g, '-')
+
+      _targets.push(h2)
+      _links.push({ href: h2.id, label: h2.textContent })
+   })
+
+   links.value = _links
+   targets.value = _targets
+}
+
+watch(container, (c) => (c ? setTargets(c) : resetTargets()), {
+   immediate: true,
+   flush: 'post',
+})
+
+const { setActive, activeId } = useActive(targets)
+</script>
+
+<template>
+   <!-- Content -->
+   <article v-html="data.html" ref="container" />
+
+   <!-- Sidebar -->
+   <nav>
+      <RouterLink
+         v-for="link in links"
+         @click="setActive(link.href)"
+         :key="link.href"
+         :to="{ hash: `#${link.href}` }"
+         :ariaCurrentValue="link.href === activeId"
+         :class="{ 'sidebar-link--active': link.href === activeId }"
+      >
+         {{ link.label }}
+      </RouterLink>
+   </nav>
+</template>
+```
 
 <br />
 
-```js
-const { data } = await useAsyncData('about', () =>
-   queryContent('/about').findOne()
-)
+## Customization
 
-const targets = computed(() =>
-   data.value
-      ? data.value.body.toc.links.flatMap(({ id, children = [] }) => [
-           id,
-           ...children.map(({ id }) => id),
-        ])
-      : []
-)
-
-const { isActive } = useActive(targets)
-```
-
-</details>
-
-</details>
-
-<br />
-
-## 2. Customize the composable (optional)
-
-`useActive` accepts an optional configuration object as its second argument:
+`useActive` accepts an optional configuration object as last argument:
 
 ```js
-const { isActive, setActive } = useActive(targets, {
+const { activeId, setActive } = useActive(targets, {
    // ...
 })
 ```
@@ -205,60 +262,30 @@ const { isActive, setActive } = useActive(targets, {
 | jumpToLast     | `boolean`                                           | true                       | Whether to set the last target as active once reached the bottom even if previous targets are entirely visible.                                                                                                   |
 | boundaryOffset | `BoundaryOffset`                                    | { toTop: 0, toBottom: 0 }  | Boundary offset in px for each scroll direction. Tweak them to "anticipate" or "delay" target detection.                                                                                                          |
 | edgeOffset     | `EdgeOffset`                                        | { first: 100, last: -100 } | Offset in px for fist and last target. `first` has no effect if `jumpToFirst` is true. Same for `last` if `jumpToLast` is true.                                                                                   |
-| root           | `HTMLElement \| null` \| `Ref<HTMLElement \| null>` | null                       | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to documentElement.                                                                                         |
+| root           | `HTMLElement \| null` \| `Ref<HTMLElement \| null>` | null                       | Scrolling element. Set it only if your content **is not scrolled** by the window. If _null_, defaults to _document.documentElement_.                                                                              |
 | replaceHash    | `boolean`                                           | false                      | Whether to replace URL hash on scroll. First target is ignored if `jumpToFirst` is true.                                                                                                                          |
 | overlayHeight  | `number`                                            | 0                          | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
 | minWidth       | `number`                                            | 0                          | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
 
 ### Return object
 
-| Name        | Type                      | Description                                                                          |
-| ----------- | ------------------------- | ------------------------------------------------------------------------------------ |
-| setActive   | `(id: string) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior. |
-| isActive    | `(id: string) => boolean` | Whether the given Id is active or not                                                |
-| activeId    | `Ref<string>`             | Id of the active target                                                              |
-| activeIndex | `Ref<number>`             | Index of the active target in offset order, `0` for the first target and so on.      |
+| Name        | Type                                         | Description                                                                          |
+| ----------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| setActive   | `(id: string \| el: HTMLElement) => void`    | :firecracker: Function to include in your click handler to ensure adaptive behavior. |
+| isActive    | `(id: string \| el: HTMLElement) => boolean` | Whether the given ID or element is active or not                                     |
+| activeEl    | `Ref<HTMLElement \| null>`                   | Active target element                                                                |
+| activeId    | `Ref<string>`                                | Active target ID                                                                     |
+| activeIndex | `Ref<number>`                                | Index of the active target in offset order, `0` for the first target and so on.      |
 
 <br />
 
-## 3. Create your sidebar
-
-### **1.** Call _setActive_ in your click handler by passing the anchor ID
-
-```vue
-<!-- Sidebar.vue -->
-
-<script setup>
-// ...
-
-const { isActive, setActive } = useActive(targets)
-</script>
-
-<template>
-   <nav>
-      <a
-         @click="setActive(link.href) /* 👈🏻 */"
-         v-for="(link, index) in links"
-         :key="link.href"
-         :href="`#${link.href}`"
-      >
-         {{ link.label }}
-      </a>
-   </nav>
-</template>
-```
-
-:bulb: _setActive_ doesn't scroll to targets. It just informs the observer that scroll from click is about to happen so that it can adapt its behavior.
-
-<br />
-
-### **2.** Define scroll behavior
+## Defining scroll behavior
 
 You're free to choose between CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
 
-#### A. Using native CSS scroll-behavior (recommended)
+### CSS scroll-behavior (recommended)
 
--  If content is scrolled by the window, add the following CSS rule to your `html` element:
+-  Content scrolled by the window:
 
 ```css
 html {
@@ -266,21 +293,15 @@ html {
 }
 ```
 
--  If content is scrolled by a container:
+-  Content scrolled by a container:
 
 ```css
-html {
-   scroll-behavior: auto; /* Keep it 'auto' */
-}
-
-.Container {
+.scrolling-container {
    scroll-behavior: smooth;
 }
 ```
 
-<details><summary><strong>B. Custom JS Scroll</strong></summary>
-
-<br />
+### Custom JS scroll
 
 ```vue
 <script setup>
@@ -289,7 +310,7 @@ import animateScrollTo from 'animated-scroll-to'
 
 // ...
 
-const { isActive, setActive } = useActive(targets)
+const { setActive, activeId } = useActive(targets)
 
 function scrollTo(event, id) {
    // ...
@@ -303,122 +324,21 @@ function scrollTo(event, id) {
 </script>
 
 <template>
-   <!-- ... -->
-   <a
-      v-for="(link, index) in links"
+   <button
+      v-for="link in links"
       @click="scrollTo($event, link.href)"
-      :key="link.href"
-      :href="`#${link.href}`"
+      :class="{ 'sidebar-btn--active': link.href === activeId }"
    >
       {{ link.label }}
-   </a>
-   <!-- ... -->
+   </button>
 </template>
 ```
 
-</details>
-
 <br />
 
-### **3.** Use _isActive_ or _activeId_ to style the active link:
+## Vue Router - Scroll to and from hash
 
-> :bulb: If you're playing with transitions simply leverage _activeIndex_.
-
-```vue
-<script setup>
-// ...
-
-const { isActive, setActive } = useActive(targets)
-</script>
-
-<template>
-   <nav>
-      <a
-         @click="setActive(link.href)"
-         v-for="(link, index) in links"
-         :key="link.href"
-         :href="`#${link.href}`"
-         :class="{
-            ActiveLink: isActive(link.href) /* 👈🏻 or link.href === activeId */,
-         }"
-      >
-         {{ link.label }}
-      </a>
-   </nav>
-</template>
-
-<style>
-html {
-   /* or .container { */
-   scroll-behavior: smooth; /* or 'auto' */
-}
-
-.ActiveLink {
-   color: #f00;
-}
-</style>
-```
-
-<details><summary><strong>RouterLink</strong></summary>
-
-<br />
-
-```vue
-<RouterLink
-   @click.native="setActive(link.href)"
-   :to="{ hash: `#${link.href}` }"
-   :class="{
-      active: isActive(link.href),
-   }"
-   :ariaCurrentValue="`${isActive(link.href)}`"
-   activeClass=""
-   exactActiveClass=""
->
-  {{ link.label }}
-</RouterLink>
-```
-
-</details>
-
-<details><summary><strong>NuxtLink</strong></summary>
-
-<br />
-
-```vue
-<NuxtLink
-   @click="setActive(link.href)"
-   :href="`#${link.href}`"
-   :class="{
-      active: isActive(link.href),
-   }"
->
-  {{ link.label }}
-</NuxtLink>
-```
-
-</details>
-
-<br />
-
-## Setting scroll-margin-top for fixed headers
-
-You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. You must add `scroll-margin-top` to your targets:
-
-```js
-useActive(targets, { overlayHeight: 100 })
-```
-
-```css
-.target {
-   scroll-margin-top: 100px; /* Add overlayHeight to scroll-margin-top */
-}
-```
-
-<br />
-
-## Vue Router - Scroll to hash on mount / navigation
-
-> :warning: If using Nuxt 3, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
+> :warning: If using Nuxt, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
 ### Scrolling to hash
 
@@ -462,7 +382,7 @@ const router = createRouter({
             to.name === 'PageNameUsingContainer' &&
             from.name === 'PageNameUsingContainer'
          ) {
-            return document.getElementById('ScrollingContainer').scroll(0, 0)
+            return document.getElementById('scrolling_container').scroll(0, 0)
          }
 
          // Content scrolled by the window
@@ -472,9 +392,7 @@ const router = createRouter({
 })
 ```
 
-<br />
-
-## Vue Router - Prevent hash from being pushed
+### Preventing hash from being pushed
 
 You may noticed that when clicking on a link, a new entry is added to the history. When navigating back, the page will scroll to the previous target and so on.
 
@@ -484,14 +402,30 @@ If you don't like that, choose to replace instead of pushing the hash:
 <template>
    <!-- ... -->
    <RouterLink
-      @click.native="setActive(link.href)"
+      @click="setActive(link.href)"
       :to="{ hash: `#${item.href}`, replace: true /* 👈🏻 */ }"
       :class="{
-         active: isActive(link.href),
+         active: link.href === activeId,
       }"
    />
    <!-- ... -->
 </template>
+```
+
+<br />
+
+## Setting scroll-margin-top for fixed headers
+
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. You must add `scroll-margin-top` to your targets:
+
+```js
+useActive(targets, { overlayHeight: 100 })
+```
+
+```css
+.target {
+   scroll-margin-top: 100px;
+}
 ```
 
 <br />

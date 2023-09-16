@@ -50,7 +50,7 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
 
          <li v-for="item in menuItems" :key="item.href">
             <RouterLink
-               @click.native="onClick(item.href)"
+               @click="onClick(item.href)"
                :ariaCurrentValue="`${isActive(item.href)}`"
                :to="{ hash: `#${item.href}` /* , replace: true */ }"
                :class="{
@@ -73,9 +73,9 @@ const onClick = computed(() => (clickType.value === 'native' ? setActive : custo
    position: absolute;
    left: -10px;
    right: 10px;
-   top: calc(var(--ActiveItemHeight) * var(--ActiveIndex));
+   transform: translateY(calc(var(--ActiveItemHeight) * var(--ActiveIndex)));
    background-color: #00adb538;
-   transition: top 100ms;
+   transition: transform 100ms;
    border-left: 4px solid #00adb5;
    border-radius: 0px 5px 5px 0px;
 }

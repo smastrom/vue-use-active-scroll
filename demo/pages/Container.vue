@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { computed, provide, ref } from 'vue'
-import PageLayout from './_Layout.vue'
+import { onMounted, computed, provide, ref } from 'vue'
 import { useFakeData } from '../useFakeData'
+
+import PageLayout from './_Layout.vue'
 
 const { menuItems, sections, /* Demo purposes => */ pushSection, shiftSection } = useFakeData()
 
-const targets = computed<string[]>(() => sections.map((section) => section.id))
+const targetEls = ref<HTMLElement[]>([])
+// const targetsIds = computed<string[]>(() => sections.map((section) => section.id))
 
 const containerRef = ref<HTMLElement | null>(null)
 
-provide('TOCData', { menuItems, targets, containerRef }) // Injected to TOC.vue
+onMounted(() => {
+   console.log('targetEls', targetEls.value)
+})
+
+provide('TOCData', {
+   menuItems,
+   targets: targetEls,
+   containerRef,
+}) // Injected to TOC.vue
 provide('DemoButtons', { pushSection, shiftSection }) // Injected to DemoControls.vue
 </script>
 
@@ -17,7 +27,7 @@ provide('DemoButtons', { pushSection, shiftSection }) // Injected to DemoControl
    <PageLayout>
       <div ref="containerRef" class="Container">
          <section v-for="section in sections" :key="section.id">
-            <h2 :id="section.id">
+            <h2 ref="targetEls" :id="section.id">
                {{ section.title }}
             </h2>
             <p>{{ section.text }}</p>
