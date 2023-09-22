@@ -1,8 +1,8 @@
 import { Ref } from 'vue'
 
-export declare type Targets = Ref<string[]> | Ref<HTMLElement[]>
+export type Targets = Ref<string[]> | Ref<HTMLElement[]>
 
-export declare type UseActiveOptions = {
+export type UseActiveOptions = {
    root?: Ref<HTMLElement | null> | HTMLElement | null
    jumpToFirst?: boolean
    jumpToLast?: boolean
@@ -18,19 +18,6 @@ export declare type UseActiveOptions = {
       toBottom?: number
    }
 }
-
-export declare type UseActiveReturn = {
-   isActive: (id: string) => boolean
-   setActive: (id: string) => void
-   activeEl: Ref<HTMLElement | null>
-   activeId: Ref<string>
-   activeIndex: Ref<number>
-}
-
-export declare function useActive(
-   userIds: string[] | Ref<string[]>,
-   options?: UseActiveOptions
-): UseActiveReturn
 
 export interface ShortRef<T> extends Ref<T> {
    v: T

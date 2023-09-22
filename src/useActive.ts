@@ -1,4 +1,14 @@
-import { onMounted, unref, watch, isRef, isReactive, onBeforeUnmount, shallowReactive } from 'vue'
+import {
+   onMounted,
+   unref,
+   watch,
+   isRef,
+   isReactive,
+   onBeforeUnmount,
+   shallowReactive,
+   readonly,
+   type ComputedRef,
+} from 'vue'
 import {
    computed,
    ref,
@@ -8,11 +18,10 @@ import {
    FIXED_OFFSET,
    defaultOptions as def,
 } from './utils'
-import type { UseActiveOptions, UseActiveReturn, ShortRef, Targets } from './types'
+import type { UseActiveOptions, ShortRef, Targets } from './types'
 
-export function useActive(
-   userTargets: Targets,
-   {
+export function useActive(userTargets: Targets, options: UseActiveOptions = def) {
+   const {
       root: _root = def.root,
       jumpToFirst = def.jumpToFirst,
       jumpToLast = def.jumpToLast,
@@ -27,8 +36,8 @@ export function useActive(
          first: firstOffset = def.edgeOffset.first,
          last: lastOffset = def.edgeOffset.last,
       } = def.edgeOffset,
-   }: UseActiveOptions = def
-): UseActiveReturn {
+   } = options
+
    /*
     * ====================================================================================
     * Reactivity
@@ -89,6 +98,8 @@ export function useActive(
     * ==================================================================================== */
 
    function prepareTargets() {
+      if (isSSR) return
+
       let _targets = <HTMLElement[]>[]
 
       if (userTargets.value[0] instanceof HTMLElement) {
@@ -420,6 +431,8 @@ export function useActive(
    watch(
       [isScrollIdle, matchMedia, root, userTargets],
       ([_isScrollIdle, _matchMedia, _root, _userTargets], _, onCleanup) => {
+         if (isSSR) return
+
          const rootEl = isWindow.v ? document : _root
          const isActive = rootEl && _isScrollIdle && _matchMedia && _userTargets.length > 0
 
@@ -461,18 +474,20 @@ export function useActive(
     * ==================================================================================== */
 
    function isActive(target: string | HTMLElement) {
-      if (target instanceof HTMLElement) return target === activeEl.v
-      if (typeof target === 'string') return target === activeId.v
+      if (isSSR) return false
 
+      if (typeof target === 'string') return target === activeId.v
+      if (target instanceof HTMLElement) return target === activeEl.v
       return false
    }
 
    function _setActive(target: string | HTMLElement) {
-      if (target instanceof HTMLElement) activeEl.v = target
+      if (isSSR) return
 
       if (typeof target === 'string') {
          activeEl.v = targets.els.find(({ id }) => id === target) || null
       }
+      if (target instanceof HTMLElement) activeEl.v = target
 
       isScrollFromClick.v = true
    }
@@ -480,7 +495,7 @@ export function useActive(
    return {
       isActive,
       setActive: _setActive,
-      activeEl,
+      activeEl: readonly(activeEl) as ComputedRef<HTMLElement | null>,
       activeId,
       activeIndex,
    }

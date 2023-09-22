@@ -56,6 +56,12 @@ Moreover, this package is meant for highlighting links in vertical sidebars and 
 
 <br />
 
+## Requirements
+
+If scrolling to anchors, Vue Router (RouterLink / NuxtLink) is required.
+
+<br />
+
 ## Installation
 
 ```bash
@@ -84,7 +90,9 @@ The composable returns an object with properties to react to the active link and
 const { setActive, activeId, activeIndex /*, ... */ } = useActiveScroll(targets)
 ```
 
-> :warning: In case you setup `vue-router` from scratch (e.g. Vite SPA), please make sure that you have configured [scroll behavior](#vue-router---scroll-to-and-from-hash) in your router instance. This is not required if using Nuxt.
+> :warning: In case you setup Vue Router from scratch (e.g. Vite SPA), please make sure that you have configured [scroll behavior](#vue-router---scroll-to-and-from-hash) in your router instance.
+>
+> This is not required if using Nuxt as it's already configured by the framework.
 
 ---
 
@@ -143,7 +151,7 @@ Since the object is reactive and kept in sync with the content, you can directly
 
 ```vue
 <script setup lang="ts">
-import { useActive } from 'vue-use-active-scroll'
+import { useActiveScroll } from 'vue-use-active-scroll'
 
 const { toc } = useContent()
 
@@ -155,7 +163,7 @@ const ids = computed(() =>
    ])
 )
 
-const { setActive, activeId } = useActive(ids)
+const { setActive, activeId } = useActiveScroll(ids)
 </script>
 
 <template>
@@ -180,9 +188,9 @@ const { setActive, activeId } = useActive(ids)
 
 In this case, you must query the DOM in an `onMounted` hook or a watcher in order to get the targets.
 
-Many CMSs already append IDs to the markup headings. In case yours doesn't, you can add them manually.
+Many CMSs already append IDs to markup headings. In case yours doesn't, you can add them manually.
 
-The below example shows also how to collect the links to render in the sidebar.
+The below example also shows how to compute the sidebar links in case you are not able to retrieve them in advance in order to cover the worst case scenario.
 
 ```vue
 <script setup>
@@ -221,7 +229,7 @@ watch(container, (c) => (c ? setTargets(c) : resetTargets()), {
    flush: 'post',
 })
 
-const { setActive, activeId } = useActive(targets)
+const { setActive, activeId } = useActiveScroll(targets)
 </script>
 
 <template>
@@ -248,10 +256,10 @@ const { setActive, activeId } = useActive(targets)
 
 ## Customization
 
-`useActive` accepts an optional configuration object as last argument:
+`useActiveScroll` accepts an optional configuration object as last argument:
 
 ```js
-const { activeId, setActive } = useActive(targets, {
+const { activeId, setActive } = useActiveScroll(targets, {
    // ...
 })
 ```
@@ -305,12 +313,12 @@ html {
 
 ```vue
 <script setup>
-import { useActive } from 'vue-use-active-scroll'
+import { useActiveScroll } from 'vue-use-active-scroll'
 import animateScrollTo from 'animated-scroll-to'
 
 // ...
 
-const { setActive, activeId } = useActive(targets)
+const { setActive, activeId } = useActiveScroll(targets)
 
 function scrollTo(event, id) {
    // ...
@@ -336,11 +344,11 @@ function scrollTo(event, id) {
 
 <br />
 
-## Vue Router - Scroll to and from hash
+## Vue Router - Scroll to and from anchors
 
-> :warning: If using Nuxt, Vue Router is already configured to scroll to and from URL hash on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
+> :warning: If using Nuxt, Vue Router is already configured to scroll to and from anchors on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
 
-### Scrolling to hash
+### Scrolling to anchors
 
 For content scrolled by the window, simply return the target element. To scroll to a target scrolled by a container, use _scrollIntoView_ method.
 
@@ -368,9 +376,9 @@ const router = createRouter({
 
 > :bulb: There's no need need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
-### Scrolling from hash back to the top of the page
+### Scrolling from anchor back to the top of the page
 
-To navigate back to the top of the same page (e.g. clicking on browser back button from a hash to the page root), use the _scroll_ method for containers and return _top_ for content scrolled by the window.
+To navigate back to the top of the same page (e.g. clicking on browser's back button from hash to the page root), use the _scroll_ method for containers and return _top_ for content scrolled by the window.
 
 ```js
 const router = createRouter({
@@ -414,12 +422,40 @@ If you don't like that, choose to replace instead of pushing the hash:
 
 <br />
 
+## Server-side rendering
+
+Since `useActiveScroll` won't kick in until the page is hydrated, if you're using Nuxt, you might want to render the first link as active if on the server.
+
+```vue
+<script setup>
+const isSSR = ref(true)
+
+onMounted(() => (isSSR.value = false))
+</script>
+
+<template>
+   <nav>
+      <RouterLink
+         v-for="(link, idx) in links"
+         :class="{
+            'sidebar-link--active':
+               (isSSR && idx === 0) || link.href === activeId,
+         }"
+      >
+         {{ link.label }}
+      </RouterLink>
+   </nav>
+</template>
+```
+
+<br />
+
 ## Setting scroll-margin-top for fixed headers
 
 You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. You must add `scroll-margin-top` to your targets:
 
 ```js
-useActive(targets, { overlayHeight: 100 })
+useActiveScroll(targets, { overlayHeight: 100 })
 ```
 
 ```css

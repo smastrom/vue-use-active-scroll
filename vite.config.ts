@@ -1,27 +1,20 @@
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import terser from '@rollup/plugin-terser'
 
-const appConfig = {
-   root: 'demo',
-   server: {
-      open: '/',
-   },
-}
+import vue from '@vitejs/plugin-vue'
+import dts from 'vite-plugin-dts'
+import terser from '@rollup/plugin-terser'
 
 export default defineConfig(({ mode }) => {
    if (mode === 'app') {
-      return { ...appConfig, plugins: [vue()] }
+      return { plugins: [vue()] }
    }
    return {
-      ...appConfig,
       build: {
-         outDir: '../dist',
          emptyOutDir: true,
-         minify: 'terser',
+
          lib: {
-            entry: '../src/useActive.ts',
-            name: 'VueUseActiveScroll',
+            entry: 'src/index.ts',
+            name: 'vue-use-active-scroll',
             fileName: 'index',
             formats: ['es', 'cjs'],
          },
@@ -42,6 +35,11 @@ export default defineConfig(({ mode }) => {
             ],
          },
       },
-      plugins: [vue()],
+      plugins: [
+         dts({
+            rollupTypes: true,
+         }),
+         vue(),
+      ],
    }
 })
