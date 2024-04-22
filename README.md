@@ -97,7 +97,7 @@ html {
 }
 ```
 
-> Later on, see the [Scroll Behavior Section](#configure-scrollbehavior) for additional scroll configurations or on how to use JS-based scrolling.
+> Later on, see the [Scroll Behavior Section](#scroll-behavior-and-types) for additional scroll configurations or on how to use JS-based scrolling.
 
 <br />
 
