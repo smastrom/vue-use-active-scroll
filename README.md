@@ -3,20 +3,14 @@
 
 # Vue Use Active Scroll
 
-[Live Demo](https://vue-use-active-scroll.netlify.app/)
-
-<br />
-
-**Examples**
-
-[With Template Refs](https://stackblitz.com/edit/vitejs-vite-sywzg8?file=src%252Fpages%252FIndex.vue) - [Nuxt Content Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue) - [Markup from a CMS](https://stackblitz.com/edit/vitejs-vite-9feebm?file=src%252Fpages%252FIndex.vue)
+[Live Demo](https://vue-use-active-scroll.netlify.app/) — Examples: [With Template Refs](https://stackblitz.com/edit/vitejs-vite-sywzg8?file=src%252Fpages%252FIndex.vue) - [Nuxt Content Nested TOC](https://stackblitz.com/edit/github-oh85gq?file=components%2FSidebar.vue)
 
 <br />
 
 ## Why?
 
 The [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) is a great API.
-But it may not be the one-size-fits-all solution to highlight nav/sidebar links. Most likely because you want to:
+But it may not be the one-size-fits-all solution to highlight TOC/sidebar links as it makes hard if not impossible to:
 
 -  Highlight any clicked link even if it will never intersect
 -  Always highlight first/last link once reached the top/bottom of the page
@@ -28,11 +22,9 @@ But it may not be the one-size-fits-all solution to highlight nav/sidebar links.
 
 ### Do you really need it?
 
-If you don't care about the above gotchas, then no, please **don't use this package** because it adds a couple of KBs to your JS bundle that you don't need.
+If you and your users don't care about the above gotchas, then no, please **don't use this package** because it adds a couple of unnecessary KBs to your bundle.
 
-You can achieve a good result with the Intersection Observer API as well. The [Astro docs TOC](https://github.com/withastro/docs/blob/main/src/components/RightSidebar/TableOfContents.tsx) is a great example in just 30 lines of code.
-
-Moreover, this package is meant for highlighting links in vertical sidebars and may be overkill for other use cases lik menu header links.
+You can achieve an acceptable result with the Intersection Observer API as well. Alternatively, you can build an accurate scroll observer that acts similar to this package by looking at the [SvelteKit Website's TOC](https://github.com/sveltejs/site-kit/blob/master/packages/site-kit/src/lib/docs/DocsOnThisPage.svelte) source code in 100-150 lines of code.
 
 <br />
 
@@ -56,13 +48,9 @@ Moreover, this package is meant for highlighting links in vertical sidebars and 
 
 <br />
 
-## Requirements
+## Getting Started
 
-If scrolling to anchors, Vue Router (RouterLink / NuxtLink) is required.
-
-<br />
-
-## Installation
+### Installation
 
 ```bash
 pnpm add vue-use-active-scroll
@@ -71,6 +59,45 @@ pnpm add vue-use-active-scroll
 # npm i vue-use-active-scroll
 # bun add vue-use-active-scroll
 ```
+
+> [!WARNING]
+> If you plan to use this package with scroll to anchors (e.g. docs TOC) and you're not using Nuxt, Vue Router is required and `scrollBehavior` must be configured in the router instance by following the next section.
+
+### Configure `scrollBehavior`
+
+> [!NOTE]
+> If using **Nuxt**, you can skip to the [next section](#set-css-scroll-behavior) as it's already taken care for you by the framework.
+
+As explained in the above warning, Vue Router needs to be configured in order to scroll to anchors.
+
+```js
+const router = createRouter({
+   // Add this method 👇
+   scrollBehavior(to) {
+      if (to.hash) {
+         return {
+            el: to.hash,
+         }
+      }
+   },
+})
+```
+
+The above is the bare minimum required to get started and it will make sure that when clicking on a `RouterLink` that has an anchor in its `href` the window will scroll to that element.
+
+> Later on, see the [Vue Router Section](#vue-router---additional-configurations) for additional configurations (container scroll, fixed header offsets, etc.).
+
+### Set CSS `scroll-behavior`
+
+Somewhere in your global CSS, add the following rule to enable smooth scrolling:
+
+```css
+html {
+   scroll-behavior: smooth; /* or 'auto' if you prefer instant scrolling */
+}
+```
+
+> Later on, see the [Scroll Behavior Section](#configure-scrollbehavior) for additional scroll configurations or on how to use JS-based scrolling.
 
 <br />
 
@@ -89,10 +116,6 @@ The composable returns an object with properties to react to the active link and
 ```ts
 const { setActive, activeId, activeIndex /*, ... */ } = useActiveScroll(targets)
 ```
-
-> :warning: In case you setup Vue Router from scratch (e.g. Vite SPA), please make sure that you have configured [scroll behavior](#vue-router---scroll-to-and-from-hash) in your router instance.
->
-> This is not required if using Nuxt as it's already configured by the framework.
 
 ---
 
@@ -184,7 +207,10 @@ const { setActive, activeId } = useActiveScroll(ids)
 </template>
 ```
 
-### Scenario 3 - Incoming HTML
+<details>
+   <summary>
+      <h3>Scenario 3 - Incoming HTML</h3>
+   </summary>
 
 In this case, you must query the DOM in an `onMounted` hook or a watcher in order to get the targets.
 
@@ -252,9 +278,13 @@ const { setActive, activeId } = useActiveScroll(targets)
 </template>
 ```
 
+</details>
+
 <br />
 
 ## Customization
+
+### `useActiveScroll` options
 
 `useActiveScroll` accepts an optional configuration object as last argument:
 
@@ -275,7 +305,7 @@ const { activeId, setActive } = useActiveScroll(targets, {
 | overlayHeight  | `number`                                            | 0                          | Height in pixels of any **CSS fixed** content that overlaps the top of your scrolling area (e.g. fixed header). Must be paired with a CSS [scroll-margin-top](#setting-scroll-margin-top-for-fixed-headers) rule. |
 | minWidth       | `number`                                            | 0                          | Whether to toggle listeners and functionalities within a specific width. Useful if hiding the sidebar using `display: none`.                                                                                      |
 
-### Return object
+#### Return object
 
 | Name        | Type                                         | Description                                                                          |
 | ----------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -285,13 +315,11 @@ const { activeId, setActive } = useActiveScroll(targets, {
 | activeId    | `Ref<string>`                                | Active target ID                                                                     |
 | activeIndex | `Ref<number>`                                | Index of the active target in offset order, `0` for the first target and so on.      |
 
-<br />
+### Scroll behavior and types
 
-## Defining scroll behavior
+You're free to choose between CSS _scroll-behavior_ (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a JS library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
 
-You're free to choose between CSS (smooth or auto), [scrollIntoView](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView) or even a library like [animated-scroll-to](https://github.com/Stanko/animated-scroll-to).
-
-### CSS scroll-behavior (recommended)
+#### CSS (recommended)
 
 -  Content scrolled by the window:
 
@@ -309,7 +337,7 @@ html {
 }
 ```
 
-### Custom JS scroll
+<details><summary><h4>JS-based scroll</h4></summary>
 
 ```vue
 <script setup>
@@ -342,15 +370,13 @@ function scrollTo(event, id) {
 </template>
 ```
 
-<br />
+</details>
 
-## Vue Router - Scroll to and from anchors
+### Vue Router - Additional Configurations
 
-> :warning: If using Nuxt, Vue Router is already configured to scroll to and from anchors on page load or back/forward navigation. **So you don't need to do follow the steps below**. Otherwise rules must be defined manually.
+#### Scrolling to anchors inside a container
 
-### Scrolling to anchors
-
-For content scrolled by the window, simply return the target element. To scroll to a target scrolled by a container, use _scrollIntoView_ method.
+To scroll to a target inside of a container, use _scrollIntoView_ method and pass the target's ID.
 
 ```js
 const router = createRouter({
@@ -376,7 +402,7 @@ const router = createRouter({
 
 > :bulb: There's no need need to set overlayHeight if using `scrollIntoView` as the method is aware of target's `scroll-margin-top` property.
 
-### Scrolling from anchor back to the top of the page
+#### Scrolling from anchors back to the page root
 
 To navigate back to the top of the same page (e.g. clicking on browser's back button from hash to the page root), use the _scroll_ method for containers and return _top_ for content scrolled by the window.
 
@@ -400,11 +426,11 @@ const router = createRouter({
 })
 ```
 
-### Preventing hash from being pushed
+#### Preventing the hash from being pushed
 
 You may noticed that when clicking on a link, a new entry is added to the history. When navigating back, the page will scroll to the previous target and so on.
 
-If you don't like that, choose to replace instead of pushing the hash:
+To disable this, choose to replace instead of pushing the hash:
 
 ```vue
 <template>
@@ -420,11 +446,23 @@ If you don't like that, choose to replace instead of pushing the hash:
 </template>
 ```
 
-<br />
+### Setting scroll-margin-top for fixed headers
 
-## Server-side rendering
+You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. In this case, add `scroll-margin-top` to your targets:
 
-Since `useActiveScroll` won't kick in until the page is hydrated, if you're using Nuxt, you might want to render the first link as active if on the server.
+```js
+useActiveScroll(targets, { overlayHeight: 100 })
+```
+
+```css
+.target {
+   scroll-margin-top: 100px;
+}
+```
+
+### Server-side rendering
+
+Since `useActiveScroll` won't kick in until the page is hydrated, you probably want to render the first link as active on the server.
 
 ```vue
 <script setup>
@@ -446,22 +484,6 @@ onMounted(() => (isSSR.value = false))
       </RouterLink>
    </nav>
 </template>
-```
-
-<br />
-
-## Setting scroll-margin-top for fixed headers
-
-You might noticed that if you have a fixed header and defined an `overlayHeight`, once clicked to scroll, the target may be underneath the header. You must add `scroll-margin-top` to your targets:
-
-```js
-useActiveScroll(targets, { overlayHeight: 100 })
-```
-
-```css
-.target {
-   scroll-margin-top: 100px;
-}
 ```
 
 <br />
