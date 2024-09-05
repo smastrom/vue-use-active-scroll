@@ -14,9 +14,10 @@ import {
    ref,
    getEdges,
    useMediaRef,
+   isScrollbarClick,
    isSSR,
-   FIXED_OFFSET,
    defaultOptions as def,
+   FIXED_OFFSET,
 } from './utils'
 import type { UseActiveOptions, ShortRef, Targets } from './types'
 
@@ -134,13 +135,19 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
     * Utils - Scroll
     * ==================================================================================== */
 
-   function setActive({ prevY, isCancel = false }: { prevY: number; isCancel?: boolean }) {
+   function setActive({
+      prevY,
+      isScrollCancel = false,
+   }: {
+      prevY: number
+      isScrollCancel?: boolean
+   }) {
       const nextY = getCurrentY()
 
       if (nextY < prevY) {
          onScrollUp()
       } else {
-         onScrollDown({ isCancel })
+         onScrollDown({ isScrollCancel })
       }
 
       return nextY
@@ -163,7 +170,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
    }
 
    // Sets first target-top that LEFT the root
-   function onScrollDown({ isCancel } = { isCancel: false }) {
+   function onScrollDown({ isScrollCancel } = { isScrollCancel: false }) {
       let firstOutEl = jumpToFirst ? targets.els[0] : null
 
       const sentinel = getSentinel()
@@ -196,7 +203,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
       if (isNext || (firstOutEl && !activeEl.v)) return (activeEl.v = firstOutEl)
 
       // ...but not on scroll cancel
-      if (isCancel) activeEl.v = firstOutEl
+      if (isScrollCancel) activeEl.v = firstOutEl
    }
 
    // Sets first target-bottom that ENTERED the root
@@ -345,13 +352,15 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
 
    function onScrollCancel(event: PointerEvent) {
       const isAnchor = (event.target as HTMLElement).tagName === 'A'
+      const isFireFox = window.CSS.supports('-moz-appearance', 'none')
+      const isScrollbar = isScrollbarClick(event)
 
-      if (!isAnchor) {
+      if ((isFireFox || isScrollbar) && !isAnchor) {
          const { isBottom, isTop } = getEdges(root.v)
 
          if (!isTop && !isBottom) {
             restoreHighlight()
-            setActive({ prevY: clickStartY.v, isCancel: true })
+            setActive({ prevY: clickStartY.v, isScrollCancel: true })
          }
       }
    }

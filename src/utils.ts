@@ -69,6 +69,12 @@ export function getEdges(root: HTMLElement) {
    }
 }
 
+export function isScrollbarClick(event: PointerEvent) {
+   console.log('isScrollbarClick', event.clientX >= window.innerWidth - 17)
+
+   return event.clientX >= window.innerWidth - 17
+}
+
 export const defaultOptions = {
    jumpToFirst: true,
    jumpToLast: true,
