@@ -62,10 +62,10 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
    // Controls
 
    const matchMedia = ref(isSSR || window.matchMedia(`(min-width: ${minWidth}px)`).matches)
-   const isScrollFromClick = useMediaRef(matchMedia, false)
+   const isScrollFromTarget = useMediaRef(matchMedia, false)
    const isScrollIdle = ref(false)
 
-   const clickStartY = computed(() => (isScrollFromClick.v ? getCurrentY() : 0))
+   const clickStartY = computed(() => (isScrollFromTarget.v ? getCurrentY() : 0))
 
    // Returned
 
@@ -231,7 +231,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
    }
 
    function onScroll() {
-      if (!isScrollFromClick.v) {
+      if (!isScrollFromTarget.v) {
          prevY = setActive({ prevY })
          onEdgeReached()
       }
@@ -250,20 +250,20 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
          if (rafPrevY !== rafNextY) {
             frameCount = 0
             rafPrevY = rafNextY
-            return requestAnimationFrame(scrollEnd)
+            return window.requestAnimationFrame(scrollEnd)
          }
 
          // Wait for n frames after scroll to make sure is idle
          if (frameCount === maxFrames) {
             isScrollIdle.v = true
-            isScrollFromClick.v = false
+            isScrollFromTarget.v = false
             cancelAnimationFrame(rafId as DOMHighResTimeStamp)
          } else {
-            requestAnimationFrame(scrollEnd)
+            window.requestAnimationFrame(scrollEnd)
          }
       }
 
-      rafId = requestAnimationFrame(scrollEnd)
+      rafId = window.requestAnimationFrame(scrollEnd)
    }
 
    function setMountIdle() {
@@ -316,7 +316,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
       resizeObserver = new ResizeObserver(() => {
          if (!skipObserverCallback) {
             prepareTargets()
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
                if (!onEdgeReached()) onScrollDown()
             })
          } else {
@@ -336,17 +336,17 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
     * ==================================================================================== */
 
    function restoreHighlight() {
-      isScrollFromClick.v = false
+      isScrollFromTarget.v = false
    }
 
    function onSpaceBar(event: KeyboardEvent) {
       if (event.code === 'Space') restoreHighlight()
    }
 
-   function onFirefoxCancel(event: PointerEvent) {
+   function onScrollCancel(event: PointerEvent) {
       const isAnchor = (event.target as HTMLElement).tagName === 'A'
 
-      if (CSS.supports('-moz-appearance', 'none') && !isAnchor) {
+      if (!isAnchor) {
          const { isBottom, isTop } = getEdges(root.v)
 
          if (!isTop && !isBottom) {
@@ -364,7 +364,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
       window.addEventListener('resize', onWindowResize, { passive: true })
 
       // https://github.com/nuxt/content/issues/1799
-      await new Promise((resolve) => setTimeout(resolve))
+      await new Promise((resolve) => window.setTimeout(resolve))
 
       if (matchMedia.v) {
          prepareTargets()
@@ -451,19 +451,19 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
       ['touchmove', restoreHighlight, { once: true }],
       ['keydown', onSpaceBar as EventListener, { once: true }],
       ['scroll', setIdleScroll as unknown as EventListener, { passive: true, once: true }],
-      ['pointerdown', onFirefoxCancel as EventListener], // Must persist until next scroll
+      ['pointerdown', onScrollCancel as EventListener], // Must persist until next scroll
    ] as const
 
-   watch(isScrollFromClick, (_isScrollFromClick, _, onCleanup) => {
+   watch(isScrollFromTarget, (_isScrollFromTarget, _, onCleanup) => {
       const rootEl = isWindow.v ? document : root.v
       const hasTargets = userTargets.value.length > 0
 
-      if (_isScrollFromClick && hasTargets) {
+      if (_isScrollFromTarget && hasTargets) {
          events.forEach(([e, cb, options]) => rootEl.addEventListener(e, cb, options))
       }
 
       onCleanup(() => {
-         if (_isScrollFromClick && hasTargets) {
+         if (_isScrollFromTarget && hasTargets) {
             events.forEach(([e, cb]) => rootEl.removeEventListener(e, cb))
          }
       })
@@ -484,12 +484,18 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
    function _setActive(target: string | HTMLElement) {
       if (isSSR) return
 
-      if (typeof target === 'string') {
-         activeEl.v = targets.els.find(({ id }) => id === target) || null
-      }
-      if (target instanceof HTMLElement) activeEl.v = target
+      let sourceTarget = null as HTMLElement | null
 
-      isScrollFromClick.v = true
+      if (typeof target === 'string') {
+         sourceTarget = targets.els.find(({ id }) => id === target) || null
+      } else if (target instanceof HTMLElement) {
+         sourceTarget = targets.els.find((el) => el === target) || null
+      }
+
+      if (sourceTarget) {
+         activeEl.v = sourceTarget
+         isScrollFromTarget.v = true
+      }
    }
 
    return {
