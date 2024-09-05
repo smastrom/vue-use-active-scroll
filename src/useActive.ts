@@ -352,15 +352,18 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
 
    function onScrollCancel(event: PointerEvent) {
       const isAnchor = (event.target as HTMLElement).tagName === 'A'
-      const isFireFox = window.CSS.supports('-moz-appearance', 'none')
-      const isScrollbar = isScrollbarClick(event)
 
-      if ((isFireFox || isScrollbar) && !isAnchor) {
-         const { isBottom, isTop } = getEdges(root.v)
+      if (!isAnchor) {
+         const isFireFox = window.CSS.supports('-moz-appearance', 'none')
+         const isScrollbar = isScrollbarClick(event)
 
-         if (!isTop && !isBottom) {
-            restoreHighlight()
-            setActive({ prevY: clickStartY.v, isScrollCancel: true })
+         if (isFireFox || isScrollbar) {
+            const { isBottom, isTop } = getEdges(root.v)
+
+            if (!isTop && !isBottom) {
+               restoreHighlight()
+               setActive({ prevY: clickStartY.v, isScrollCancel: true })
+            }
          }
       }
    }
