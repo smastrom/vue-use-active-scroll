@@ -1,6 +1,15 @@
 name: Tests
 
-on: [push, pull_request]
+on:
+   pull_request:
+      branches:
+         - main
+   push:
+      branches:
+         - main
+      tags-ignore:
+         - '*'
+   workflow_call:
 
 jobs:
    cypress-run:
@@ -9,7 +18,7 @@ jobs:
          - uses: actions/checkout@v3
          - uses: actions/setup-node@v3
            with:
-              node-version: '16.x'
+              node-version: '21.x'
          - name: Install dependencies
            run: yarn
          - name: Install Linux Webkit deps
