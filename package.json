@@ -1,6 +1,6 @@
 {
    "name": "vue-use-active-scroll",
-   "version": "1.1.1",
+   "version": "1.1.2",
    "private": false,
    "description": "Accurate TOC/sidebar links without compromises for Vue 3.",
    "keywords": [
@@ -49,18 +49,18 @@
       "*.{ts,vue,md}": "prettier --write"
    },
    "devDependencies": {
-      "@rollup/plugin-terser": "^0.4.3",
-      "@types/node": "^20.6.3",
-      "@vitejs/plugin-vue": "^4.3.4",
+      "@rollup/plugin-terser": "^0.4.4",
+      "@types/node": "^22.5.4",
+      "@vitejs/plugin-vue": "^4.6.2",
       "animated-scroll-to": "^2.3.0",
-      "cypress": "^13.2.0",
+      "cypress": "^13.14.2",
       "husky": "^8.0.3",
-      "prettier": "^3.0.3",
-      "typescript": "^5.2.2",
+      "prettier": "^3.3.3",
+      "typescript": "^5.5.4",
       "vite": "4.4.9",
-      "vite-plugin-dts": "^3.5.4",
-      "vue": "^3.3.4",
-      "vue-router": "^4.2.4",
-      "vue-tsc": "^1.8.13"
+      "vite-plugin-dts": "^3.9.1",
+      "vue": "^3.4.38",
+      "vue-router": "^4.4.3",
+      "vue-tsc": "^2.1.6"
    }
 }
