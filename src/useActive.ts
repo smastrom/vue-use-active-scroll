@@ -355,15 +355,11 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
 
       if (!isAnchor) {
          const isFireFox = window.CSS.supports('-moz-appearance', 'none')
-         const isScrollbar = isScrollbarClick(event)
+         const isScrollbar = isScrollbarClick(event, root.v)
 
          if (isFireFox || isScrollbar) {
-            const { isBottom, isTop } = getEdges(root.v)
-
-            if (!isTop && !isBottom) {
-               restoreHighlight()
-               setActive({ prevY: clickStartY.v, isScrollCancel: true })
-            }
+            restoreHighlight()
+            setActive({ prevY: clickStartY.v, isScrollCancel: true })
          }
       }
    }
