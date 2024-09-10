@@ -69,7 +69,7 @@ export function getEdges(root: HTMLElement) {
    }
 }
 
-export const isScrollbarClick = (event: PointerEvent, root: HTMLElement) => {
+export function isScrollbarClick(event: PointerEvent, root: HTMLElement) {
    const containerWidth = root === document.documentElement ? window.innerWidth : root.clientWidth
    return event.clientX >= containerWidth - 17
 }
