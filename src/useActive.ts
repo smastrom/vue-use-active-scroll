@@ -226,7 +226,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
          if (firstInEl === targets.els[0]) {
             const firstTop = targets.top.values().next().value
 
-            if (sentinel + firstTop > offset + firstOffset) return (activeEl.v = null)
+            if (firstTop && sentinel + firstTop > offset + firstOffset) return (activeEl.v = null)
          }
       }
 
