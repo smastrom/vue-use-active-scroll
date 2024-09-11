@@ -226,7 +226,7 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
          if (firstInEl === targets.els[0]) {
             const firstTop = targets.top.values().next().value
 
-            if (sentinel + firstTop > offset + firstOffset) return (activeEl.v = null)
+            if (firstTop && sentinel + firstTop > offset + firstOffset) return (activeEl.v = null)
          }
       }
 
@@ -355,15 +355,11 @@ export function useActive(userTargets: Targets, options: UseActiveOptions = def)
 
       if (!isAnchor) {
          const isFireFox = window.CSS.supports('-moz-appearance', 'none')
-         const isScrollbar = isScrollbarClick(event)
+         const isScrollbar = isScrollbarClick(event, root.v)
 
          if (isFireFox || isScrollbar) {
-            const { isBottom, isTop } = getEdges(root.v)
-
-            if (!isTop && !isBottom) {
-               restoreHighlight()
-               setActive({ prevY: clickStartY.v, isScrollCancel: true })
-            }
+            restoreHighlight()
+            setActive({ prevY: clickStartY.v, isScrollCancel: true })
          }
       }
    }
